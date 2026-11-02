@@ -1,1 +1,1 @@
-"""Pipeline logic with no Blender dependency: config, paths, entities, versioning."""
+"""Pipeline logic with no Blender dependency: config, naming, paths, metadata, entities."""

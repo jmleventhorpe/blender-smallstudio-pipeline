@@ -3,9 +3,9 @@
 Publishing, loading and scene construction for one person or a small team, entirely
 inside Blender. Built for an animated comic series, with nothing studio-specific baked in.
 
-> **Status: early.** The design is settled and the Blender behaviour it depends on has been
-> tested (see [spikes](spikes/RESULTS.md)). The tool itself is being built milestone by
-> milestone; nothing is usable in production yet.
+> **Status: early.** The design is settled, the Blender behaviour it depends on has been
+> tested (see [spikes](spikes/RESULTS.md)), and the core (config, paths, entities) is built.
+> The Blender side comes next; nothing is usable in production yet.
 
 ## What it does
 
@@ -40,11 +40,28 @@ flowchart LR
     lighting -- "renders" --> edit
 ```
 
+## Using the core
+
+```python
+from pathlib import Path
+from smallstudio_pipeline.core.entities import Project
+
+project = Project.create(Path("/mnt/show"))
+hero = project.create_asset("character", "hero")
+hero.workfile_path("rigging", hero.next_workfile_version("rigging"))
+# /mnt/show/assets/character/hero/rigging/work/hero_rigging_v001.blend
+
+shot = project.create_sequence(episode="010").create_shot()
+shot.render_path("lighting", 1)
+# /mnt/show/shots/010_010_0010/lighting/render/v001
+```
+
 ## Layout of the code
 
 | Path | What's there |
 | --- | --- |
-| `src/smallstudio_pipeline/core/` | Pipeline logic with no Blender imports: config, paths, entities, versioning. Tested in plain Python. |
+| `src/smallstudio_pipeline/core/` | Pipeline logic with no Blender imports: config, path templates, naming, metadata, entities. Tested in plain Python. |
+| `src/smallstudio_pipeline/defaults.toml` | Built-in settings: asset types, tasks, naming, path templates. A project's `pipeline.toml` overrides any of them. |
 | `src/smallstudio_pipeline/blender/` | The thin Blender layer: operators, menus, panels. Tested in headless Blender. |
 | `tests/core/`, `tests/blender/` | The two test suites. |
 | `spikes/` | Scripts that tested the Blender behaviour the design relies on, with [results](spikes/RESULTS.md). |

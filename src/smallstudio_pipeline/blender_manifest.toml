@@ -16,4 +16,4 @@ license = ["SPDX:GPL-3.0-or-later"]
 files = "Read and write project workfiles, publishes and metadata"
 
 [build]
-paths_exclude_pattern = ["__pycache__/", "ruff.toml"]
+paths_exclude_pattern = ["__pycache__/", ".ruff_cache/", "ruff.toml"]
