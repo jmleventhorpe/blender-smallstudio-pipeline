@@ -9,6 +9,7 @@ from typing import Any
 
 from .errors import MetadataError
 from .files import write_atomic
+from .reading import get, get_names
 
 # Bump when the file layout changes, and teach from_dict to read the old one.
 SCHEMA = 1
@@ -24,9 +25,9 @@ class AssetMetadata:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> AssetMetadata:
         return cls(
-            name=_get(data, "name", str),
-            asset_type=_get(data, "asset_type", str),
-            tasks=_get_names(data, "tasks"),
+            name=get(data, "name", str),
+            asset_type=get(data, "asset_type", str),
+            tasks=get_names(data, "tasks"),
             schema=_schema(data),
         )
 
@@ -38,7 +39,7 @@ class SequenceMetadata:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SequenceMetadata:
-        return cls(code=_get(data, "code", str), schema=_schema(data))
+        return cls(code=get(data, "code", str), schema=_schema(data))
 
 
 @dataclass
@@ -60,18 +61,18 @@ class ShotMetadata:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ShotMetadata:
-        casting = _get(data, "casting", list, default=[])
+        casting = get(data, "casting", list, default=[])
         return cls(
-            code=_get(data, "code", str),
-            frame_start=_get(data, "frame_start", int, default=None),
-            frame_end=_get(data, "frame_end", int, default=None),
-            cut_in=_get(data, "cut_in", int, default=None),
-            cut_out=_get(data, "cut_out", int, default=None),
+            code=get(data, "code", str),
+            frame_start=get(data, "frame_start", int, default=None),
+            frame_end=get(data, "frame_end", int, default=None),
+            cut_in=get(data, "cut_in", int, default=None),
+            cut_out=get(data, "cut_out", int, default=None),
             casting=[
-                CastEntry(_get(entry, "asset", str), _get(entry, "instance_id", str))
+                CastEntry(get(entry, "asset", str), get(entry, "instance_id", str))
                 for entry in casting
             ],
-            omitted=_get(data, "omitted", bool, default=False),
+            omitted=get(data, "omitted", bool, default=False),
             schema=_schema(data),
         )
 
@@ -98,33 +99,8 @@ def write_metadata(path: Path, metadata: AssetMetadata | SequenceMetadata | Shot
     write_atomic(path, json.dumps(asdict(metadata), indent=2) + "\n")
 
 
-_MISSING = object()
-_KIND_NAMES = {str: "text", int: "a whole number", bool: "true or false", list: "a list"}
-
-
-def _get(data: Any, key: str, kind: type, default: Any = _MISSING) -> Any:
-    if not isinstance(data, dict):
-        raise ValueError(f"expected an object with '{key}', found {data!r}")
-    if key not in data or (data[key] is None and default is None):
-        if default is _MISSING:
-            raise ValueError(f"'{key}' is missing")
-        return default
-    value = data[key]
-    # bool is a subclass of int in Python, so rule it out explicitly.
-    if not isinstance(value, kind) or (kind is int and isinstance(value, bool)):
-        raise ValueError(f"'{key}' should be {_KIND_NAMES[kind]}, not {value!r}")
-    return value
-
-
-def _get_names(data: dict[str, Any], key: str) -> list[str]:
-    value = _get(data, key, list)
-    if not all(isinstance(item, str) for item in value):
-        raise ValueError(f"'{key}' should be a list of names, not {value!r}")
-    return value
-
-
 def _schema(data: dict[str, Any]) -> int:
-    schema = _get(data, "schema", int, default=SCHEMA)
+    schema = get(data, "schema", int, default=SCHEMA)
     if schema > SCHEMA:
         raise ValueError("it was written by a newer version of the tool; update the add-on")
     return schema

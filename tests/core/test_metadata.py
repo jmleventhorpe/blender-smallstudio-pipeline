@@ -58,10 +58,10 @@ def test_older_files_without_optional_fields_still_read(tmp_path: Path):
     [
         ("{not json", "isn't valid JSON"),
         ("[]", "should hold a JSON object"),
-        (json.dumps({"frame_start": 1}), "'code' is missing"),
-        (json.dumps({"code": "010_020_0030", "frame_start": "1001"}), "'frame_start' should be"),
-        (json.dumps({"code": "010_020_0030", "omitted": 1}), "'omitted' should be true or false"),
-        (json.dumps({"code": "010_020_0030", "casting": [{"asset": "hero"}]}), "'instance_id'"),
+        (json.dumps({"frame_start": 1}), "code is missing"),
+        (json.dumps({"code": "010_020_0030", "frame_start": "1001"}), "frame_start should be"),
+        (json.dumps({"code": "010_020_0030", "omitted": 1}), "omitted should be true or false"),
+        (json.dumps({"code": "010_020_0030", "casting": [{"asset": "hero"}]}), "instance_id"),
         (json.dumps({"code": "010_020_0030", "schema": 99}), "newer version of the tool"),
     ],
 )

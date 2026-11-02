@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import re
 import tomllib
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .errors import ConfigError
+from .errors import ConfigError, PipelineError
+from .reading import get, get_names
 
 DEFAULTS = Path(__file__).resolve().parent.parent / "defaults.toml"
 PROJECT_FILE = "pipeline.toml"
@@ -38,6 +40,14 @@ class AssetType:
     def required_tasks(self) -> tuple[str, ...]:
         return tuple(task for task in self.tasks if task not in self.optional_tasks)
 
+    def task_list(self, tasks: Iterable[str] = ()) -> list[str]:
+        """Return the required tasks plus `tasks`, in this type's order."""
+        chosen = {*self.required_tasks, *tasks}
+        unknown = sorted(chosen - set(self.tasks))
+        if unknown:
+            raise PipelineError(f"{self.name} assets don't have a {unknown[0]} task.")
+        return [task for task in self.tasks if task in chosen]
+
 
 @dataclass(frozen=True)
 class Config:
@@ -52,10 +62,6 @@ class Config:
     asset_types: dict[str, AssetType]
     templates: dict[str, str]
     render_templates: dict[str, str]
-
-    def task_names(self, entity: str) -> list[str]:
-        """Return the names of the tasks whose workfiles belong to an entity kind."""
-        return [task.name for task in self.tasks.values() if task.entity == entity]
 
 
 def load_config(project_root: Path | None = None) -> Config:
@@ -83,83 +89,75 @@ def merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
 
 def build_config(data: dict[str, Any]) -> Config:
     """Check the merged settings and turn them into a Config, or raise ConfigError."""
-    project = _table(data, "project")
-    naming = _table(data, "naming")
+    try:
+        return _build(data)
+    except ValueError as error:
+        raise ConfigError(f"{error}.") from None
 
-    name_pattern = _value(naming, "name_pattern", str, "naming")
+
+def _build(data: dict[str, Any]) -> Config:
+    project = get(data, "project", dict)
+    naming = get(data, "naming", dict)
+
+    name_pattern = get(naming, "name_pattern", str, "naming")
     try:
         re.compile(name_pattern)
     except re.error as error:
-        raise ConfigError(f"naming.name_pattern isn't a valid pattern: {error}.") from None
+        raise ValueError(f"naming.name_pattern isn't a valid pattern: {error}") from None
 
-    tasks = {
-        name: _task(name, _value(_table(data, "tasks"), name, dict, "tasks"))
-        for name in _table(data, "tasks")
-    }
+    tasks = {name: _task(name, table) for name, table in get(data, "tasks", dict).items()}
     asset_types = {
-        name: _asset_type(
-            name, _value(_table(data, "asset_types"), name, dict, "asset_types"), tasks
-        )
-        for name in _table(data, "asset_types")
+        name: _asset_type(name, table, tasks)
+        for name, table in get(data, "asset_types", dict).items()
     }
     for kind, names in (("task", tasks), ("asset type", asset_types)):
         for name in names:
             if not re.fullmatch(name_pattern, name):
-                raise ConfigError(f"The {kind} name '{name}' doesn't match naming.name_pattern.")
-
-    templates = _string_table(data, "templates", REQUIRED_TEMPLATES)
-    render_templates = _string_table(data, "render_templates", REQUIRED_RENDER_TEMPLATES)
+                raise ValueError(f"The {kind} name '{name}' doesn't match naming.name_pattern")
 
     return Config(
         fps=_positive(project, "fps", "project"),
         resolution=_resolution(project),
-        episodes=_value(project, "episodes", bool, "project"),
-        render_root=_value(project, "render_root", str, "project"),
+        episodes=get(project, "episodes", bool, "project"),
+        render_root=get(project, "render_root", str, "project"),
         name_pattern=name_pattern,
         version_padding=_positive(naming, "version_padding", "naming"),
         code_step=_positive(naming, "code_step", "naming", minimum=2),
         tasks=tasks,
         asset_types=asset_types,
-        templates=templates,
-        render_templates=render_templates,
+        templates=_templates(data, "templates", REQUIRED_TEMPLATES),
+        render_templates=_templates(data, "render_templates", REQUIRED_RENDER_TEMPLATES),
     )
 
 
-def _task(name: str, table: dict[str, Any]) -> Task:
+def _task(name: str, table: Any) -> Task:
     where = f"tasks.{name}"
-    entity = _value(table, "entity", str, where)
+    entity = get(table, "entity", str, where)
     if entity not in ENTITIES:
-        raise ConfigError(f"{where}.entity should be one of {', '.join(ENTITIES)}, not '{entity}'.")
-    renders = _value(table, "renders", str, where, default=None)
+        raise ValueError(f"{where}.entity should be one of {', '.join(ENTITIES)}, not '{entity}'")
+    renders = get(table, "renders", str, where, default=None)
     if renders not in (None, "sequence", "shot"):
-        raise ConfigError(f"{where}.renders should be 'sequence' or 'shot', not '{renders}'.")
-    publishes = _value(table, "publishes", bool, where, default=False)
-    return Task(name, entity, publishes, renders)
+        raise ValueError(f"{where}.renders should be 'sequence' or 'shot', not '{renders}'")
+    return Task(name, entity, get(table, "publishes", bool, where, default=False), renders)
 
 
-def _asset_type(name: str, table: dict[str, Any], tasks: dict[str, Task]) -> AssetType:
+def _asset_type(name: str, table: Any, tasks: dict[str, Task]) -> AssetType:
     where = f"asset_types.{name}"
-    asset_tasks = _strings(table, "tasks", where)
+    asset_tasks = get_names(table, "tasks", where)
     if not asset_tasks:
-        raise ConfigError(f"{where}.tasks needs at least one task.")
+        raise ValueError(f"{where}.tasks needs at least one task")
     for task in asset_tasks:
         if task not in tasks or tasks[task].entity != "asset":
-            raise ConfigError(f"{where}.tasks: '{task}' isn't an asset task in [tasks].")
-    optional = _strings(table, "optional_tasks", where, default=())
-    shot_link = _strings(table, "shot_link", where)
+            raise ValueError(f"{where}.tasks: '{task}' isn't an asset task in [tasks]")
+    optional = get_names(table, "optional_tasks", where, default=[])
+    shot_link = get_names(table, "shot_link", where)
     for key, names in (("optional_tasks", optional), ("shot_link", shot_link)):
         for task in names:
             if task not in asset_tasks:
-                raise ConfigError(f"{where}.{key}: '{task}' isn't one of {name}'s tasks.")
+                raise ValueError(f"{where}.{key}: '{task}' isn't one of {name}'s tasks")
     if all(task in optional for task in shot_link):
-        raise ConfigError(f"{where}.shot_link needs at least one task that isn't optional.")
-    return AssetType(name, asset_tasks, optional, shot_link)
-
-
-# Readers that name the setting in their error messages.
-
-_MISSING = object()
-_KIND_NAMES = {int: "a whole number", bool: "true or false", str: "text", dict: "a table"}
+        raise ValueError(f"{where}.shot_link needs at least one task that isn't optional")
+    return AssetType(name, tuple(asset_tasks), tuple(optional), tuple(shot_link))
 
 
 def _read_toml(path: Path) -> dict[str, Any]:
@@ -170,57 +168,27 @@ def _read_toml(path: Path) -> dict[str, Any]:
         raise ConfigError(f"{path} isn't valid TOML: {error}.") from None
 
 
-def _value(table: dict[str, Any], key: str, kind: type, where: str, default: Any = _MISSING) -> Any:
-    if key not in table:
-        if default is _MISSING:
-            raise ConfigError(f"{where}.{key} is missing.")
-        return default
-    value = table[key]
-    # bool is a subclass of int in Python, so rule it out explicitly.
-    if not isinstance(value, kind) or (kind is int and isinstance(value, bool)):
-        raise ConfigError(f"{where}.{key} should be {_KIND_NAMES[kind]}, not {value!r}.")
-    return value
-
-
-def _table(data: dict[str, Any], key: str) -> dict[str, Any]:
-    return _value(data, key, dict, "config")
-
-
 def _positive(table: dict[str, Any], key: str, where: str, minimum: int = 1) -> int:
-    value = _value(table, key, int, where)
+    value = get(table, key, int, where)
     if value < minimum:
-        raise ConfigError(f"{where}.{key} should be at least {minimum}, not {value}.")
+        raise ValueError(f"{where}.{key} should be at least {minimum}, not {value}")
     return value
 
 
 def _resolution(project: dict[str, Any]) -> tuple[int, int]:
-    value = project.get("resolution")
-    if not (
-        isinstance(value, list)
-        and len(value) == 2
-        and all(isinstance(n, int) and not isinstance(n, bool) and n > 0 for n in value)
+    value = get(project, "resolution", list, "project")
+    if len(value) != 2 or not all(
+        isinstance(n, int) and not isinstance(n, bool) and n > 0 for n in value
     ):
-        raise ConfigError(f"project.resolution should be [width, height], not {value!r}.")
+        raise ValueError(f"project.resolution should be [width, height], not {value!r}")
     return value[0], value[1]
 
 
-def _strings(
-    table: dict[str, Any], key: str, where: str, default: tuple[str, ...] | None = None
-) -> tuple[str, ...]:
-    if key not in table and default is not None:
-        return default
-    value = table.get(key)
-    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-        raise ConfigError(f"{where}.{key} should be a list of names, not {value!r}.")
-    return tuple(value)
-
-
-def _string_table(data: dict[str, Any], key: str, required: tuple[str, ...]) -> dict[str, str]:
-    table = _table(data, key)
-    for name, value in table.items():
-        if not isinstance(value, str):
-            raise ConfigError(f"{key}.{name} should be text, not {value!r}.")
+def _templates(data: dict[str, Any], key: str, required: tuple[str, ...]) -> dict[str, str]:
+    table = get(data, key, dict)
+    for name in table:
+        get(table, name, str, key)
     missing = [name for name in required if name not in table]
     if missing:
-        raise ConfigError(f"[{key}] is missing {', '.join(missing)}.")
+        raise ValueError(f"[{key}] is missing {', '.join(missing)}")
     return dict(table)

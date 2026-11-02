@@ -24,7 +24,7 @@ def templates():
 
 def test_every_default_template_round_trips(templates):
     for template in templates.values():
-        values = {key: SAMPLE_VALUES[key] for key in template.keys}
+        values = {field: SAMPLE_VALUES[field] for field in template.fields}
         path = template.format(**values)
         assert template.parse(path) == values, template.name
 

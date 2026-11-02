@@ -40,12 +40,11 @@ class FilesystemTracker:
         assets = []
         for path, fields in self._asset_file.find(self.root):
             metadata = read_metadata(path, AssetMetadata)
-            # A copied folder can carry another asset's file; trust neither silently.
-            if (metadata.name, metadata.asset_type) != (fields["asset"], fields["asset_type"]):
-                raise MetadataError(
-                    f"{path} describes {metadata.asset_type} '{metadata.name}', "
-                    f"but sits in the folder for {fields['asset_type']} '{fields['asset']}'."
-                )
+            _check_folder(
+                path,
+                f"{metadata.asset_type} '{metadata.name}'",
+                f"{fields['asset_type']} '{fields['asset']}'",
+            )
             assets.append(metadata)
         return assets
 
@@ -57,7 +56,7 @@ class FilesystemTracker:
         sequences = []
         for path, fields in self._sequence_file.find(self.root):
             metadata = read_metadata(path, SequenceMetadata)
-            _check_code(path, "sequence", metadata.code, fields["sequence"])
+            _check_folder(path, f"sequence {metadata.code}", f"sequence {fields['sequence']}")
             sequences.append(metadata)
         return sequences
 
@@ -68,7 +67,7 @@ class FilesystemTracker:
         shots = []
         for path, fields in self._shot_file.find(self.root):
             metadata = read_metadata(path, ShotMetadata)
-            _check_code(path, "shot", metadata.code, fields["shot"])
+            _check_folder(path, f"shot {metadata.code}", f"shot {fields['shot']}")
             shots.append(metadata)
         return shots
 
@@ -76,8 +75,7 @@ class FilesystemTracker:
         write_metadata(self.root / self._shot_file.format(shot=metadata.code), metadata)
 
 
-def _check_code(path: Path, kind: str, code: str, folder_code: str | int) -> None:
-    if code != folder_code:
-        raise MetadataError(
-            f"{path} describes {kind} {code}, but sits in the folder for {folder_code}."
-        )
+def _check_folder(path: Path, in_file: str, in_folder: str) -> None:
+    """A copied folder can carry another entity's file; don't trust either silently."""
+    if in_file != in_folder:
+        raise MetadataError(f"{path} describes {in_file}, but sits in the folder for {in_folder}.")

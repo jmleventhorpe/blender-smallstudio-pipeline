@@ -127,8 +127,8 @@ def test_sequences_number_in_steps_and_insert(project):
     second = project.create_sequence("010")
     between = project.create_sequence("010", after=first)
     assert [str(seq.code) for seq in project.sequences()] == ["010_010", "010_015", "010_020"]
-    assert second.code.sequence == "020"
-    assert between.code.sequence == "015"
+    assert second.code.number == "020"
+    assert between.code.number == "015"
     project.create_sequence("020")
     assert project.episodes() == ["010", "020"]
     assert [str(seq.code) for seq in project.sequences("020")] == ["020_010"]

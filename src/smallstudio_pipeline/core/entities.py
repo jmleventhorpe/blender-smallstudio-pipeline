@@ -16,7 +16,7 @@ from .config import PROJECT_FILE, AssetType, Config, Task, load_config
 from .errors import EntityExists, EntityNotFound, PipelineError
 from .metadata import AssetMetadata, SequenceMetadata, ShotMetadata
 from .naming import SEQUENCE_DIGITS, SHOT_DIGITS, SequenceCode, ShotCode, check_name, next_number
-from .templates import Fields, build_templates
+from .templates import Fields, Template, build_templates
 from .tracker import FilesystemTracker, Tracker
 
 NEW_PROJECT_CONFIG = """\
@@ -61,12 +61,15 @@ class Project:
     def path(self, template: str, **fields: str | int) -> Path:
         """Return the absolute path a template gives for these fields."""
         found = self.templates[template]
-        return (self.render_root if found.render else self.root) / found.format(**fields)
+        return self._root_for(found) / found.format(**fields)
 
     def find_files(self, template: str, **known: str | int) -> list[tuple[Path, Fields]]:
         """Return the existing files that fit a template, with their fields."""
         found = self.templates[template]
-        return found.find(self.render_root if found.render else self.root, **known)
+        return found.find(self._root_for(found), **known)
+
+    def _root_for(self, template: Template) -> Path:
+        return self.render_root if template.render else self.root
 
     # Assets
 
@@ -78,35 +81,26 @@ class Project:
         )
 
     def asset(self, name: str) -> Asset:
-        assets = self.assets()
-        for asset in assets:
-            if asset.name == name:
-                return asset
-        names = [asset.name for asset in assets]
-        raise EntityNotFound(f"There's no asset called '{name}'.{_did_you_mean(name, names)}")
+        return _pick({asset.name: asset for asset in self.assets()}, name, "asset")
 
-    def create_asset(self, asset_type: str, name: str, tasks: list[str] | None = None) -> Asset:
-        """Create an asset with its type's required tasks, plus any optional ones in `tasks`."""
-        check_name(name, self.config.name_pattern)
-        kind = self.asset_type_settings(asset_type)
-        if any(asset.name == name for asset in self.assets()):
-            raise EntityExists(
-                f"There's already an asset called '{name}'. Asset names are unique in a project."
-            )
-        chosen = set(kind.required_tasks) | set(tasks or ())
-        unknown = sorted(chosen - set(kind.tasks))
-        if unknown:
-            raise PipelineError(f"{asset_type} assets don't have a {unknown[0]} task.")
-        metadata = AssetMetadata(name, asset_type, [task for task in kind.tasks if task in chosen])
-        self.tracker.save_asset(metadata)
-        return Asset(self, metadata)
-
-    def asset_type_settings(self, name: str) -> AssetType:
-        """Return the config for an asset type, or raise if the project has no such type."""
+    def asset_type(self, name: str) -> AssetType:
+        """Return an asset type's settings, or raise if the project has no such type."""
         if name not in self.config.asset_types:
             known = ", ".join(self.config.asset_types)
             raise PipelineError(f"'{name}' isn't an asset type. Asset types are: {known}.")
         return self.config.asset_types[name]
+
+    def create_asset(self, asset_type: str, name: str, tasks: list[str] | None = None) -> Asset:
+        """Create an asset with its type's required tasks, plus any optional ones in `tasks`."""
+        check_name(name, self.config.name_pattern)
+        task_list = self.asset_type(asset_type).task_list(tasks or ())
+        if any(asset.name == name for asset in self.assets()):
+            raise EntityExists(
+                f"There's already an asset called '{name}'. Asset names are unique in a project."
+            )
+        metadata = AssetMetadata(name, asset_type, task_list)
+        self.tracker.save_asset(metadata)
+        return Asset(self, metadata)
 
     # Sequences and shots
 
@@ -121,12 +115,7 @@ class Project:
         )
 
     def sequence(self, code: str) -> Sequence:
-        sequences = self.sequences()
-        for sequence in sequences:
-            if str(sequence.code) == code:
-                return sequence
-        codes = [str(sequence.code) for sequence in sequences]
-        raise EntityNotFound(f"There's no sequence {code}.{_did_you_mean(code, codes)}")
+        return _pick({str(seq.code): seq for seq in self.sequences()}, code, "sequence")
 
     def create_sequence(
         self, episode: str | None = None, after: Sequence | None = None
@@ -138,12 +127,10 @@ class Project:
             raise PipelineError("This project doesn't use episodes.")
         if after is not None and after.code.episode != episode:
             raise PipelineError(f"Sequence {after.code} isn't in episode {episode}.")
-        existing = [int(seq.code.sequence) for seq in self.sequences(episode)]
-        number = next_number(
-            existing, self.config.code_step, int(after.code.sequence) if after else None
-        )
-        code = SequenceCode(episode, f"{number:0{SEQUENCE_DIGITS}d}")
-        metadata = SequenceMetadata(str(code))
+        existing = [int(seq.code.number) for seq in self.sequences(episode)]
+        step = self.config.code_step
+        number = next_number(existing, step, int(after.code.number) if after else None)
+        metadata = SequenceMetadata(str(SequenceCode(episode, f"{number:0{SEQUENCE_DIGITS}d}")))
         self.tracker.save_sequence(metadata)
         return Sequence(self, metadata)
 
@@ -156,11 +143,7 @@ class Project:
 
     def shot(self, code: str) -> Shot:
         shots = self.shots(include_omitted=True)
-        for shot in shots:
-            if str(shot.code) == code:
-                return shot
-        codes = [str(shot.code) for shot in shots]
-        raise EntityNotFound(f"There's no shot {code}.{_did_you_mean(code, codes)}")
+        return _pick({str(shot.code): shot for shot in shots}, code, "shot")
 
 
 class Entity:
@@ -226,7 +209,7 @@ class Entity:
         return max(self.publish_versions(task), default=None)
 
     def next_publish_version(self, task: str) -> int:
-        return (self.latest_publish_version(task) or 0) + 1
+        return max(self.publish_versions(task), default=0) + 1
 
     # Renders
 
@@ -268,6 +251,11 @@ class Asset(Entity):
         return self.metadata.asset_type
 
     @property
+    def settings(self) -> AssetType:
+        """The settings for this asset's type."""
+        return self.project.asset_type(self.asset_type)
+
+    @property
     def tasks(self) -> list[str]:
         return list(self.metadata.tasks)
 
@@ -284,18 +272,13 @@ class Asset(Entity):
 
     def shot_task(self) -> str:
         """The task whose publish shots link: the first in the type's shot_link it has."""
-        asset_type = self.project.asset_type_settings(self.asset_type)
-        return next(task for task in asset_type.shot_link if self.has_task(task))
+        return next(task for task in self.settings.shot_link if self.has_task(task))
 
     def add_task(self, task: str) -> None:
         """Add one of the type's optional tasks, e.g. rigging for a prop."""
-        asset_type = self.project.asset_type_settings(self.asset_type)
         if self.has_task(task):
             raise PipelineError(f"{self.name} already has a {task} task.")
-        if task not in asset_type.tasks:
-            raise PipelineError(f"{self.asset_type} assets don't have a {task} task.")
-        chosen = {*self.metadata.tasks, task}
-        self.metadata.tasks = [name for name in asset_type.tasks if name in chosen]
+        self.metadata.tasks = self.settings.task_list([*self.tasks, task])
         self.save()
 
     def save(self) -> None:
@@ -319,23 +302,18 @@ class Sequence(Entity):
         return f"sequence {self.code}"
 
     def shots(self, include_omitted: bool = False) -> list[Shot]:
-        return [
-            shot
-            for shot in self.project.shots(include_omitted)
-            if shot.code.sequence_code == self.code
-        ]
+        shots = self.project.shots(include_omitted)
+        return [shot for shot in shots if shot.code.sequence == self.code]
 
     def create_shot(self, after: Shot | None = None) -> Shot:
         """Create the next shot, or one between `after` and the next. Omitted shots keep
         their numbers, so a new shot never reuses one."""
-        if after is not None and after.code.sequence_code != self.code:
+        if after is not None and after.code.sequence != self.code:
             raise PipelineError(f"Shot {after.code} isn't in {self.label}.")
-        existing = [int(shot.code.shot) for shot in self.shots(include_omitted=True)]
-        number = next_number(
-            existing, self.project.config.code_step, int(after.code.shot) if after else None
-        )
-        code = ShotCode(self.code.episode, self.code.sequence, f"{number:0{SHOT_DIGITS}d}")
-        metadata = ShotMetadata(str(code))
+        existing = [int(shot.code.number) for shot in self.shots(include_omitted=True)]
+        step = self.project.config.code_step
+        number = next_number(existing, step, int(after.code.number) if after else None)
+        metadata = ShotMetadata(str(ShotCode(self.code, f"{number:0{SHOT_DIGITS}d}")))
         self.project.tracker.save_shot(metadata)
         return Shot(self.project, metadata)
 
@@ -358,7 +336,7 @@ class Shot(Entity):
 
     @property
     def sequence(self) -> Sequence:
-        return self.project.sequence(str(self.code.sequence_code))
+        return self.project.sequence(str(self.code.sequence))
 
     @property
     def frame_range(self) -> tuple[int, int] | None:
@@ -378,6 +356,10 @@ class Shot(Entity):
         self.project.tracker.save_shot(self.metadata)
 
 
-def _did_you_mean(name: str, candidates: list[str]) -> str:
-    matches = difflib.get_close_matches(name, candidates, n=1)
-    return f" Did you mean '{matches[0]}'?" if matches else ""
+def _pick[E](candidates: dict[str, E], wanted: str, what: str) -> E:
+    """Return the entity called `wanted`, or raise EntityNotFound with a suggestion."""
+    if wanted in candidates:
+        return candidates[wanted]
+    matches = difflib.get_close_matches(wanted, list(candidates), n=1)
+    suggestion = f" Did you mean '{matches[0]}'?" if matches else ""
+    raise EntityNotFound(f"There's no {what} '{wanted}'.{suggestion}")

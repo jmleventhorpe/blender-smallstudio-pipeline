@@ -28,16 +28,16 @@ def test_check_name_uses_a_custom_pattern():
 
 def test_shot_code_with_episodes_round_trips():
     code = ShotCode.parse("010_020_0030", episodes=True)
-    assert code == ShotCode("010", "020", "0030")
+    assert code == ShotCode(SequenceCode("010", "020"), "0030")
     assert str(code) == "010_020_0030"
-    assert str(code.sequence_code) == "010_020"
+    assert str(code.sequence) == "010_020"
 
 
 def test_shot_code_without_episodes_round_trips():
     code = ShotCode.parse("020_0030", episodes=False)
-    assert code == ShotCode(None, "020", "0030")
+    assert code == ShotCode(SequenceCode(None, "020"), "0030")
     assert str(code) == "020_0030"
-    assert str(code.sequence_code) == "020"
+    assert str(code.sequence) == "020"
 
 
 @pytest.mark.parametrize(

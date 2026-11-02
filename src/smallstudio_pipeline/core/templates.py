@@ -27,18 +27,21 @@ class Template:
     """A path pattern relative to the project root, or to the render root if `render`."""
 
     def __init__(
-        self, name: str, pattern: str, fields: dict[str, str], padding: int, render: bool = False
+        self, name: str, pattern: str, patterns: dict[str, str], padding: int, render: bool = False
     ):
         self.name = name
         self.pattern = pattern
         self.render = render
-        self._fields = fields
+        self._patterns = patterns  # Field name -> the regex its values must match.
         self._padding = padding
-        self.keys = tuple(dict.fromkeys(match.group(2) for match in _PLACEHOLDER.finditer(pattern)))
-        for key in self.keys:
-            if key not in fields:
-                known = ", ".join(f"{{{field}}}" for field in fields)
-                raise ConfigError(f"Template {name} uses {{{key}}}; fields are {known}.")
+        # The template's field names, in order, each once.
+        self.fields = tuple(
+            dict.fromkeys(match.group(2) for match in _PLACEHOLDER.finditer(pattern))
+        )
+        for field in self.fields:
+            if field not in patterns:
+                known = ", ".join(f"{{{name}}}" for name in patterns)
+                raise ConfigError(f"Template {name} uses {{{field}}}; fields are {known}.")
         self._regex = re.compile(self._build_regex())
 
     def __repr__(self) -> str:
@@ -86,7 +89,7 @@ class Template:
             text = f"{value:0{self._padding}d}"
         else:
             text = str(value)
-        if not re.fullmatch(self._fields[key], text):
+        if not re.fullmatch(self._patterns[key], text):
             raise NamingError(f"'{text}' isn't a valid {key.replace('_', ' ')}.")
         return text
 
@@ -96,14 +99,14 @@ class Template:
             parts.append(re.escape(self.pattern[position : match.start()]))
             key = match.group(2)
             # A field used twice must have the same value both times (asset folder and file).
-            parts.append(f"(?P={key})" if key in seen else f"(?P<{key}>{self._fields[key]})")
+            parts.append(f"(?P={key})" if key in seen else f"(?P<{key}>{self._patterns[key]})")
             seen.add(key)
             position = match.end()
         parts.append(re.escape(self.pattern[position:]))
         return "".join(parts)
 
 
-def field_patterns(config: Config) -> dict[str, str]:
+def _field_patterns(config: Config) -> dict[str, str]:
     """Return the regex each template field must match, from the project's config."""
 
     def one_of(names: list[str]) -> str:
@@ -126,17 +129,17 @@ def field_patterns(config: Config) -> dict[str, str]:
 
 def build_templates(config: Config) -> dict[str, Template]:
     """Build every template in the config, with {@includes} expanded."""
-    patterns = {**config.templates, **config.render_templates}
-    fields = field_patterns(config)
+    templates = {**config.templates, **config.render_templates}
+    patterns = _field_patterns(config)
     return {
         name: Template(
             name,
-            _expand(name, patterns),
-            fields,
+            _expand(name, templates),
+            patterns,
             config.version_padding,
             render=name in config.render_templates,
         )
-        for name in patterns
+        for name in templates
     }
 
 

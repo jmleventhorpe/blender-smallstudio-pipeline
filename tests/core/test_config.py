@@ -18,7 +18,10 @@ def test_defaults_load():
     assert config.resolution == (1920, 1080)
     assert config.episodes is True
     assert set(config.asset_types) == {"character", "prop", "set", "lib", "utility"}
-    assert config.task_names("sequence") == ["layout", "lighting"]
+    assert [task.name for task in config.tasks.values() if task.entity == "sequence"] == [
+        "layout",
+        "lighting",
+    ]
     assert config.tasks["lighting"].renders == "shot"
     assert config.tasks["lighting"].publishes is False
 
