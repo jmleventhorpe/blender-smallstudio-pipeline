@@ -117,8 +117,10 @@ Blender 5 details for the build code:
 set at publish are stored in the hero and readable on linked data; the versioned copy has
 no asset data. Options in 5.2: `LINK`, `APPEND`, `APPEND_REUSE`, `PACK`.
 
-Not checked headless: that dragging the hero from the Asset Browser actually links. Check
-by hand once in the UI.
+Checked by hand in the UI (2026-11-02): with the publish folder registered as an asset
+library, dragging the hero from the Asset Browser into a shot links it (relative library
+path, rig and mesh from the library, nothing appended), placed by a local empty that
+instances the linked collection. No preference change needed.
 
 ## T9. Per-shot property overrides on linked data: pass, kept as fallback only (2026-11-02)
 
