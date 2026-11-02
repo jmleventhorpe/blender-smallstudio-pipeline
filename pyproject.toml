@@ -39,6 +39,8 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 # Spikes and the Blender test runner set sys.path before importing.
 "spikes/*" = ["E402"]
 "tests/blender/run.py" = ["E402"]
+# Blender declares operator settings as class attributes: bl_options = {"REGISTER"}.
+"src/smallstudio_pipeline/blender/**" = ["RUF012"]
 
 [tool.pyright]
 include = ["src", "tests", "scripts"]
@@ -47,3 +49,5 @@ typeCheckingMode = "basic"
 extraPaths = ["src"]
 # fake-bpy-module ships stubs only; there is no bpy source outside Blender.
 reportMissingModuleSource = false
+# Blender declares properties as annotations that are calls: name: StringProperty().
+reportInvalidTypeForm = false
