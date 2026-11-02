@@ -7,6 +7,7 @@ import math
 import os
 import sys
 import tempfile
+from collections.abc import Sequence
 from pathlib import Path
 
 import bpy
@@ -75,13 +76,29 @@ def open_file(path: Path) -> None:
     bpy.ops.wm.open_mainfile(filepath=str(path))
 
 
-def link_collection(path: Path, name: str, scene: bpy.types.Scene) -> bpy.types.Collection:
-    """Link a collection from another file and put it in the scene."""
+def load_collection(path: Path, name: str) -> bpy.types.Collection:
+    """Link a collection from another file without putting it in a scene."""
     with bpy.data.libraries.load(str(path), link=True, relative=True) as (_, data_to):
         data_to.collections = [name]
-    collection = data_to.collections[0]
+    return data_to.collections[0]
+
+
+def link_collection(path: Path, name: str, scene: bpy.types.Scene) -> bpy.types.Collection:
+    """Link a collection from another file and put it in the scene."""
+    collection = load_collection(path, name)
     scene.collection.children.link(collection)
     return collection
+
+
+def instance_collection(
+    collection: bpy.types.Collection, name: str, parent: bpy.types.Collection
+) -> bpy.types.Object:
+    """Add an empty that instances collection, as a drag from the Asset Browser does."""
+    empty = bpy.data.objects.new(name, None)
+    empty.instance_type = "COLLECTION"
+    empty.instance_collection = collection
+    parent.objects.link(empty)
+    return empty
 
 
 def make_override(
@@ -96,27 +113,29 @@ def make_override(
 
 
 def write_publish(
-    collection: bpy.types.Collection,
+    root: bpy.types.Collection,
     hero_path: Path,
     versioned_path: Path,
-    mark_asset: bool,
+    mark: Sequence[bpy.types.Collection] = (),
 ) -> None:
-    """Write a hero (asset-marked if asked) and an unmarked versioned copy of a collection."""
+    """Write root as a hero file with `mark` marked as assets, and an unmarked versioned copy."""
     hero_path.parent.mkdir(parents=True, exist_ok=True)
-    had_fake_user = collection.use_fake_user
-    if mark_asset:
+    fake_users = {collection: collection.use_fake_user for collection in mark}
+    for collection in mark:
         collection.asset_mark()
+        collection.asset_data.use_preferred_import_method = True
+        collection.asset_data.preferred_import_method = "LINK"
     try:
         # The temp file sits next to the hero, so relative library paths stay correct
         # and the rename is atomic.
         temp_path = hero_path.with_name(f"{hero_path.stem}.tmp.blend")
-        bpy.data.libraries.write(str(temp_path), {collection}, path_remap="RELATIVE_ALL")
+        bpy.data.libraries.write(str(temp_path), {root}, path_remap="RELATIVE_ALL")
         os.replace(temp_path, hero_path)
     finally:
-        if mark_asset:
+        for collection, had_fake_user in fake_users.items():
             collection.asset_clear()
             collection.use_fake_user = had_fake_user
-    bpy.data.libraries.write(str(versioned_path), {collection}, path_remap="RELATIVE_ALL")
+    bpy.data.libraries.write(str(versioned_path), {root}, path_remap="RELATIVE_ALL")
 
 
 def asset_collections(path: Path) -> list[str]:

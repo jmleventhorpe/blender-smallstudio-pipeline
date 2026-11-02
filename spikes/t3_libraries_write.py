@@ -43,7 +43,7 @@ def publish_rig(checks: Checks, out: Path, version: int, extra_bone: bool) -> Pa
     versioned = out / f"{RIGGING}/publish/char_rigging_v{version:03}.blend"
 
     collection = build_character(work, extra_bone=extra_bone)
-    write_publish(collection, hero, versioned, mark_asset=True)
+    write_publish(collection, hero, versioned, mark=[collection])
 
     checks.check(
         "workfile session is left unmarked",
@@ -103,7 +103,7 @@ def main() -> None:
     expected = build_animation(anim_work, rig_hero)
 
     step("Animation: publish the output collection with libraries.write")
-    write_publish(bpy.data.collections[OUTPUT], anim_hero, anim_versioned, mark_asset=False)
+    write_publish(bpy.data.collections[OUTPUT], anim_hero, anim_versioned)
 
     step("Open the written publish")
     check_written_publish(checks, anim_hero)
