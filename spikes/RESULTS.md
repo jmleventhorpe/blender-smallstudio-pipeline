@@ -2,6 +2,43 @@
 
 Blender 5.2.2 LTS (d13f752e3b9c), bundled Python 3.13.13, Linux, local disk.
 
+## T1. Overwriting a linked hero file: local pass, NAS run still to do (2026-11-02)
+
+`local` mode, one Linux machine, local disk: a second Blender holds the shot open while
+the hero is overwritten (temp file in the same folder, then `os.replace`, retried on
+`PermissionError`). The overwrite succeeds first time, `library.reload()` in the watcher
+shows v002, and reopening the shot shows v002.
+
+Still to run by hand: project on the NAS, the watcher on Windows (then Linux) with the
+shot open in the UI, the publish from the other machine.
+
+## T4. Sequence lighting file load time: pass (2026-11-02)
+
+Ryzen 9 3900X (24 threads), 30 GB, local NVMe, warm disk cache. Each shot scene links its
+own animation publish (3 overridden characters, every bone keyed), a shared 200k-vertex
+set and a local light rig. Times are file open in a fresh Blender, minus Blender's own
+startup.
+
+| Rig | Shots | Open | Memory after open | Peak (3 scenes evaluated, 1 frame rendered) |
+| --- | --- | --- | --- | --- |
+| 200 bones, 40k verts | 10 | 0.12 s | 419 MB | 723 MB |
+| 200 bones, 40k verts | 20 | 0.22 s | 486 MB | 758 MB |
+| 200 bones, 40k verts | 40 | 0.47 s | 621 MB | 844 MB |
+| 200 bones, 40k verts | 40, after rig republish | 0.49 s | 618 MB | 839 MB |
+| 400 bones, 150k verts | 10 | 0.22 s | 502 MB | 1301 MB |
+| 400 bones, 150k verts | 20 | 0.50 s | 627 MB | 1292 MB |
+| 400 bones, 150k verts | 40 | 0.95 s | 870 MB | 1617 MB |
+| 400 bones, 150k verts | 40, after rig republish | 0.71 s | 868 MB | 1675 MB |
+
+- Checked: after the republish every one of the 120 overrides has the new bone count, so
+  the resync really ran on open; it costs little.
+- First evaluation of a shot scene is a fraction of a second (0.2 s including reading back
+  a deformed 150k-vertex mesh).
+- One file per sequence is fine at these sizes, with a wide margin under the 60 s threshold.
+
+Limits: generated rigs have no drivers, shape keys or extra meshes, and the files are on
+local NVMe. Rerun with `--out` on the NAS, and with a real character once one exists.
+
 ## T2. Linking a file that contains library overrides: pass (2026-11-02)
 
 Lighting links the animation file's output collection; the character arrives as a linked

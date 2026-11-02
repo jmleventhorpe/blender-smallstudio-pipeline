@@ -7,6 +7,7 @@ import math
 import os
 import sys
 import tempfile
+import time
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -51,8 +52,9 @@ def output_dir() -> Path:
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path)
-    args = parser.parse_args(argv)
-    out = args.out or Path(tempfile.mkdtemp(prefix="spike_"))
+    args, _ = parser.parse_known_args(argv)  # Scripts may take their own options too.
+    # Absolute, so Blender stores sensible relative library paths.
+    out = (args.out or Path(tempfile.mkdtemp(prefix="spike_"))).resolve()
     out.mkdir(parents=True, exist_ok=True)
     print(f"Output folder: {out}")
     return out
@@ -130,12 +132,29 @@ def write_publish(
         # and the rename is atomic.
         temp_path = hero_path.with_name(f"{hero_path.stem}.tmp.blend")
         bpy.data.libraries.write(str(temp_path), {root}, path_remap="RELATIVE_ALL")
-        os.replace(temp_path, hero_path)
+        replace_with_retry(temp_path, hero_path)
     finally:
         for collection, had_fake_user in fake_users.items():
             collection.asset_clear()
             collection.use_fake_user = had_fake_user
     bpy.data.libraries.write(str(versioned_path), {root}, path_remap="RELATIVE_ALL")
+
+
+def replace_with_retry(source: Path, target: Path, attempts: int = 10, delay: float = 0.5) -> int:
+    """os.replace, retried: Windows refuses it while another process has target open.
+
+    Returns the number of attempts it took.
+    """
+    for attempt in range(1, attempts + 1):
+        try:
+            os.replace(source, target)
+            return attempt
+        except PermissionError as error:
+            print(f"   replace attempt {attempt} failed: {error}")
+            if attempt == attempts:
+                raise
+            time.sleep(delay)
+    return attempts
 
 
 def asset_collections(path: Path) -> list[str]:
