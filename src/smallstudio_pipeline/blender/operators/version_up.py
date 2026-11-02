@@ -34,7 +34,6 @@ class PIPELINE_OT_version_up(bpy.types.Operator):
         except PipelineError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}
-        bpy.ops.wm.save_as_mainfile(filepath=str(path))
-        state.refresh()
+        bpy.ops.wm.save_as_mainfile(filepath=str(path))  # The save handler refreshes the state.
         self.report({"INFO"}, f"Saved {path.name}")
         return {"FINISHED"}

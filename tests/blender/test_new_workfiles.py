@@ -36,7 +36,7 @@ def test_new_workfile_starts_from_the_starter_file(project):
     (project.root / "pipeline.toml").write_text(
         '[tasks.layout]\nstarter = "starters/layout.blend"\n'
     )
-    state.current = state.describe("", project.root)  # Reload the changed config.
+    state.refresh()  # Reload the changed config.
     assert state.current.project is not None
     sequence = state.current.project.create_sequence("010")
 

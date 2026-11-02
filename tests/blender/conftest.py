@@ -18,10 +18,11 @@ def registered():
 
 
 @pytest.fixture
-def project(tmp_path: Path, registered) -> Project:
-    """A new project, made the active one as the preferences would."""
+def project(tmp_path: Path, registered, monkeypatch) -> Project:
+    """A new project, set as the active one in the preferences."""
     project = Project.create(tmp_path / "show")
-    state.current = state.describe("", project.root)
+    monkeypatch.setattr(state, "active_project_root", lambda: project.root)
+    state.refresh()
     return project
 
 
