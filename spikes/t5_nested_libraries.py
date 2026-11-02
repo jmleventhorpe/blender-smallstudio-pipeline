@@ -3,8 +3,8 @@
 Run:
     blender -b --factory-startup --python-exit-code 1 --python spikes/t5_nested_libraries.py -- --out /tmp/t5
 
-Pass: pieces display through two levels of linking, Make Editable on the set allows a
-dressing tweak that survives reload, and lib and set republishes come through.
+Pass: pieces display through two levels of linking, overriding the set in a shot allows
+a per-shot dressing tweak that survives reload, and lib and set republishes come through.
 If it fails, set publishes make lib pieces local (append) instead of linking them.
 """
 
@@ -125,8 +125,8 @@ def check_scene(checks: Checks, label: str, expected: Instances) -> None:
     checks.check("no missing data or broken overrides", not broken, ", ".join(broken))
 
 
-def make_editable(empty: bpy.types.Object) -> bpy.types.Collection:
-    """Swap a link-only instance for an override, keeping its placement and instance_id."""
+def override_instance(empty: bpy.types.Object) -> bpy.types.Collection:
+    """Override a link-only instance in a shot, keeping its placement and instance_id."""
     linked = empty.instance_collection
     override = linked.override_hierarchy_create(
         bpy.context.scene, bpy.context.view_layer, reference=empty, do_fully_editable=True
@@ -169,10 +169,10 @@ def main() -> None:
         checks, "pieces show through two levels of linking", expected_instances(DRESSING_V1, 8)
     )
 
-    step("Layout v002: Make Editable on the set, nudge rock_02, save and reopen")
+    step("Layout v002: override the set for a per-shot tweak, nudge rock_02, save and reopen")
     bpy.ops.wm.save_as_mainfile(filepath=str(layout_v002))
-    override = make_editable(bpy.context.scene.objects[SET])
-    check_scene(checks, "Make Editable keeps the set's placement", expected_instances(DRESSING_V1, 8))
+    override = override_instance(bpy.context.scene.objects[SET])
+    check_scene(checks, "overriding keeps the set's placement", expected_instances(DRESSING_V1, 8))
     rock = next(obj for obj in override.all_objects if obj.name.startswith("rock_02"))
     rock.location.x += 1.0
     bpy.ops.wm.save_mainfile()

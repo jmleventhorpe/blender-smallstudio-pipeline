@@ -35,16 +35,20 @@ the animation file and when lighting links it. So every asset publish declares
 - Lib pieces placed in a set (instancing empties) display correctly in layout through two
   levels of linking. Each lib piece is marked as its own asset in the lib hero.
 - Republishing the lib (a more detailed rock) and the set (a moved crate) both come
-  through, in a link-only layout and in one where the set was made editable.
-- Make Editable followed by a dressing tweak (nudging one rock) survives reload and both
+  through, in a link-only layout and in one where the set is overridden for a per-shot tweak.
+- Overriding the set in layout and nudging one rock survives reload and both
   republishes, with no broken overrides.
 
-**Finding: Make Editable loses the placement.** `override_hierarchy_create` from an
+**Finding: overriding an instanced asset loses its placement.** `override_hierarchy_create` from an
 instancing empty puts the override at the origin and leaves the empty behind. Baking the
 empty's transform into each object works but overrides every object's location, so set
 republishes no longer move them. What works: keep the empty as a plain parent (instancing
 off), parent the override's top-level objects to it and move `instance_id` to the override
 root. Only `parent` is overridden, and locations still follow the set publish.
+
+This applies to any override of an asset dragged in from the Asset Browser, including
+characters in layout (settled in M4). It is not the doc's Make Editable (a linked asset
+made local inside a set's modeling file), which is untested and belongs to M3.
 
 ## T6. Same character in several scenes of one file: pass (2026-11-02)
 

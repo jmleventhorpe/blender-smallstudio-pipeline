@@ -17,7 +17,7 @@ Leave out `--out` to use a new temp folder. Open the files it writes to look aro
 | --- | --- |
 | `t2_link_overrides.py` | Can lighting link an animation file whose characters are library overrides? |
 | `t3_libraries_write.py` | Does `libraries.write` publish cleanly from the open session, with asset marks on the hero only? |
-| `t5_nested_libraries.py` | Do lib pieces survive two levels of linking (lib, set, layout), with Make Editable on the set? |
+| `t5_nested_libraries.py` | Do lib pieces survive two levels of linking (lib, set, layout), with the set overridden in a shot for a tweak? |
 | `t6_shared_character.py` | Can one file hold separate overrides of the same character in several scenes? |
 | `t7_comp_from_exrs.py` | Can a comp scene read rendered EXRs and render without the 3D scene, through a shared group? |
 | `t8_import_method.py` | Can a publish set an asset's Preferred Import Method from Python? |
