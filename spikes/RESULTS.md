@@ -119,3 +119,34 @@ no asset data. Options in 5.2: `LINK`, `APPEND`, `APPEND_REUSE`, `PACK`.
 
 Not checked headless: that dragging the hero from the Asset Browser actually links. Check
 by hand once in the UI.
+
+## T9. Per-shot property overrides on linked data: pass (2026-11-02)
+
+Python can set properties on linked data in memory (object visibility, motion blur,
+modifier settings, material node values, pose-bone properties); none of it is saved, so it
+has to be re-applied on every open. Settings were a sequence-level JSON file plus a text
+datablock per shot (shot wins), applied by a text module on `load_post` and `render_pre`.
+
+- Each shot rendered in its own fresh Blender (as a farm would) shows its settings: red
+  from the sequence file, green from a shot's material setting, black where a shot hides
+  the body.
+- Rendering all three shots in one session, green first, leaves nothing behind: the
+  applier resets everything any shot touches before applying the next shot's settings.
+- With auto-run scripts blocked, nothing applies and the shots render untouched.
+
+**Finding: shared datablocks.** In a sequence lighting file, a character's material comes
+from the rig library and is shared by every shot. Per-shot material settings therefore
+have to be re-applied for whichever shot is rendering or active, not once on load.
+Objects are per shot (each shot's animation publish has its own), so object settings are
+looked up within the shot's scene.
+
+**For the build:** the tool ships the applier in the add-on, not as a text module, so
+farm workers need the add-on installed (or auto-run scripts allowed). Switching the active
+scene in the UI also needs to re-apply; not testable headless.
+
+## T10. Asset previews when publishing: pass (2026-11-02)
+
+`collection.asset_generate_preview()` works headless: the hero's asset gets a 128×128
+preview of the asset, stored in the hero file and readable when linked. The fallback
+(render an image, load it with `ed.lib_id_load_custom_preview` under
+`temp_override(id=...)`) also works, for a nicer framed thumbnail later.
