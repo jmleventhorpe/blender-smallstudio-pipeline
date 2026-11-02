@@ -120,7 +120,9 @@ no asset data. Options in 5.2: `LINK`, `APPEND`, `APPEND_REUSE`, `PACK`.
 Not checked headless: that dragging the hero from the Asset Browser actually links. Check
 by hand once in the UI.
 
-## T9. Per-shot property overrides on linked data: pass (2026-11-02)
+## T9. Per-shot property overrides on linked data: pass, kept as fallback only (2026-11-02)
+
+Superseded by the native approach in T11; kept in case a tweak can't be expressed that way.
 
 Python can set properties on linked data in memory (object visibility, motion blur,
 modifier settings, material node values, pose-bone properties); none of it is saved, so it
@@ -150,3 +152,21 @@ scene in the UI also needs to re-apply; not testable headless.
 preview of the asset, stored in the hero file and readable when linked. The fallback
 (render an image, load it with `ed.lib_id_load_custom_preview` under
 `temp_override(id=...)`) also works, for a nicer framed thumbnail later.
+
+## T11. Per-shot shader controls without scripts: pass (2026-11-02)
+
+The character's material reads its tint through an Attribute node of type View Layer,
+which looks the name up on the view layer, then the scene, then the world. The lighting
+file sets plain custom properties, saved like any local data, so nothing is re-applied:
+
+- a world shared by every shot scene holds sequence-level values (shot 0010: red);
+- a scene property overrides it for one shot (0020: green);
+- a view layer property overrides that for one render layer (0030: blue).
+
+All three render correctly in Cycles and EEVEE, with auto-run scripts blocked, one shot
+per fresh Blender and all shots in one session. The material stays shared and linked.
+
+**For the build:** assets expose their lighting controls as View Layer attributes, named
+consistently (e.g. `char_tint`). Lighting sets defaults on the sequence world and per-shot
+values on scenes. Visibility and holdouts use per-view-layer collection settings; anything
+else goes back to animation or the asset.
