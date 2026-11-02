@@ -21,3 +21,13 @@ All notable changes to this project are listed here. The format follows
   - `Project`, `Asset`, `Sequence` and `Shot`, giving every workfile, publish, hero and
     render path, and enforcing which tasks each entity has.
   - File context: what a file is from its path, with the label for the top bar.
+- Workfiles (M2):
+  - Pipeline menu in the top bar: Open…, New Workfile…, New Asset…, Version Up.
+  - Top-bar label saying what the open file is, in the warning colour for publishes,
+    unmanaged files and files someone else has open.
+  - New workfiles start from a task's starter file (or an empty file), take the project's
+    fps and resolution, and asset workfiles get a root collection carrying the asset's
+    identity.
+  - In-use markers next to open workfiles, with a warning when someone else has a file
+    open.
+  - Project folders set per machine in the add-on preferences.

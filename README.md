@@ -4,8 +4,9 @@ Publishing, loading and scene construction for one person or a small team, entir
 inside Blender. Built for an animated comic series, with nothing studio-specific baked in.
 
 > **Status: early.** The design is settled, the Blender behaviour it depends on has been
-> tested (see [spikes](spikes/RESULTS.md)), and the core (config, paths, entities) is built.
-> The Blender side comes next; nothing is usable in production yet.
+> tested (see [spikes](spikes/RESULTS.md)), and the core and workfile handling are built:
+> a Pipeline menu to create assets, start tasks, open and version up workfiles. Publishing
+> comes next; nothing is usable in production yet.
 
 ## What it does
 
@@ -40,6 +41,14 @@ flowchart LR
     lighting -- "renders" --> edit
 ```
 
+## Using it in Blender
+
+1. Install the extension zip (Preferences > Get Extensions > Install from Disk).
+2. In the add-on's preferences, add your project folder: the one holding `pipeline.toml`.
+3. Use the **Pipeline** menu in the top bar: New Asset…, New Workfile…, Open…, Version Up.
+   Next to it, the top bar shows what the open file is (`hero · rigging · v012`), in the
+   warning colour for a publish, a file outside the pipeline, or one someone else has open.
+
 ## Using the core
 
 ```python
@@ -62,7 +71,7 @@ shot.render_path("lighting", 1)
 | --- | --- |
 | `src/smallstudio_pipeline/core/` | Pipeline logic with no Blender imports: config, path templates, naming, metadata, entities. Tested in plain Python. |
 | `src/smallstudio_pipeline/defaults.toml` | Built-in settings: asset types, tasks, naming, path templates. A project's `pipeline.toml` overrides any of them. |
-| `src/smallstudio_pipeline/blender/` | The thin Blender layer: operators, menus, panels. Tested in headless Blender. |
+| `src/smallstudio_pipeline/blender/` | The thin Blender layer: preferences, the Pipeline menu and its operators, load/save handlers. Tested in headless Blender. |
 | `tests/core/`, `tests/blender/` | The two test suites. |
 | `spikes/` | Scripts that tested the Blender behaviour the design relies on, with [results](spikes/RESULTS.md). |
 | `scripts/build_extension.py` | Builds and validates the extension zip. |
