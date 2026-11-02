@@ -1,0 +1,90 @@
+# Built-in pipeline settings. A project overrides any of these in pipeline.toml at its
+# root: tables merge key by key, anything else replaces the default.
+
+[project]
+fps = 24
+resolution = [1920, 1080]
+# With episodes, codes are episode_sequence_shot (010_020_0030); without, sequence_shot.
+episodes = true
+# Where render/ folders resolve. Empty means the project root; may be absolute.
+render_root = ""
+
+[naming]
+# Names of assets and tasks. Matched against the whole name.
+name_pattern = "[a-z][a-z0-9_]*"
+version_padding = 3
+# Episodes, sequences and shots are numbered in steps, leaving room to insert.
+code_step = 10
+
+# Tasks: which entity their workfiles belong to, whether they publish, and where their
+# renders go (an entity, or leave it out for no renders).
+[tasks.modeling]
+entity = "asset"
+publishes = true
+
+[tasks.rigging]
+entity = "asset"
+publishes = true
+
+[tasks.layout]
+entity = "sequence"
+publishes = true
+renders = "sequence" # One layout playblast per sequence.
+
+[tasks.lighting]
+entity = "sequence"
+publishes = false
+renders = "shot" # Lighting and comp renders belong to each shot.
+
+[tasks.animation]
+entity = "shot"
+publishes = true
+renders = "shot" # Playblasts.
+
+# Asset types: their tasks, which are optional, and which task's publish shots link
+# (the first one in shot_link that the asset has).
+[asset_types.character]
+tasks = ["modeling", "rigging"]
+shot_link = ["rigging"]
+
+[asset_types.prop]
+tasks = ["modeling", "rigging"]
+optional_tasks = ["rigging"]
+shot_link = ["rigging", "modeling"]
+
+[asset_types.set]
+tasks = ["modeling"]
+shot_link = ["modeling"]
+
+[asset_types.lib]
+tasks = ["modeling"]
+shot_link = ["modeling"]
+
+[asset_types.utility]
+tasks = ["rigging"]
+shot_link = ["rigging"]
+
+# Paths relative to the project root. {@name} includes another template.
+[templates]
+asset_folder = "assets/{asset_type}/{asset}"
+asset_metadata = "{@asset_folder}/{asset}.json"
+asset_work = "{@asset_folder}/{task}/work/{asset}_{task}_v{version}.blend"
+asset_publish = "{@asset_folder}/{task}/publish/{asset}_{task}_v{version}.blend"
+asset_hero = "{@asset_folder}/{task}/publish/{asset}_{task}.blend"
+
+sequence_folder = "sequences/{sequence}"
+sequence_metadata = "{@sequence_folder}/{sequence}.json"
+sequence_work = "{@sequence_folder}/{task}/work/{sequence}_{task}_v{version}.blend"
+sequence_publish = "{@sequence_folder}/{task}/publish/{sequence}_{task}_v{version}.blend"
+sequence_hero = "{@sequence_folder}/{task}/publish/{sequence}_{task}.blend"
+
+shot_folder = "shots/{shot}"
+shot_metadata = "{@shot_folder}/{shot}.json"
+shot_work = "{@shot_folder}/{task}/work/{shot}_{task}_v{version}.blend"
+shot_publish = "{@shot_folder}/{task}/publish/{shot}_{task}_v{version}.blend"
+shot_hero = "{@shot_folder}/{task}/publish/{shot}_{task}.blend"
+
+# Paths relative to render_root.
+[render_templates]
+sequence_render = "{@sequence_folder}/{task}/render/v{version}"
+shot_render = "{@shot_folder}/{task}/render/v{version}"
