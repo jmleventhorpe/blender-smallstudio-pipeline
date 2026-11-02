@@ -17,7 +17,10 @@ version_padding = 3
 code_step = 10
 
 # Tasks: which entity their workfiles belong to, whether they publish, and where their
-# renders go (an entity, or leave it out for no renders).
+# renders go (an entity, or leave it out for no renders). A project can give a task a
+# starter file for new workfiles, relative to the project root:
+#   [tasks.lighting]
+#   starter = "starters/lighting.blend"
 [tasks.modeling]
 entity = "asset"
 publishes = true

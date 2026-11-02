@@ -102,6 +102,28 @@ class Project:
         self.tracker.save_asset(metadata)
         return Asset(self, metadata)
 
+    # Any kind of entity
+
+    def kinds(self) -> list[str]:
+        """Every kind of entity, for browsing: the asset types, then sequence and shot."""
+        return [*self.config.asset_types, "sequence", "shot"]
+
+    def entities(self, kind: str) -> list[Asset] | list[Sequence] | list[Shot]:
+        """Every entity of a kind: an asset type, "sequence" or "shot"."""
+        if kind == "sequence":
+            return self.sequences()
+        if kind == "shot":
+            return self.shots()
+        return self.assets(self.asset_type(kind).name)
+
+    def entity(self, kind: str, name: str) -> Asset | Sequence | Shot:
+        """Look up an entity by its kind ("asset", "sequence", "shot") and name or code."""
+        if kind == "sequence":
+            return self.sequence(name)
+        if kind == "shot":
+            return self.shot(name)
+        return self.asset(name)
+
     # Sequences and shots
 
     def episodes(self) -> list[str]:
@@ -164,9 +186,17 @@ class Entity:
         """How the entity is named in messages."""
         raise NotImplementedError
 
+    @property
+    def tasks(self) -> list[str]:
+        """The tasks this entity has workfiles for."""
+        tasks = self.project.config.tasks.values()
+        return [task.name for task in tasks if task.entity == self.kind]
+
     def has_task(self, task: str) -> bool:
-        found = self.project.config.tasks.get(task)
-        return found is not None and found.entity == self.kind
+        return task in self.tasks
+
+    def tasks_with_workfiles(self) -> list[str]:
+        return [task for task in self.tasks if self.workfile_versions(task)]
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, Entity) and (self.kind, self.fields) == (other.kind, other.fields)
@@ -266,9 +296,6 @@ class Asset(Entity):
     @property
     def label(self) -> str:
         return self.name
-
-    def has_task(self, task: str) -> bool:
-        return task in self.metadata.tasks
 
     def shot_task(self) -> str:
         """The task whose publish shots link: the first in the type's shot_link it has."""

@@ -27,6 +27,7 @@ class Task:
     entity: str  # What its workfiles belong to: "asset", "sequence" or "shot".
     publishes: bool
     renders: str | None  # Where its renders go: "sequence", "shot", or None.
+    starter: str | None = None  # A .blend new workfiles start from, relative to the project.
 
 
 @dataclass(frozen=True)
@@ -138,11 +139,15 @@ def _task(name: str, table: Any) -> Task:
     renders = get(table, "renders", str, where, default=None)
     if renders not in (None, "sequence", "shot"):
         raise ValueError(f"{where}.renders should be 'sequence' or 'shot', not '{renders}'")
-    return Task(name, entity, get(table, "publishes", bool, where, default=False), renders)
+    publishes = get(table, "publishes", bool, where, default=False)
+    starter = get(table, "starter", str, where, default=None)
+    return Task(name, entity, publishes, renders, starter)
 
 
 def _asset_type(name: str, table: Any, tasks: dict[str, Task]) -> AssetType:
     where = f"asset_types.{name}"
+    if name in ENTITIES:
+        raise ValueError(f"'{name}' can't be an asset type name; it's used for {name}s")
     asset_tasks = get_names(table, "tasks", where)
     if not asset_tasks:
         raise ValueError(f"{where}.tasks needs at least one task")
