@@ -2,10 +2,10 @@
 
 import bpy
 
-from . import preferences, state
+from . import operators, preferences, state
 
 # Modules whose CLASSES are registered, in order.
-MODULES = (preferences,)
+MODULES = (preferences, operators)
 
 
 def register() -> None:

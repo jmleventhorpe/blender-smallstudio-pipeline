@@ -51,3 +51,12 @@ extraPaths = ["src"]
 reportMissingModuleSource = false
 # Blender declares properties as annotations that are calls: name: StringProperty().
 reportInvalidTypeForm = false
+
+# Where the Blender stubs are stricter than Blender itself.
+[[tool.pyright.executionEnvironments]]
+root = "src/smallstudio_pipeline/blender"
+reportOptionalMemberAccess = false # self.layout is never None inside draw().
+
+[[tool.pyright.executionEnvironments]]
+root = "tests/blender"
+reportAttributeAccessIssue = false # bpy.ops.pipeline exists once the add-on registers.

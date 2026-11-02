@@ -172,6 +172,7 @@ class Entity:
     """What assets, sequences and shots share: workfiles, publishes and renders per task."""
 
     kind: ClassVar[str]  # "asset", "sequence" or "shot": picks the templates.
+    name: str  # The asset's name, or the sequence or shot code.
 
     def __init__(self, project: Project):
         self.project = project
@@ -321,8 +322,12 @@ class Sequence(Entity):
         self.code = SequenceCode.parse(metadata.code, project.config.episodes)
 
     @property
+    def name(self) -> str:
+        return str(self.code)
+
+    @property
     def fields(self) -> dict[str, str]:
-        return {"sequence": str(self.code)}
+        return {"sequence": self.name}
 
     @property
     def label(self) -> str:
@@ -354,8 +359,12 @@ class Shot(Entity):
         self.code = ShotCode.parse(metadata.code, project.config.episodes)
 
     @property
+    def name(self) -> str:
+        return str(self.code)
+
+    @property
     def fields(self) -> dict[str, str]:
-        return {"shot": str(self.code)}
+        return {"shot": self.name}
 
     @property
     def label(self) -> str:
