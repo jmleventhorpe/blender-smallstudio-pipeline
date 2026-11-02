@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+*.blend1
+
+# Spike output when --out points inside the repo
+spikes/out/
+
+# Personal Claude Code settings for this repo
+.claude/settings.local.json
