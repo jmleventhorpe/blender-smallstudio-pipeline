@@ -1,7 +1,7 @@
 """T9: can per-shot property overrides on linked data be re-applied, including on a farm?
 
 Run:
-    blender -b --factory-startup --python-exit-code 1 --python spikes/t9_shot_settings.py -- --out /tmp/t9
+    blender -b --factory-startup --python spikes/t9_shot_settings.py -- --out /tmp/t9
 
 Settings are a list of property paths and values: a sequence-level JSON file next to the
 lighting workfiles, plus a text datablock per shot in the lighting file (shot wins). A text
@@ -24,8 +24,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-import bpy  # noqa: E402
-from spike_utils import (  # noqa: E402
+import bpy
+
+from spike_utils import (
     CHARACTER,
     OUTPUT,
     Checks,
@@ -87,9 +88,11 @@ def _targets(scene, entry):
 def _set(datablock, path, value):
     parent_path, _, attribute = path.rpartition(".")
     parent = datablock.path_resolve(parent_path) if parent_path else datablock
-    if not _originals.get((datablock.session_uid, path)):
+    key = (datablock.session_uid, path)
+    if key not in _originals:
         current = getattr(parent, attribute)
-        _originals[(datablock.session_uid, path)] = (parent, attribute, current[:] if hasattr(current, "__len__") else current)
+        original = current[:] if hasattr(current, "__len__") else current
+        _originals[key] = (parent, attribute, original)
     setattr(parent, attribute, value)
 
 
@@ -145,7 +148,9 @@ def publish_animation(out: Path, shot: str, rig_hero: Path) -> Path:
     folder = out / f"shots/{shot}/animation"
     build_animation(folder / f"work/{shot}_animation_v001.blend", rig_hero)
     hero = folder / f"publish/{shot}_animation.blend"
-    write_publish(bpy.data.collections[OUTPUT], hero, hero.with_name(f"{shot}_animation_v001.blend"))
+    write_publish(
+        bpy.data.collections[OUTPUT], hero, hero.with_name(f"{shot}_animation_v001.blend")
+    )
     return hero
 
 
@@ -229,14 +234,20 @@ def main() -> None:
     for shot in SHOTS:
         render(lighting, [f"{shot}_lighting"], autoexec=False)
         colour = centre_colour(out, shot)
-        checks.check(f"{shot} without the script shows untouched data", same(colour, WHITE), str(colour))
+        checks.check(
+            f"{shot} without the script shows untouched data", same(colour, WHITE), str(colour)
+        )
 
     step("Farm-style: each shot in its own fresh Blender, auto-run scripts allowed")
     for shot in SHOTS:
         log = render(lighting, [f"{shot}_lighting"], autoexec=True)
         colour = centre_colour(out, shot)
         applied = f"T9 APPLIED settings for {shot}_lighting" in log
-        checks.check(f"{shot} renders with its settings", same(colour, expected[shot]) and applied, str(colour))
+        checks.check(
+            f"{shot} renders with its settings",
+            same(colour, expected[shot]) and applied,
+            str(colour),
+        )
 
     step("Session-style: all shots in one Blender, green shot first to catch leftovers")
     order = ["010_010_0020", "010_010_0010", "010_010_0030"]

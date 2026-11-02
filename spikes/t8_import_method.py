@@ -1,7 +1,7 @@
 """T8: can a publish set an asset's Preferred Import Method from Python?
 
 Run:
-    blender -b --factory-startup --python-exit-code 1 --python spikes/t8_import_method.py -- --out /tmp/t8
+    blender -b --factory-startup --python spikes/t8_import_method.py -- --out /tmp/t8
 
 Pass: the hero's asset carries Preferred Import Method = Link; the versioned copy has no
 asset data. Dragging from the Asset Browser can only be checked by hand, in the UI.
@@ -13,8 +13,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-import bpy  # noqa: E402
-from spike_utils import (  # noqa: E402
+import bpy
+
+from spike_utils import (
     CHARACTER,
     Checks,
     build_character,
@@ -53,7 +54,9 @@ def main() -> None:
 
     step("Open the versioned copy")
     open_file(versioned)
-    checks.check("versioned copy has no asset data", bpy.data.collections[CHARACTER].asset_data is None)
+    checks.check(
+        "versioned copy has no asset data", bpy.data.collections[CHARACTER].asset_data is None
+    )
 
     step("Link the hero into a shot and read the setting from the library")
     start_file(out / "shots/010_010_0010/animation/work/010_010_0010_animation_v001.blend")

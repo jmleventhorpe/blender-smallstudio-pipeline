@@ -1,0 +1,10 @@
+# The core must run without Blender; this flags any Blender import while editing.
+extend = "../../../pyproject.toml"
+
+[lint]
+extend-select = ["TID251"]
+
+[lint.flake8-tidy-imports.banned-api]
+"bpy".msg = "core must not import Blender; put this in smallstudio_pipeline.blender"
+"bmesh".msg = "core must not import Blender; put this in smallstudio_pipeline.blender"
+"mathutils".msg = "core must not import Blender; put this in smallstudio_pipeline.blender"

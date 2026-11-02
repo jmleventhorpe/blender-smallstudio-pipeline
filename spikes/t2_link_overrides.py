@@ -1,7 +1,7 @@
 """T2: can lighting link an animation file whose characters are library overrides?
 
 Run:
-    blender -b --factory-startup --python-exit-code 1 --python spikes/t2_link_overrides.py -- --out /tmp/t2
+    blender -b --factory-startup --python spikes/t2_link_overrides.py -- --out /tmp/t2
 
 Pass: the animation plays in lighting, a rig republish comes through, nothing reports
 broken overrides. If it fails, animation publishes switch to caches for lighting.
@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from spike_utils import (  # noqa: E402
+from spike_utils import (
     Checks,
     build_animation,
     build_character,

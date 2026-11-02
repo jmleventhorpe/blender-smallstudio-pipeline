@@ -35,9 +35,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 # Line-buffered, so a watcher in another process reports as things happen.
 sys.stdout.reconfigure(line_buffering=True)
 
-import bmesh  # noqa: E402
-import bpy  # noqa: E402
-from spike_utils import (  # noqa: E402
+import bmesh
+import bpy
+
+from spike_utils import (
     instance_collection,
     load_collection,
     open_file,
@@ -113,7 +114,11 @@ def reload_and_report(project: Path, seen_mtime: float) -> float:
         print(f"T1 hero not readable right now: {error}")
         return seen_mtime
     if mtime != seen_mtime:
-        library = next(lib for lib in bpy.data.libraries if Path(bpy.path.abspath(lib.filepath)).name == hero.name)
+        library = next(
+            lib
+            for lib in bpy.data.libraries
+            if Path(bpy.path.abspath(lib.filepath)).name == hero.name
+        )
         library.reload()
         print(f"T1 RELOADED: linked crate is now v{linked_version():03}")
     return mtime
@@ -123,7 +128,8 @@ def watch(project: Path, timeout: float) -> None:
     if not bpy.data.filepath:
         open_file(project / SHOT)
     start_version = linked_version()
-    print(f"T1 WATCHING: shot open, linked crate is v{start_version:03}. Publish from the other machine now.")
+    print(f"T1 WATCHING: shot open, linked crate is v{start_version:03}.")
+    print("Publish from the other machine now.")
     seen = {"mtime": hero_path(project).stat().st_mtime}
 
     if not bpy.app.background:
@@ -144,15 +150,31 @@ def watch(project: Path, timeout: float) -> None:
     open_file(project / SHOT)
     reopened = linked_version()
     ok = reloaded != start_version and reopened == reloaded
-    print(f"T1 RESULT {'PASS' if ok else 'FAIL'}: start v{start_version}, after reload v{reloaded}, after reopen v{reopened}")
+    result = "PASS" if ok else "FAIL"
+    print(
+        f"T1 RESULT {result}: start v{start_version}, "
+        f"after reload v{reloaded}, after reopen v{reopened}"
+    )
 
 
 def local(project: Path, version: int) -> None:
     prepare(project)
     step("Open the shot in a second Blender and watch")
     watcher = subprocess.Popen(
-        [bpy.app.binary_path, "-b", "--factory-startup", str(project / SHOT), "--python", __file__,
-         "--", "watch", "--project", str(project), "--timeout", "60"],
+        [
+            bpy.app.binary_path,
+            "-b",
+            "--factory-startup",
+            str(project / SHOT),
+            "--python",
+            __file__,
+            "--",
+            "watch",
+            "--project",
+            str(project),
+            "--timeout",
+            "60",
+        ],
         stdout=subprocess.PIPE,
         text=True,
     )

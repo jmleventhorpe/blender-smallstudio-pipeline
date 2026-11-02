@@ -1,7 +1,7 @@
 """T11: can one shared, linked material render different values per shot, with no scripts?
 
 Run:
-    blender -b --factory-startup --python-exit-code 1 --python spikes/t11_scene_controls.py -- --out /tmp/t11
+    blender -b --factory-startup --python spikes/t11_scene_controls.py -- --out /tmp/t11
 
 The character's material reads its tint through an Attribute node of type View Layer,
 which looks the name up on the view layer, then the scene, then the world. The lighting
@@ -22,8 +22,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-import bpy  # noqa: E402
-from spike_utils import (  # noqa: E402
+import bpy
+
+from spike_utils import (
     CHARACTER,
     OUTPUT,
     Checks,
@@ -65,7 +66,9 @@ def publish_animation(out: Path, shot: str, rig_hero: Path) -> Path:
     folder = out / f"shots/{shot}/animation"
     build_animation(folder / f"work/{shot}_animation_v001.blend", rig_hero)
     hero = folder / f"publish/{shot}_animation.blend"
-    write_publish(bpy.data.collections[OUTPUT], hero, hero.with_name(f"{shot}_animation_v001.blend"))
+    write_publish(
+        bpy.data.collections[OUTPUT], hero, hero.with_name(f"{shot}_animation_v001.blend")
+    )
     return hero
 
 
@@ -156,7 +159,9 @@ def main() -> None:
         render(lighting, [f"{shot}_lighting" for shot in order], engine)
         for shot in order:
             colour = centre_colour(out, shot)
-            checks.check(f"{shot} correct after other shots", same(colour, EXPECTED[shot]), str(colour))
+            checks.check(
+                f"{shot} correct after other shots", same(colour, EXPECTED[shot]), str(colour)
+            )
 
     checks.finish()
 

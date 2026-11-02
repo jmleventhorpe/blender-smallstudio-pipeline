@@ -1,7 +1,7 @@
 """T6: can one file hold separate overrides of the same character in several scenes?
 
 Run:
-    blender -b --factory-startup --python-exit-code 1 --python spikes/t6_shared_character.py -- --out /tmp/t6
+    blender -b --factory-startup --python spikes/t6_shared_character.py -- --out /tmp/t6
 
 Pass: each scene keeps its own pose; the instance_id property on each override root
 survives save, reload and a rig republish (override resync).
@@ -14,10 +14,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-import bpy  # noqa: E402
-from bpy_extras import anim_utils  # noqa: E402
-from mathutils import Euler  # noqa: E402
-from spike_utils import (  # noqa: E402
+import bpy
+from bpy_extras import anim_utils
+from mathutils import Euler
+
+from spike_utils import (
     CHARACTER,
     Checks,
     broken_ids,
@@ -79,7 +80,9 @@ def check_layout(checks: Checks, path: Path, expect_tail: bool) -> None:
     open_file(path)
     characters = {code: character_in(bpy.data.scenes[code]) for code in SHOTS}
     rigs = {code: find_object(collection, "ARMATURE") for code, collection in characters.items()}
-    print("   names per scene:", {code: (c.name, rigs[code].name) for code, c in characters.items()})
+    print(
+        "   names per scene:", {code: (c.name, rigs[code].name) for code, c in characters.items()}
+    )
 
     checks.check(
         "each scene has its own override",

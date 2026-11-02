@@ -1,7 +1,7 @@
 """T7: can a comp scene read rendered EXRs and render without the 3D scene?
 
 Run:
-    blender -b --factory-startup --python-exit-code 1 --python spikes/t7_comp_from_exrs.py -- --out /tmp/t7
+    blender -b --factory-startup --python spikes/t7_comp_from_exrs.py -- --out /tmp/t7
 
 Pass: rendering a comp scene runs only the compositor and writes frames; editing the
 shared sequence comp group changes every shot's comp.
@@ -13,10 +13,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-import bmesh  # noqa: E402
-import bpy  # noqa: E402
-import numpy as np  # noqa: E402
-from spike_utils import Checks, output_dir, start_file, step  # noqa: E402
+import bmesh
+import bpy
+import numpy as np
+
+from spike_utils import Checks, output_dir, start_file, step
 
 SHOTS = ["010_010_0010", "010_010_0020"]
 FRAMES = (1, 2)
@@ -35,7 +36,7 @@ def build_lighting_scene(scene: bpy.types.Scene, out: Path, shot: str, energy: f
     bm.to_mesh(mesh)
     bm.free()
     cube = bpy.data.objects.new(f"{shot}_cube", mesh)
-    sun =bpy.data.objects.new(f"{shot}_sun", bpy.data.lights.new(f"{shot}_sun", "SUN"))
+    sun = bpy.data.objects.new(f"{shot}_sun", bpy.data.lights.new(f"{shot}_sun", "SUN"))
     sun.data.energy = energy
     sun.rotation_euler = (0.6, 0.2, 0.0)
     camera = bpy.data.objects.new(f"{shot}_cam", bpy.data.cameras.new(f"{shot}_cam"))
@@ -136,7 +137,9 @@ def main() -> None:
         build_lighting_scene(scene, out, shot, energy=3.0 + 3.0 * index)
         seconds = render(scene)
         exrs = sorted((render_dir(out, shot) / "ViewLayer").glob("*.exr"))
-        checks.check(f"{shot} lighting wrote EXRs", len(exrs) == 2, f"{len(exrs)} files, {seconds:.2f}s")
+        checks.check(
+            f"{shot} lighting wrote EXRs", len(exrs) == 2, f"{len(exrs)} files, {seconds:.2f}s"
+        )
 
     step("Comp: a comp scene per shot feeding the shared group, rendered with no camera")
     group = build_comp_group()
@@ -167,7 +170,9 @@ def main() -> None:
         render(scene)
         graded = mean_brightness(comp_frames(out, shot)[0])
         ratio = graded / baseline[shot] if baseline[shot] else 0.0
-        checks.check(f"{shot} picks up the group edit", abs(ratio - 0.5) < 0.01, f"ratio {ratio:.4f}")
+        checks.check(
+            f"{shot} picks up the group edit", abs(ratio - 0.5) < 0.01, f"ratio {ratio:.4f}"
+        )
 
     bpy.ops.wm.save_mainfile()
     checks.finish()

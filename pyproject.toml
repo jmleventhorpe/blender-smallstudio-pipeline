@@ -1,0 +1,49 @@
+[project]
+name = "blender-smallstudio-pipeline"
+version = "0.1.0"
+description = "Publishing, loading and scene construction for small animation teams, entirely inside Blender."
+readme = "README.md"
+# Blender 5.2 bundles Python 3.13; the core is tested on the same version.
+requires-python = ">=3.13,<3.14"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "James Leventhorpe" }]
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "fake-bpy-module-5.2>=20260730",
+    "pyright>=1.1.414",
+    "pytest>=9.2",
+    "ruff>=0.17",
+]
+
+[tool.uv]
+# The code ships as a Blender extension, not a wheel; tests import it from src/.
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests/core"]
+pythonpath = ["src"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests", "spikes"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# Spikes and the Blender test runner set sys.path before importing.
+"spikes/*" = ["E402"]
+"tests/blender/run.py" = ["E402"]
+
+[tool.pyright]
+include = ["src", "tests", "scripts"]
+pythonVersion = "3.13"
+typeCheckingMode = "basic"
+extraPaths = ["src"]
+# fake-bpy-module ships stubs only; there is no bpy source outside Blender.
+reportMissingModuleSource = false

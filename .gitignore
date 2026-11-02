@@ -13,3 +13,6 @@ spikes/out/
 
 # Personal Claude Code settings for this repo
 .claude/settings.local.json
+
+# pytest for running tests inside Blender (see tests/blender/run.py)
+.blender-site/

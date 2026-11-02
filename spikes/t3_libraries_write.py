@@ -1,7 +1,7 @@
 """T3: does bpy.data.libraries.write publish cleanly from the open session?
 
 Run:
-    blender -b --factory-startup --python-exit-code 1 --python spikes/t3_libraries_write.py -- --out /tmp/t3
+    blender -b --factory-startup --python spikes/t3_libraries_write.py -- --out /tmp/t3
 
 Pass: a written animation publish keeps its overrides and actions, links the rig by a
 relative path and works in lighting; only the hero file carries an asset mark.
@@ -13,8 +13,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-import bpy  # noqa: E402
-from spike_utils import (  # noqa: E402
+import bpy
+
+from spike_utils import (
     CHARACTER,
     OUTPUT,
     Checks,
@@ -50,8 +51,14 @@ def publish_rig(checks: Checks, out: Path, version: int, extra_bone: bool) -> Pa
         collection.asset_data is None and not bpy.data.is_dirty,
         f"asset_data={collection.asset_data}, dirty={bpy.data.is_dirty}",
     )
-    checks.check("hero is an asset", asset_collections(hero) == [CHARACTER], str(asset_collections(hero)))
-    checks.check("versioned copy is not", asset_collections(versioned) == [], str(asset_collections(versioned)))
+    checks.check(
+        "hero is an asset", asset_collections(hero) == [CHARACTER], str(asset_collections(hero))
+    )
+    checks.check(
+        "versioned copy is not",
+        asset_collections(versioned) == [],
+        str(asset_collections(versioned)),
+    )
     checks.check("no temp file left behind", not any(hero.parent.glob("*.tmp.blend")))
     return hero
 
@@ -77,7 +84,9 @@ def check_written_publish(checks: Checks, path: Path) -> None:
     libraries = list(bpy.data.libraries)
     checks.check(
         "rig is linked by a relative path",
-        len(libraries) == 1 and libraries[0].filepath.startswith("//") and not libraries[0].is_missing,
+        len(libraries) == 1
+        and libraries[0].filepath.startswith("//")
+        and not libraries[0].is_missing,
         ", ".join(lib.filepath for lib in libraries),
     )
     broken = broken_ids()

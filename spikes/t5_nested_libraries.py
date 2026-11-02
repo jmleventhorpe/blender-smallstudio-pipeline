@@ -1,7 +1,7 @@
 """T5: do lib pieces survive two levels of linking (lib -> set -> layout)?
 
 Run:
-    blender -b --factory-startup --python-exit-code 1 --python spikes/t5_nested_libraries.py -- --out /tmp/t5
+    blender -b --factory-startup --python spikes/t5_nested_libraries.py -- --out /tmp/t5
 
 Pass: pieces display through two levels of linking, overriding the set in a shot allows
 a per-shot dressing tweak that survives reload, and lib and set republishes come through.
@@ -13,9 +13,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-import bmesh  # noqa: E402
-import bpy  # noqa: E402
-from spike_utils import (  # noqa: E402
+import bmesh
+import bpy
+
+from spike_utils import (
     Checks,
     asset_collections,
     broken_ids,

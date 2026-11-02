@@ -1,7 +1,7 @@
 """T4: how long does a sequence lighting file take to open at 10, 20 and 40 shots?
 
 Run (use a real disk for --out, not a RAM-backed /tmp):
-    blender -b --factory-startup --python-exit-code 1 --python spikes/t4_lighting_load.py -- --out spikes/out/t4
+    blender -b --factory-startup --python spikes/t4_lighting_load.py -- --out spikes/out/t4
 
 Options: --shots 10,20,40  --characters 3  --bones 200  --verts 40000  --threshold 60
 
@@ -24,9 +24,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-import bpy  # noqa: E402
-from mathutils import Euler, Vector  # noqa: E402
-from spike_utils import (  # noqa: E402
+import bpy
+from mathutils import Euler, Vector
+
+from spike_utils import (
     Checks,
     instance_collection,
     load_collection,
@@ -105,7 +106,9 @@ def build_heavy_rig(path: Path, bones: int, verts: int) -> Path:
 
     bpy.ops.wm.save_mainfile()
     hero = path.parent.parent / "publish" / f"{CHARACTER}_rigging.blend"
-    write_publish(collection, hero, hero.with_name(f"{CHARACTER}_rigging_v001.blend"), mark=[collection])
+    write_publish(
+        collection, hero, hero.with_name(f"{CHARACTER}_rigging_v001.blend"), mark=[collection]
+    )
     return hero
 
 
@@ -113,12 +116,21 @@ def _tube_mesh(verts: int) -> bpy.types.Mesh:
     around = 200
     rings = max(verts // around, 2)
     coords = [
-        (0.4 * math.cos(2 * math.pi * a / around), 0.4 * math.sin(2 * math.pi * a / around), 3 * r / (rings - 1))
+        (
+            0.4 * math.cos(2 * math.pi * a / around),
+            0.4 * math.sin(2 * math.pi * a / around),
+            3 * r / (rings - 1),
+        )
         for r in range(rings)
         for a in range(around)
     ]
     faces = [
-        (r * around + a, r * around + (a + 1) % around, (r + 1) * around + (a + 1) % around, (r + 1) * around + a)
+        (
+            r * around + a,
+            r * around + (a + 1) % around,
+            (r + 1) * around + (a + 1) % around,
+            (r + 1) * around + a,
+        )
         for r in range(rings - 1)
         for a in range(around)
     ]
@@ -176,7 +188,9 @@ def build_anim_publish(work: Path, publish: Path, rig_hero: Path, characters: in
         rig.location.x = number * 2.0
         for frame in KEY_FRAMES:
             for bone in rig.pose.bones:
-                bone.rotation_quaternion = Euler((0.1 * math.sin(frame + number), 0, 0)).to_quaternion()
+                bone.rotation_quaternion = Euler(
+                    (0.1 * math.sin(frame + number), 0, 0)
+                ).to_quaternion()
                 bone.keyframe_insert("rotation_quaternion", frame=frame)
     bpy.ops.wm.save_mainfile()
     write_publish(output, publish, publish.with_name(publish.stem + "_v001.blend"))
@@ -288,7 +302,9 @@ def main() -> None:
         shot = f"010_010_{number * 10:04}"
         folder = out / f"shots/{shot}/animation"
         publish = folder / f"publish/{shot}_animation.blend"
-        build_anim_publish(folder / f"work/{shot}_animation_v001.blend", publish, rig_hero, args.characters)
+        build_anim_publish(
+            folder / f"work/{shot}_animation_v001.blend", publish, rig_hero, args.characters
+        )
         publishes.append(publish)
     print(f"   built in {time.perf_counter() - start:.0f}s")
 
@@ -302,7 +318,9 @@ def main() -> None:
         print(f"   {result}")
         results.append(result)
 
-    step(f"Republish the rig with more bones, then reopen the {counts[-1]}-shot file (forces resync)")
+    step(
+        f"Republish the rig with more bones, then reopen the {counts[-1]}-shot file (forces resync)"
+    )
     build_heavy_rig(
         out / "assets/character/heavy/rigging/work/heavy_rigging_v002.blend",
         args.bones + CHAINS,

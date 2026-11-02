@@ -1,7 +1,7 @@
 """T10: can a publish give the hero's asset a preview, headless?
 
 Run:
-    blender -b --factory-startup --python-exit-code 1 --python spikes/t10_asset_previews.py -- --out /tmp/t10
+    blender -b --factory-startup --python spikes/t10_asset_previews.py -- --out /tmp/t10
 
 Pass: the hero's asset has a preview showing the asset, readable when linked. The previews
 are also saved as PNGs in --out to look at. Also checks the fallback: loading a rendered
@@ -14,9 +14,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-import bpy  # noqa: E402
-import numpy as np  # noqa: E402
-from spike_utils import (  # noqa: E402
+import bpy
+import numpy as np
+
+from spike_utils import (
     CHARACTER,
     Checks,
     build_character,
