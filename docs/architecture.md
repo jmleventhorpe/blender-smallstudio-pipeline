@@ -9,11 +9,15 @@ published, and where to add things. Each module's docstring says more about it.
 src/smallstudio_pipeline/
 ├── core/                 the rules; never imports Blender
 └── blender/              doing it in Blender
+    ├── assets/           asset work: publishing, rig materials, editing in context
     ├── operators/        the Pipeline menu's actions, one per file
     └── ui/               menu, top bar, results panel, preferences, dialog choices
 ```
 
-`core` decides; `blender` does. A topic usually has a module in each, with the same name:
+Modules every stage uses sit at the top of `blender/`; work for one stage sits in that
+stage's folder. `core` stays flat while it's small.
+
+`core` decides; `blender` does. A topic usually has a module in each:
 
 | Topic | `core/` decides | `blender/` does |
 | --- | --- | --- |
@@ -51,11 +55,12 @@ or object it works on, so it runs headless in the tests.
 | `state` | What the open file is, worked out on load and save so the UI can read it cheaply. |
 | `handlers` | Load and save handlers: refresh state, in-use markers, asset library, versions seen. |
 | `identity` | The custom properties on an asset's root collection: name, type, instance id, built from. |
-| `workfiles`, `publishing`, `updates` | Each topic's Blender side. |
+| `workfiles`, `updates` | Each topic's Blender side. |
 | `libraries` | Linking and appending from publishes; the project's asset library. |
 | `validation` | Setting up publish-validator with the pipeline's checks and the project's. |
-| `materials` | A rig taking its model's materials on each publish. |
-| `in_context` | Editing and publishing an asset inside another asset's file. |
+| `assets/publishing` | Picking the root and writing an asset's hero and versioned files. |
+| `assets/materials` | A rig taking its model's materials on each publish. |
+| `assets/in_context` | Editing and publishing an asset inside another asset's file. |
 | `operators/` | Open, New Workfile, New Asset, Version Up, Publish, Check Updates, Make Editable. |
 | `ui/` | The Pipeline menu and top bar, the results panel, preferences, Open and New Workfile choices. |
 

@@ -1,6 +1,6 @@
 """Pipeline > Make Editable: swap the selected linked asset for a local copy to edit here.
 
-Publishing the copy links the asset back in; see blender/in_context.py.
+Publishing the copy links the asset back in; see blender/assets/in_context.py.
 """
 
 from __future__ import annotations
@@ -8,7 +8,8 @@ from __future__ import annotations
 import bpy
 
 from ...core.errors import PipelineError
-from .. import in_context, state
+from .. import state
+from ..assets import in_context
 from .common import has_project
 
 

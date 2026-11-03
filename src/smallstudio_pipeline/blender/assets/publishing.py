@@ -18,13 +18,13 @@ from pathlib import Path
 import bpy
 from mathutils import Euler, Vector
 
-from ..core.catalogs import ensure_catalog
-from ..core.entities import Asset
-from ..core.errors import PipelineError
-from ..core.files import replace_with_retry
-from ..core.publishing import Dependency, PublishPlan, relative
-from ..core.updates import publish_version
-from .identity import asset_identity
+from ...core.catalogs import ensure_catalog
+from ...core.entities import Asset
+from ...core.errors import PipelineError
+from ...core.files import replace_with_retry
+from ...core.publishing import Dependency, PublishPlan, relative
+from ...core.updates import publish_version
+from ..identity import asset_identity
 
 THUMBNAIL_SIZE = 256
 

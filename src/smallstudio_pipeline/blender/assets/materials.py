@@ -13,7 +13,7 @@ from pathlib import Path
 
 import bpy
 
-from . import libraries
+from .. import libraries
 
 
 @dataclass

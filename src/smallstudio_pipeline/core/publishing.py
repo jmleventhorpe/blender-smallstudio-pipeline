@@ -1,4 +1,4 @@
-"""What a publish is and what it records. The Blender side is blender/publishing.py.
+"""What a publish is and what it records. Assets are written by blender/assets/publishing.py.
 
 publish_target() decides what publishing a root means: which asset and task, and whether
 it's in context (a prop published from inside its set). plan_publish() gives the next

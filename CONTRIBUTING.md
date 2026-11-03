@@ -19,9 +19,10 @@ Written to be read and extended by other TDs.
 
 - **Layers.** `core/` holds the rules and never imports Blender (`bpy`, `bmesh`,
   `mathutils`); a test and a ruff rule enforce it. `blender/` does the work in Blender,
-  usually in a module named after the core one it serves (`core/publishing.py` decides,
-  `blender/publishing.py` writes). Menu actions go in `blender/operators/`, one per file;
-  panels, menus and preferences in `blender/ui/`. See
+  usually in a module named after the core one it serves (`core/workfiles.py` decides,
+  `blender/workfiles.py` does). Work for one stage goes in that stage's folder
+  (`blender/assets/`, and `blender/shots/` from M4). Menu actions go in
+  `blender/operators/`, one per file; panels, menus and preferences in `blender/ui/`. See
   [docs/architecture.md](docs/architecture.md).
 - **Structure.** Light OOP: entity classes with methods (`shot.workfile_path(task, version)`),
   plain records for data. No deep hierarchies or frameworks.

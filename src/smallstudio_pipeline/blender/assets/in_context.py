@@ -18,14 +18,14 @@ from pathlib import Path
 import bpy
 from mathutils import Matrix
 
-from ..core.config import Config
-from ..core.entities import Asset
-from ..core.errors import PipelineError
-from ..core.project import Project
-from ..core.publishing import relative
-from ..core.updates import publish_version
-from . import libraries, updates
-from .identity import asset_identity
+from ...core.config import Config
+from ...core.entities import Asset
+from ...core.errors import PipelineError
+from ...core.project import Project
+from ...core.publishing import relative
+from ...core.updates import publish_version
+from .. import libraries, updates
+from ..identity import asset_identity
 
 # Where the linked asset was placed, kept on the copy's root while it's being edited.
 PLACEMENT = "pipeline_placement"  # The placing empty's world matrix, 16 numbers by row.

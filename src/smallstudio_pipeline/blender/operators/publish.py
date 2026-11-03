@@ -21,10 +21,11 @@ from ...core.publishing import (
     publish_target,
     write_records,
 )
-from .. import in_context, state, workfiles
+from .. import state, workfiles
+from ..assets import in_context
+from ..assets.materials import sync_materials
+from ..assets.publishing import dependencies, pick_root, write_publish
 from ..identity import asset_identity, built_from
-from ..materials import sync_materials
-from ..publishing import dependencies, pick_root, write_publish
 from ..ui import results
 from ..validation import subject_for, validator_for
 from .common import has_project

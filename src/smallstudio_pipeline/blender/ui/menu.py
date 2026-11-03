@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import bpy
 
-from .. import in_context, state
+from .. import state
+from ..assets import in_context
 
 
 class PIPELINE_MT_main(bpy.types.Menu):

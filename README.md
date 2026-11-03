@@ -86,7 +86,8 @@ shot.render_path("light", 1)
 | --- | --- |
 | `src/smallstudio_pipeline/core/` | The rules, with no Blender imports: settings, names and paths, projects and entities, and what workfiles, publishes and updates are. Tested in plain Python. |
 | `src/smallstudio_pipeline/defaults.toml` | Built-in settings: asset types, tasks, naming, path templates. A project's `pipeline.toml` overrides any of them. |
-| `src/smallstudio_pipeline/blender/` | Doing it in Blender: workfiles, publishing, libraries, updates, load/save handlers. Tested in headless Blender. |
+| `src/smallstudio_pipeline/blender/` | Doing it in Blender: workfiles, libraries, updates, validation, load/save handlers. Tested in headless Blender. |
+| `src/smallstudio_pipeline/blender/assets/` | Asset work: publishing, rig materials, editing an asset inside a set. |
 | `src/smallstudio_pipeline/blender/operators/` | The Pipeline menu's actions, one per file. |
 | `src/smallstudio_pipeline/blender/ui/` | The menu and top bar, the results panel, preferences. |
 | `src/smallstudio_pipeline/checks/`, `validation.toml` | The pipeline's own publish checks and its publish-validator settings. |
