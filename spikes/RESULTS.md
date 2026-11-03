@@ -198,3 +198,26 @@ since it exercises the real Make Editable and Publish.
 **Finding: `bpy.data.libraries.write` can't write scenes.** Writing any scene, even an
 empty one, crashes Blender 5.2.2. Collections are fine. The asset's workfile is therefore
 built by a short headless Blender that appends the written root into a fresh scene.
+
+## T13. A layout publish as a Save Copy of the workfile: pass (2026-11-03)
+
+A sequence layout file (a master scene cutting two shot scenes, each with a camera, the
+set linked through an empty and the character overridden under its placing empty) is
+published with `wm.save_as_mainfile(copy=True, relative_remap=True)`, to the versioned
+file and to the hero through a temp file and a rename.
+
+- Both copies open with every scene, the cut's strips pointing at their shot scenes, the
+  set linked and placed, and each shot's character with its own pose, its placement
+  under the empty and its `instance_id`. No missing data or broken overrides.
+- Library paths are relative and resolve from the publish folder.
+- The session stays on the workfile, and the workfile on disk is untouched.
+- Save handlers run for a copy too (`save_pre` and `save_post`, twice per copy), with
+  `bpy.data.filepath` still the workfile's. So anything the pipeline does on save, such
+  as numbering instances, also runs before a publish, and the in-use marker stays put.
+
+**Finding: only the active scene is evaluated headless.** In background mode a shot
+scene's `matrix_world` is stale until that scene is evaluated, so placement has to be
+read from each object's own transform up its parent chain (or after evaluating that
+scene's depsgraph). This matters for M5, which copies blocking from layout. Whether the
+unsaved-changes flag survives a copy can't be checked headless (Python edits don't set
+it); check it in the UI.

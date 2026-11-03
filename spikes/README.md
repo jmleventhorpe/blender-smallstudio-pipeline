@@ -26,6 +26,7 @@ Leave out `--out` to use a new temp folder. Open the files it writes to look aro
 | `t9_shot_settings.py` | Can per-shot property overrides on linked data be re-applied on load and render, including on a farm? (Fallback only; see T11.) |
 | `t10_asset_previews.py` | Can a publish give the hero's asset a preview, headless? |
 | `t11_scene_controls.py` | Can one shared, linked material render different values per shot, with no scripts? |
+| `t13_layout_save_copy.py` | Can a sequence layout file be published as a Save Copy, with its scenes, cut, links and overrides intact? |
 
 T1 needs the NAS and two machines; its `local` mode runs every step on one machine.
 
