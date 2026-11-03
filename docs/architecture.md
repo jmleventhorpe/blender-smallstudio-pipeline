@@ -10,6 +10,7 @@ src/smallstudio_pipeline/
 ├── core/                 the rules; never imports Blender
 └── blender/              doing it in Blender
     ├── assets/           asset work: publishing, rig materials, editing in context
+    ├── shots/            shot work: the layout file, instances, the layout publish
     ├── operators/        the Pipeline menu's actions, one per file
     └── ui/               menu, top bar, results panel, preferences, dialog choices
 ```
@@ -46,6 +47,7 @@ or object it works on, so it runs headless in the tests.
 | `project`, `entities` | A project and the assets, sequences and shots in it, and where each task's files go. |
 | `context` | What a file is, from its path: entity, task, version, workfile or publish. |
 | `workfiles`, `publishing`, `updates` | The rules for each topic above. |
+| `layout`, `casting` | What a layout publish writes into each shot (range, cut, casting); instance IDs. |
 | `catalogs`, `inuse` | Asset Browser catalogs; markers saying who has a file open. |
 
 **blender**:
@@ -61,7 +63,10 @@ or object it works on, so it runs headless in the tests.
 | `assets/publishing` | Picking the root and writing an asset's hero and versioned files. |
 | `assets/materials` | A rig taking its model's materials on each publish. |
 | `assets/in_context` | Editing and publishing an asset inside another asset's file. |
-| `operators/` | Open, New Workfile, New Asset, Version Up, Publish, Check Updates, Make Editable. |
+| `shots/layout` | The sequence layout file: master scene, cut, Add Shot and Omit Shot, playblast path. |
+| `shots/instances` | Asset instances in a shot, their IDs, casting, and Override for Posing. |
+| `shots/publishing` | The layout publish: per-shot check subjects, Save Copy of the whole file. |
+| `operators/` | One per menu action: Open, New Workfile, New Asset, New Sequence, Version Up, Publish, Check Updates, Make Editable, Override for Posing, Add Shot, Omit Shot. |
 | `ui/` | The Pipeline menu and top bar, the results panel, preferences, Open and New Workfile choices. |
 
 Outside the two layers: `defaults.toml` (built-in settings), `validation.toml` and
@@ -110,12 +115,26 @@ warnings read.
 In context, writing the asset's workfile happens in a separate headless Blender, because
 `bpy.data.libraries.write` crashes on scenes in Blender 5.2.2.
 
+## When a layout is published
+
+1. `shots/layout` makes each shot scene's range what its strip shows, so retiming in the
+   cut counts.
+2. The file is saved, which numbers any new instances (`crate_03`).
+3. Each shot is checked on its own scene: a camera, unique instance IDs (with a Fix),
+   and only this project's assets. The sidebar lists problems under each shot's code.
+4. The versioned file and hero are Save Copies of the whole workfile, since
+   `bpy.data.libraries.write` can't write scenes (spike T13).
+5. `core/layout.apply_cut` writes each shot's frame range, cut points and casting into
+   its metadata, and marks shots with no strip omitted. The record lists the publishes
+   the file links.
+
 ## Where to add things
 
 - **A task or asset type:** settings only. Add it to `defaults.toml` (or a project's
   `pipeline.toml`) with its templates; `config` checks it on load.
 - **A publish check:** a class in `checks/blender/pipeline.py` for every project, or in
-  a project's own `checks/` folder for one. Switch checks on and off, or make them
+  a project's own `checks/` folder for one. Derive it from `AssetCheck` or `ShotCheck`
+  there to run it only on assets or only on each shot of a layout publish. Switch checks on and off, or make them
   warnings, in `validation.toml`. Check files can't import the add-on, so pipeline facts
   arrive in the subject's `extras` (see `blender/validation.py`).
 - **A menu action:** a file in `blender/operators/` with one operator, added to `CLASSES`

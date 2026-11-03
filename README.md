@@ -4,8 +4,9 @@ Publishing, loading and scene construction for one person or a small team, entir
 inside Blender. Built for an animated comic series, with nothing studio-specific baked in.
 
 > **Status: early.** Assets work end to end: create them, work on them, check and publish
-> them, link them from the Asset Browser, and keep files up to date. Layout, shots,
-> animation and lighting come next (see [spikes](spikes/RESULTS.md) for the Blender
+> them, link them from the Asset Browser, and keep files up to date. Sequences have a
+> layout file that creates shots and publishes their frame ranges, cut and casting.
+> Animation and lighting come next (see [spikes](spikes/RESULTS.md) for the Blender
 > behaviour they rely on). Not ready for production yet.
 
 ## What it does
@@ -45,8 +46,10 @@ flowchart LR
 
 1. Install the extension zip (Preferences > Get Extensions > Install from Disk).
 2. In the add-on's preferences, add your project folder: the one holding `pipeline.toml`.
-3. Use the **Pipeline** menu in the top bar: New Asset…, New Workfile…, Open…, Version Up,
-   Publish and Check Updates (and Make Editable when a linked asset is selected). Next to
+3. Use the **Pipeline** menu in the top bar: Open…, New Workfile…, New Asset…, New
+   Sequence…, Version Up, Publish and Check Updates. Below those, only where they apply:
+   Make Editable (a linked asset selected in an asset's file), Override for Posing (one
+   selected in a sequence's or shot's file), and Add Shot and Omit Shot (layout files). Next to
    it, the top bar shows what the open file is (`hero · rig · v012`), in the warning colour
    for a publish, a file outside the pipeline, one someone else has open, or one built
    from an older publish.
@@ -59,6 +62,15 @@ file that other files link, marked for the Asset Browser with a thumbnail. Rigs 
 the latest model publish and take its materials again on every publish. An asset can also
 be edited, or started, inside another asset's file (a prop inside its set) and published
 from there.
+
+**Layout** is one file per sequence: a master scene holding the cut, and a scene per shot.
+Add Shot puts a new shot after the one at the playhead, numbered between its neighbours
+(0015 between 0010 and 0020), with a camera and a scene starting at frame 101. Assets
+dragged in from the Asset Browser get an instance ID on save (`crate_01`); Override for
+Posing makes one posable where it stands. Publishing layout checks each shot, publishes
+the whole file, and writes each shot's frame range, cut points and casting into its
+metadata; a shot whose strip is gone is marked omitted. The master scene renders its
+playblast to the sequence's layout render folder for that version.
 
 A project can tune the checks with a `validation.toml` beside its `pipeline.toml`, and add
 its own checks in a `checks/` folder there (see

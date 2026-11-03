@@ -46,7 +46,23 @@ All notable changes to this project are listed here. The format follows
     to bring across.
   - The Pipeline menu lists every warning for the open file (a publish, someone else
     has it open, built from an older publish), not just the first.
+- Layout and shots (M4):
+  - New Sequence… creates a sequence (at the end of an episode, after another, or in a
+    new episode) and opens its layout file: a master scene holding the cut.
+  - Add Shot adds a shot after the strip at the playhead, numbered between its
+    neighbours, with its own scene and camera starting at the project's shot_start
+    (101). Omit Shot takes a shot out of the cut and marks it omitted; nothing is
+    deleted.
+  - Assets placed in a shot get an instance ID on save. Override for Posing overrides
+    a linked asset where it stands, keeping its empty as a plain parent.
+  - Publishing layout checks each shot (camera, unique instance IDs, known assets),
+    publishes the whole file, and writes each shot's frame range, cut points and
+    casting into its metadata.
+  - The layout playblast renders to the sequence's layout render folder for the
+    workfile's version.
 
 ### Changed
 
 - Tasks have short names: model, rig, layout, light, anim.
+- Make Editable is only offered in asset workfiles; sequence and shot files get Override
+  for Posing instead.
