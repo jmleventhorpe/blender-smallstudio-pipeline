@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import bmesh
 import bpy
@@ -54,3 +55,20 @@ def add_cube(collection: bpy.types.Collection, name: str) -> bpy.types.Object:
 def save_blend(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=str(path))
+
+
+def library_load(path: Path, link: bool = False, assets_only: bool = False) -> Any:
+    """bpy.data.libraries.load, which the stubs wrongly say returns None."""
+    return bpy.data.libraries.load(str(path), link=link, assets_only=assets_only)
+
+
+def assets_in(path: Path) -> list[str]:
+    """The collections marked as assets in a .blend file."""
+    with library_load(path, assets_only=True) as (data_from, _):
+        return list(data_from.collections)
+
+
+def link_collection(path: Path, name: str) -> bpy.types.Collection:
+    with library_load(path, link=True) as (_, data_to):
+        data_to.collections = [name]
+    return next(c for c in bpy.data.collections if c.name == name and c.library)

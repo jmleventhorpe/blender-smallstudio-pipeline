@@ -37,6 +37,7 @@ class AssetType:
     tasks: tuple[str, ...]
     optional_tasks: tuple[str, ...]
     shot_link: tuple[str, ...]  # Shots link the first of these the asset has.
+    mark_children: bool = False  # Publish marks each child collection as an asset (a kit).
 
     @property
     def required_tasks(self) -> tuple[str, ...]:
@@ -178,7 +179,8 @@ def _asset_type(name: str, table: Any, tasks: dict[str, Task]) -> AssetType:
                 raise ValueError(f"{where}.{key}: '{task}' isn't one of {name}'s tasks")
     if all(task in optional for task in shot_link):
         raise ValueError(f"{where}.shot_link needs at least one task that isn't optional")
-    return AssetType(name, tuple(asset_tasks), tuple(optional), tuple(shot_link))
+    mark_children = get(table, "mark_children", bool, where, default=False)
+    return AssetType(name, tuple(asset_tasks), tuple(optional), tuple(shot_link), mark_children)
 
 
 def _read_toml(path: Path) -> dict[str, Any]:

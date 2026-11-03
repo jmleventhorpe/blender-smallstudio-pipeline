@@ -67,3 +67,7 @@ reportOptionalMemberAccess = false # self.layout is never None inside draw().
 [[tool.pyright.executionEnvironments]]
 root = "tests/blender"
 reportAttributeAccessIssue = false # bpy.ops.pipeline exists once the add-on registers.
+# The stubs mark values as optional that never are in practice (selected_objects,
+# object.data); tests would only fill up with asserts.
+reportOptionalMemberAccess = false
+reportOptionalIterable = false

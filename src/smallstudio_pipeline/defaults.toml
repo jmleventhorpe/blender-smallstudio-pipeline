@@ -48,7 +48,8 @@ publishes = true
 renders = "shot" # Playblasts.
 
 # Asset types: their tasks, which are optional, and which task's publish shots link
-# (the first one in shot_link that the asset has).
+# (the first one in shot_link that the asset has). With mark_children, a publish marks
+# each child collection of the root as its own asset, for kits of pieces.
 [asset_types.character]
 tasks = ["model", "rig"]
 shot_link = ["rig"]
@@ -65,6 +66,7 @@ shot_link = ["model"]
 [asset_types.lib]
 tasks = ["model"]
 shot_link = ["model"]
+mark_children = true
 
 [asset_types.utility]
 tasks = ["rig"]

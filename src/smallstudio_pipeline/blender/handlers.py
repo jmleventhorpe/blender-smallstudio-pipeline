@@ -9,7 +9,7 @@ import bpy
 from bpy.app.handlers import persistent
 
 from ..core import inuse
-from . import state
+from . import results, state
 
 # The workfile whose in-use marker this Blender holds.
 _claimed: Path | None = None
@@ -22,6 +22,7 @@ def on_load_pre(*_args: object) -> None:
 
 @persistent
 def on_load_post(*_args: object) -> None:
+    results.clear()  # They were for the file just closed.
     state.refresh()
     claim()
     if state.current.warning and state.current.context is not None:

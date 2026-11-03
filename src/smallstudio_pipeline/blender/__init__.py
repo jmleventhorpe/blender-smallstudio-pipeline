@@ -2,10 +2,10 @@
 
 import bpy
 
-from . import handlers, menu, operators, preferences, state
+from . import handlers, menu, operators, preferences, results, state
 
 # Registered in this order: each module's CLASSES, then its own register() if it has one.
-MODULES = (preferences, operators, menu, handlers)
+MODULES = (preferences, operators, results, menu, handlers)
 
 
 def register() -> None:

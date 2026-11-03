@@ -21,6 +21,7 @@ class PIPELINE_MT_main(bpy.types.Menu):
         layout.operator("pipeline.new_asset", text="New Asset…", icon="ADD")
         layout.separator()
         layout.operator("pipeline.version_up", icon="DUPLICATE")
+        layout.operator("pipeline.publish", icon="EXPORT")
 
 
 def draw_in_top_bar(self: bpy.types.Menu, context: bpy.types.Context) -> None:
