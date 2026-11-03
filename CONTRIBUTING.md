@@ -17,8 +17,12 @@ blender -b --factory-startup --python tests/blender/run.py
 
 Written to be read and extended by other TDs.
 
-- **Layers.** `core/` never imports Blender (`bpy`, `bmesh`, `mathutils`); a test and a
-  ruff rule enforce it. Anything touching Blender goes in `blender/`.
+- **Layers.** `core/` holds the rules and never imports Blender (`bpy`, `bmesh`,
+  `mathutils`); a test and a ruff rule enforce it. `blender/` does the work in Blender,
+  usually in a module named after the core one it serves (`core/publishing.py` decides,
+  `blender/publishing.py` writes). Menu actions go in `blender/operators/`, one per file;
+  panels, menus and preferences in `blender/ui/`. See
+  [docs/architecture.md](docs/architecture.md).
 - **Structure.** Light OOP: entity classes with methods (`shot.workfile_path(task, version)`),
   plain records for data. No deep hierarchies or frameworks.
 - **Context.** Only operators read `bpy.context`. Helpers take the scene, collection or
@@ -27,8 +31,9 @@ Written to be read and extended by other TDs.
   say what to do. Operators catch them and show them with `self.report()`. Use `logging`
   for the console.
 - **Types.** Type hints on function signatures; pyright runs in basic mode.
-- **Comments.** A one-line docstring on public functions. Comment only where Blender
-  behaves in a non-obvious way, and say why.
+- **Docstrings.** Every module starts with one saying what it's for, where it sits, and
+  its main entry points. Public functions get one line.
+- **Comments.** Only where Blender behaves in a non-obvious way, and say why.
 - **Formatting.** `ruff format`, line length 100.
 - **Names.** Tasks have short names (`model`, `rig`, `layout`, `light`, `anim`). Other
   names use American spelling (`color`), matching Blender's API.

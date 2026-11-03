@@ -68,7 +68,7 @@ its own checks in a `checks/` folder there (see
 
 ```python
 from pathlib import Path
-from smallstudio_pipeline.core.entities import Project
+from smallstudio_pipeline.core.project import Project
 
 project = Project.create(Path("/mnt/show"))
 hero = project.create_asset("character", "hero")
@@ -84,14 +84,19 @@ shot.render_path("light", 1)
 
 | Path | What's there |
 | --- | --- |
-| `src/smallstudio_pipeline/core/` | Pipeline logic with no Blender imports: config, path templates, naming, metadata, entities. Tested in plain Python. |
+| `src/smallstudio_pipeline/core/` | The rules, with no Blender imports: settings, names and paths, projects and entities, and what workfiles, publishes and updates are. Tested in plain Python. |
 | `src/smallstudio_pipeline/defaults.toml` | Built-in settings: asset types, tasks, naming, path templates. A project's `pipeline.toml` overrides any of them. |
-| `src/smallstudio_pipeline/blender/` | The thin Blender layer: preferences, the Pipeline menu and its operators, publishing, the results panel, load/save handlers. Tested in headless Blender. |
+| `src/smallstudio_pipeline/blender/` | Doing it in Blender: workfiles, publishing, libraries, updates, load/save handlers. Tested in headless Blender. |
+| `src/smallstudio_pipeline/blender/operators/` | The Pipeline menu's actions, one per file. |
+| `src/smallstudio_pipeline/blender/ui/` | The menu and top bar, the results panel, preferences. |
 | `src/smallstudio_pipeline/checks/`, `validation.toml` | The pipeline's own publish checks and its publish-validator settings. |
 | `src/smallstudio_pipeline/wheels/` | publish-validator, bundled as a wheel. |
 | `tests/core/`, `tests/blender/` | The two test suites. |
 | `spikes/` | Scripts that tested the Blender behaviour the design relies on, with [results](spikes/RESULTS.md). |
 | `scripts/build_extension.py` | Builds and validates the extension zip. |
+
+[docs/architecture.md](docs/architecture.md) explains how the modules fit together, what a
+publish does step by step, and where to add tasks, checks and menu actions.
 
 ## Development
 
