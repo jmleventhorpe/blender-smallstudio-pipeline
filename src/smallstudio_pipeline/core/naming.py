@@ -52,6 +52,7 @@ class SequenceCode:
 
     @classmethod
     def parse(cls, text: str, episodes: bool) -> SequenceCode:
+        """Read a sequence code like 010_020 (or 020 without episodes)."""
         parts = text.split("_")
         if episodes and len(parts) == 2:
             return cls(parts[0], parts[1])
@@ -76,6 +77,7 @@ class ShotCode:
 
     @classmethod
     def parse(cls, text: str, episodes: bool) -> ShotCode:
+        """Read a shot code like 010_020_0030 (or 020_0030 without episodes)."""
         sequence, _, number = text.rpartition("_")
         try:
             return cls(SequenceCode.parse(sequence, episodes), number)

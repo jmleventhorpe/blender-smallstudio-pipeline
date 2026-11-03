@@ -25,7 +25,7 @@ class PIPELINE_OT_new_workfile(UnsavedChanges, bpy.types.Operator):
     # Offer every task; the core refuses ones already started.
     existing_only: BoolProperty(default=False, options={"HIDDEN", "SKIP_SAVE"})
 
-    kind: EnumProperty(name="Kind", items=browse.kind_items, update=browse.reset_entity)
+    category: EnumProperty(name="Type", items=browse.category_items, update=browse.reset_entity)
     entity: EnumProperty(name="Name", items=browse.entity_items, update=browse.reset_task)
     task: EnumProperty(name="Task", items=browse.task_items)
 
@@ -38,7 +38,7 @@ class PIPELINE_OT_new_workfile(UnsavedChanges, bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context: bpy.types.Context) -> None:
-        for name in ("kind", "entity", "task"):
+        for name in ("category", "entity", "task"):
             self.layout.prop(self, name)
         self.draw_unsaved(self.layout)
 

@@ -77,6 +77,7 @@ class Project:
     # Assets
 
     def assets(self, asset_type: str | None = None) -> list[Asset]:
+        """The project's assets by name, only of one type if given."""
         assets = [Asset(self, metadata) for metadata in self.tracker.assets()]
         return sorted(
             (asset for asset in assets if asset_type in (None, asset.asset_type)),
@@ -84,6 +85,7 @@ class Project:
         )
 
     def asset(self, name: str) -> Asset:
+        """The asset with this name, or raise EntityNotFound."""
         return _pick({asset.name: asset for asset in self.assets()}, name, "asset")
 
     def asset_type(self, name: str) -> AssetType:
@@ -105,34 +107,36 @@ class Project:
         self.tracker.save_asset(metadata)
         return Asset(self, metadata)
 
-    # Any kind of entity
+    # Any entity
 
-    def kinds(self) -> list[str]:
-        """Every kind of entity, for browsing: the asset types, then sequence and shot."""
+    def categories(self) -> list[str]:
+        """What the dialogs browse by: each asset type, then "sequence" and "shot"."""
         return [*self.config.asset_types, "sequence", "shot"]
 
-    def entities(self, kind: str) -> list[Asset] | list[Sequence] | list[Shot]:
-        """Every entity of a kind: an asset type, "sequence" or "shot"."""
-        if kind == "sequence":
+    def entities_in(self, category: str) -> list[Asset] | list[Sequence] | list[Shot]:
+        """Every entity in a category: an asset type, "sequence" or "shot"."""
+        if category == "sequence":
             return self.sequences()
-        if kind == "shot":
+        if category == "shot":
             return self.shots()
-        return self.assets(self.asset_type(kind).name)
+        return self.assets(self.asset_type(category).name)
 
-    def entity(self, kind: str, name: str) -> Asset | Sequence | Shot:
+    def entity(self, entity_kind: str, name: str) -> Asset | Sequence | Shot:
         """Look up an entity by its kind ("asset", "sequence", "shot") and name or code."""
-        if kind == "sequence":
+        if entity_kind == "sequence":
             return self.sequence(name)
-        if kind == "shot":
+        if entity_kind == "shot":
             return self.shot(name)
         return self.asset(name)
 
     # Sequences and shots
 
     def episodes(self) -> list[str]:
+        """The episodes that have sequences."""
         return sorted({seq.code.episode for seq in self.sequences() if seq.code.episode})
 
     def sequences(self, episode: str | None = None) -> list[Sequence]:
+        """The sequences in order, only in one episode if given."""
         sequences = [Sequence(self, metadata) for metadata in self.tracker.sequences()]
         return sorted(
             (seq for seq in sequences if episode in (None, seq.code.episode)),
@@ -140,6 +144,7 @@ class Project:
         )
 
     def sequence(self, code: str) -> Sequence:
+        """The sequence with this code, or raise EntityNotFound."""
         return _pick({str(seq.code): seq for seq in self.sequences()}, code, "sequence")
 
     def create_sequence(
@@ -160,6 +165,7 @@ class Project:
         return Sequence(self, metadata)
 
     def shots(self, include_omitted: bool = False) -> list[Shot]:
+        """The shots in order, with omitted ones only if asked."""
         shots = [Shot(self, metadata) for metadata in self.tracker.shots()]
         return sorted(
             (shot for shot in shots if include_omitted or not shot.omitted),
@@ -167,6 +173,7 @@ class Project:
         )
 
     def shot(self, code: str) -> Shot:
+        """The shot with this code, omitted or not, or raise EntityNotFound."""
         shots = self.shots(include_omitted=True)
         return _pick({str(shot.code): shot for shot in shots}, code, "shot")
 

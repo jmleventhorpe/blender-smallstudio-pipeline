@@ -90,6 +90,7 @@ class PIPELINE_OT_use_project(bpy.types.Operator):
 
 
 def get_preferences(context: bpy.types.Context | None = None) -> PIPELINE_AP_preferences:
+    """The add-on's preferences."""
     context = context or bpy.context
     return context.preferences.addons[ADDON_ID].preferences  # type: ignore[return-value]
 

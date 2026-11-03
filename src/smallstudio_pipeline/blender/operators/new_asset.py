@@ -12,14 +12,16 @@ from bpy.props import BoolProperty, EnumProperty, StringProperty
 from ...core.errors import PipelineError
 from .. import state
 from ..identity import create_root_collection
-from ..ui.browse import Items, kind_items
+from ..ui.browse import Items, category_items
 from ..workfiles import start_workfile
 from .common import UnsavedChanges, has_project
 
 
 def asset_type_items(operator: object, context: bpy.types.Context | None) -> Items:
-    # The browsing kinds minus sequence and shot are exactly the asset types.
-    return [item for item in kind_items(operator, context) if item[0] not in ("sequence", "shot")]
+    # The categories minus sequence and shot are exactly the asset types.
+    """The project's asset types, for the Type menu."""
+    items = category_items(operator, context)
+    return [item for item in items if item[0] not in ("sequence", "shot")]
 
 
 class PIPELINE_OT_new_asset(UnsavedChanges, bpy.types.Operator):

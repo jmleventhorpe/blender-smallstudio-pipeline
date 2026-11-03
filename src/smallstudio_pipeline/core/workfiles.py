@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .context import file_context
+from .context import PUBLISH_IS_READ_ONLY, file_context
 from .entities import Entity
 from .errors import PipelineError
 from .project import Project
@@ -58,7 +58,7 @@ def version_up_path(project: Project, current: Path) -> Path:
     if context is None:
         raise PipelineError("This file isn't a pipeline workfile, so it can't be versioned up.")
     if context.is_publish:
-        raise PipelineError("This is a publish, which is read-only. Open the workfile instead.")
+        raise PipelineError(PUBLISH_IS_READ_ONLY)
     entity = project.entity(context.entity_kind, context.entity)
     # The next free version, not current + 1: someone may have saved a newer one.
     return entity.workfile_path(context.task, entity.next_workfile_version(context.task))

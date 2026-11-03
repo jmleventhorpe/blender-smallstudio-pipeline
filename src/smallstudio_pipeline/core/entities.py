@@ -51,9 +51,11 @@ class Entity:
         return [task.name for task in tasks if task.entity == self.kind]
 
     def has_task(self, task: str) -> bool:
+        """Whether the entity has this task."""
         return task in self.tasks
 
     def tasks_with_workfiles(self) -> list[str]:
+        """The tasks with at least one workfile."""
         return [task for task in self.tasks if self.workfile_versions(task)]
 
     def __eq__(self, other: object) -> bool:
@@ -68,19 +70,23 @@ class Entity:
     # Workfiles
 
     def workfile_path(self, task: str, version: int) -> Path:
+        """Where a task's workfile of this version goes."""
         self._task(task)
         return self.project.path(f"{self.kind}_work", **self.fields, task=task, version=version)
 
     def workfile_versions(self, task: str) -> list[int]:
+        """The task's existing workfile versions, lowest first."""
         self._task(task)
         return self._versions(f"{self.kind}_work", task)
 
     def next_workfile_version(self, task: str) -> int:
+        """The version after the task's highest workfile."""
         return max(self.workfile_versions(task), default=0) + 1
 
     # Publishes
 
     def publish_path(self, task: str, version: int) -> Path:
+        """Where a task's publish of this version goes."""
         self._publishing_task(task)
         return self.project.path(f"{self.kind}_publish", **self.fields, task=task, version=version)
 
@@ -90,18 +96,22 @@ class Entity:
         return self.project.path(f"{self.kind}_hero", **self.fields, task=task)
 
     def publish_versions(self, task: str) -> list[int]:
+        """The task's existing publish versions, lowest first."""
         self._publishing_task(task)
         return self._versions(f"{self.kind}_publish", task)
 
     def latest_publish_version(self, task: str) -> int | None:
+        """The task's highest publish version, or None if it has none."""
         return max(self.publish_versions(task), default=None)
 
     def next_publish_version(self, task: str) -> int:
+        """The version the task's next publish gets."""
         return max(self.publish_versions(task), default=0) + 1
 
     # Renders
 
     def render_path(self, task: str, version: int) -> Path:
+        """Where a task's render of this version goes."""
         found = self.project.config.tasks.get(task)
         if found is None or found.renders != self.kind:
             raise PipelineError(f"{task} doesn't render per {self.kind}.")
@@ -167,6 +177,7 @@ class Asset(Entity):
         self.save()
 
     def save(self) -> None:
+        """Write the asset's metadata."""
         self.project.tracker.save_asset(self.metadata)
 
 
@@ -191,12 +202,15 @@ class Sequence(Entity):
         return f"sequence {self.code}"
 
     def shots(self, include_omitted: bool = False) -> list[Shot]:
+        """The sequence's shots, in order."""
         shots = self.project.shots(include_omitted)
         return [shot for shot in shots if shot.code.sequence == self.code]
 
     def create_shot(self, after: Shot | None = None) -> Shot:
-        """Create the next shot, or one between `after` and the next. Omitted shots keep
-        their numbers, so a new shot never reuses one."""
+        """Create the next shot, or one between `after` and the next.
+
+        Omitted shots keep their numbers, so a new shot never reuses one.
+        """
         if after is not None and after.code.sequence != self.code:
             raise PipelineError(f"Shot {after.code} isn't in {self.label}.")
         existing = [int(shot.code.number) for shot in self.shots(include_omitted=True)]
@@ -229,10 +243,12 @@ class Shot(Entity):
 
     @property
     def sequence(self) -> Sequence:
+        """The sequence the shot belongs to."""
         return self.project.sequence(str(self.code.sequence))
 
     @property
     def frame_range(self) -> tuple[int, int] | None:
+        """(first, last) frame, or None until layout sets it."""
         start, end = self.metadata.frame_start, self.metadata.frame_end
         return None if start is None or end is None else (start, end)
 
@@ -246,4 +262,5 @@ class Shot(Entity):
         self.save()
 
     def save(self) -> None:
+        """Write the shot's metadata."""
         self.project.tracker.save_shot(self.metadata)

@@ -22,19 +22,19 @@ def hero_versions(project):
 
 
 def test_open_defaults_to_the_latest_version(project, hero_versions):
-    bpy.ops.pipeline.open(kind="character", entity="hero", task="model")
+    bpy.ops.pipeline.open(category="character", entity="hero", task="model")
     assert Path(bpy.data.filepath) == hero_versions.workfile_path("model", 2)
     assert "made_in_v2" in bpy.data.objects
 
 
 def test_open_a_chosen_version(project, hero_versions):
-    bpy.ops.pipeline.open(kind="character", entity="hero", task="model", version="1")
+    bpy.ops.pipeline.open(category="character", entity="hero", task="model", version="1")
     assert "made_in_v1" in bpy.data.objects
 
 
 def test_open_only_offers_tasks_with_workfiles(project, hero_versions):
     with pytest.raises(TypeError, match="rig"):
-        bpy.ops.pipeline.open(kind="character", entity="hero", task="rig")
+        bpy.ops.pipeline.open(category="character", entity="hero", task="rig")
 
 
 def test_version_up_saves_the_next_free_version(project, hero_versions):

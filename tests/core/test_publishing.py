@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -14,7 +15,6 @@ from smallstudio_pipeline.core.publishing import (
     plan_publish,
     publish_target,
     read_record,
-    removed_objects,
     write_records,
 )
 from smallstudio_pipeline.core.updates import Change, changed, stale_build
@@ -91,12 +91,13 @@ def test_records_round_trip_and_the_hero_record_is_the_latest(project):
     assert record.tool == "0.1.0"
 
 
-def test_removed_objects(project):
+def test_records_from_before_the_entity_kind_rename_still_read(project):
     hero = project.create_asset("character", "hero")
-    publish(hero, "rig", names=["body", "eyes", "hair"])
-    previous = hero_record(hero, "rig")
-    assert removed_objects(previous, ["body", "hair_new"]) == ["eyes", "hair"]
-    assert removed_objects(None, ["body"]) == []
+    plan = publish(hero, "model")
+    data = json.loads(plan.record.read_text())
+    data["kind"] = data.pop("entity_kind")
+    plan.record.write_text(json.dumps(data))
+    assert read_record(plan.record).entity_kind == "asset"
 
 
 def test_a_rig_is_built_from_the_latest_model(project):
@@ -131,6 +132,16 @@ def test_changed_publishes_and_stale_builds(project):
     assert changed(project, seen)[0].label == "hero_model v001 → v002"
     assert stale_build(project, Dependency(hero_model, 1)) == Change(hero_model, 1, 2)
     assert stale_build(project, Dependency(hero_model, 2)) is None
+
+
+def test_update_labels_follow_the_projects_version_padding(make_project):
+    project = make_project("[naming]\nversion_padding = 4\n")
+    hero = project.create_asset("character", "hero")
+    publish(hero, "model")
+    publish(hero, "model")
+    hero_model = "assets/character/hero/model/publish/hero_model.blend"
+    assert changed(project, {hero_model: 1})[0].label == "hero_model v0001 → v0002"
+    assert Change(hero_model, None, 2).versions == "unknown → v002"
 
 
 # Catalogs

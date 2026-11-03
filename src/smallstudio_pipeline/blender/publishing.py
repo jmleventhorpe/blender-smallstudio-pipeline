@@ -30,6 +30,7 @@ THUMBNAIL_SIZE = 256
 
 
 def asset_roots(scene: bpy.types.Scene) -> list[bpy.types.Collection]:
+    """Every asset root collection in the scene."""
     return [c for c in scene.collection.children_recursive if asset_identity(c)]
 
 

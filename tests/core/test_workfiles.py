@@ -59,13 +59,13 @@ def test_version_up_refuses_publishes_and_other_files(project):
         version_up_path(project, project.root / "scratch.blend")
 
 
-def test_entities_by_kind(project):
+def test_entities_by_category(project):
     project.create_asset("character", "hero")
     project.create_asset("prop", "crate")
     project.create_sequence("010").create_shot()
-    assert project.kinds()[-2:] == ["sequence", "shot"]
-    assert [asset.name for asset in project.entities("prop")] == ["crate"]
-    assert [str(shot.code) for shot in project.entities("shot")] == ["010_010_0010"]
+    assert project.categories()[-2:] == ["sequence", "shot"]
+    assert [asset.name for asset in project.entities_in("prop")] == ["crate"]
+    assert [str(shot.code) for shot in project.entities_in("shot")] == ["010_010_0010"]
     assert project.entity("asset", "hero").label == "hero"
     assert project.entity("shot", "010_010_0010").label == "shot 010_010_0010"
 

@@ -6,7 +6,7 @@ from conftest import add_cube
 from publish_validator import FAILED, PASSED, SKIPPED, WARNING
 
 from smallstudio_pipeline.blender.identity import ASSET_TYPE, INSTANCE_ID, create_root_collection
-from smallstudio_pipeline.blender.validation import validate
+from smallstudio_pipeline.blender.validation import subject_for, validator_for
 from smallstudio_pipeline.core.publishing import PublishTarget
 
 
@@ -21,7 +21,8 @@ def hero(project):
 
 def run(hero, in_context=False, fix=False):
     asset, root = hero
-    return validate(root, PublishTarget(asset, "model", in_context), "hero", fix=fix)
+    subject = subject_for(root, PublishTarget(asset, "model", in_context), "hero")
+    return validator_for(asset.project).run(subject, fix=fix)
 
 
 def result(report, check_id):

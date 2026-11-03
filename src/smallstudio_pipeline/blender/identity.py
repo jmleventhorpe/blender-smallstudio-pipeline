@@ -36,6 +36,7 @@ def create_root_collection(asset: Asset, scene: bpy.types.Scene) -> bpy.types.Co
 
 
 def mark_built_from(collection: bpy.types.Collection, dependency: Dependency) -> None:
+    """Note on a root which publish it was brought in from, and its version."""
     collection[BUILT_FROM] = dependency.path
     collection[BUILT_FROM_VERSION] = dependency.version or 0
 

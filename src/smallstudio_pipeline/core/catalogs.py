@@ -35,6 +35,7 @@ class Catalog:
 
 
 def read_catalogs(library_root: Path) -> list[Catalog]:
+    """The catalogs in an asset library's catalog file, if it has one."""
     path = library_root / CATALOG_FILE
     if not path.exists():
         return []

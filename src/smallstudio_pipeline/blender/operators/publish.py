@@ -75,6 +75,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
     def publish_in_own_workfile(
         self, context: Context, root: Collection, target: PublishTarget, file_entity: str
     ) -> str | None:
+        """Publish an asset from its own workfile, saving the file first."""
         project = target.asset.project
         # A rig takes its model's latest materials, by object name, every publish.
         source = built_from(root)
@@ -96,7 +97,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
     ) -> str | None:
         """Publish an asset worked on inside another asset's file, then link it back in."""
         asset = target.asset
-        with in_context.in_asset_space(root):
+        with in_context.in_asset_space(root, context.view_layer):
             last = self.run_checks(context, root, target, file_entity)
             if last is None:
                 return None
@@ -104,7 +105,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
             workfile = asset.workfile_path(target.task, asset.next_workfile_version(target.task))
             in_context.save_asset_workfile(root, workfile, asset.project.config)
             published = self.write_files(root, target, last, workfile, None)
-        in_context.swap_for_link(root, asset, asset.hero_path(target.task))
+        in_context.swap_for_link(root, asset, asset.hero_path(target.task), context.scene)
         workfiles.save_changes()  # This file now links the new publish.
         return f"{published}; it's linked here now"
 

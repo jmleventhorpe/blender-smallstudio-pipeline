@@ -32,7 +32,7 @@ class PIPELINE_OT_make_editable(bpy.types.Operator):
         project = state.current.project
         assert project is not None and context.active_object is not None  # Checked by poll.
         try:
-            root = in_context.make_editable(context.active_object, project)
+            root = in_context.make_editable(context.active_object, project, context.view_layer)
         except PipelineError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}

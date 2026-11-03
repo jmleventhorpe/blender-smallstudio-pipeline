@@ -102,6 +102,7 @@ def read_metadata[M: (AssetMetadata, SequenceMetadata, ShotMetadata)](
 
 
 def write_metadata(path: Path, metadata: AssetMetadata | SequenceMetadata | ShotMetadata) -> None:
+    """Write an entity's metadata file, atomically."""
     write_atomic(path, json.dumps(asdict(metadata), indent=2) + "\n")
 
 

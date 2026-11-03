@@ -31,17 +31,20 @@ last: LastPublish | None = None
 
 
 def store(publish: LastPublish) -> None:
+    """Keep a publish's results and redraw the sidebar."""
     global last
     last = publish
     redraw()
 
 
 def clear() -> None:
+    """Forget the last results."""
     global last
     last = None
 
 
 def redraw() -> None:
+    """Redraw every 3D viewport, so the sidebar shows the latest results."""
     for window in bpy.context.window_manager.windows:
         for area in window.screen.areas:
             if area.type == "VIEW_3D":
@@ -84,6 +87,7 @@ class PIPELINE_PT_results(bpy.types.Panel):
 
 
 def draw_result(box: bpy.types.UILayout, result) -> None:
+    """Draw one check's result: its status, its Fix button and its issues."""
     header = box.row()
     header.alert = result.status in (FAILED, ERRORED)
     header.label(text=result.label, icon=ICONS[result.status])

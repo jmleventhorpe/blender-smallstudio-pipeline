@@ -24,11 +24,13 @@ _claimed: Path | None = None
 
 @persistent
 def on_load_pre(*_args: object) -> None:
+    """Before another file opens: give up this one's in-use marker."""
     release()
 
 
 @persistent
 def on_load_post(*_args: object) -> None:
+    """After a file opens: work out what it is, mark it in use, and warn if need be."""
     results.clear()  # They were for the file just closed.
     state.refresh()
     claim()
@@ -53,6 +55,7 @@ def after_open() -> None:
 @persistent
 def on_save_post(*_args: object) -> None:
     # Save As (and Version Up) moves us to another file: move the marker with it.
+    """After a save: refresh the state, moving the in-use marker if the file moved."""
     if _claimed != Path(bpy.data.filepath):
         release()
     state.refresh()
@@ -77,6 +80,7 @@ def claim() -> None:
 
 
 def release() -> None:
+    """Remove the in-use marker this Blender holds, if any."""
     global _claimed
     if _claimed is not None:
         inuse.release(_claimed)

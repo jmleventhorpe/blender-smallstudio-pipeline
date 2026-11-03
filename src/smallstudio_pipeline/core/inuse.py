@@ -29,9 +29,11 @@ class Marker:
 
     @classmethod
     def mine(cls) -> Marker:
+        """A marker for this Blender, opened now."""
         return cls(current_user(), socket.gethostname(), os.getpid(), datetime.now(UTC))
 
     def is_mine(self) -> bool:
+        """Whether this Blender wrote the marker."""
         return (self.machine, self.pid) == (socket.gethostname(), os.getpid())
 
     def is_stale(self, now: datetime | None = None) -> bool:
@@ -43,6 +45,7 @@ class Marker:
 
 
 def marker_path(workfile: Path) -> Path:
+    """Where a workfile's in-use marker goes: a hidden file beside it."""
     return workfile.with_name(f".{workfile.name}.inuse")
 
 
@@ -58,8 +61,10 @@ def read_marker(workfile: Path) -> Marker | None:
 
 
 def claim(workfile: Path) -> Marker | None:
-    """Mark the file as open by us. If someone else already has it open, leave their
-    marker and return it instead."""
+    """Mark the file as open by us, unless someone else has it open.
+
+    In that case their marker is left in place and returned; otherwise this returns None.
+    """
     other = read_marker(workfile)
     if other is not None and not other.is_mine() and not other.is_stale():
         return other

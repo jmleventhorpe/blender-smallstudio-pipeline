@@ -1,7 +1,8 @@
-"""The choices in the Open and New Workfile dialogs: kind -> entity -> task -> version.
+"""The choices in the Open and New Workfile dialogs: category -> entity -> task -> version.
 
-Operators using these need `kind`, `entity` and `task` enum properties (and `version` for
-Open), plus a hidden `existing_only` bool property: True to offer only tasks with workfiles.
+A category is an asset type, "sequence" or "shot". Operators using these need `category`,
+`entity` and `task` enum properties (and `version` for Open), plus a hidden
+`existing_only` bool property: True to offer only tasks with workfiles.
 """
 
 from __future__ import annotations
@@ -26,21 +27,24 @@ def _keep(key: str, items: Items) -> Items:
     return _kept[key]
 
 
-def kind_items(operator: Any, context: bpy.types.Context | None) -> Items:
+def category_items(operator: Any, context: bpy.types.Context | None) -> Items:
+    """The asset types, then Sequence and Shot."""
     project = state.current.project
-    kinds = project.kinds() if project else []
-    return _keep("kind", [(kind, kind.title(), "") for kind in kinds])
+    categories = project.categories() if project else []
+    return _keep("category", [(name, name.title(), "") for name in categories])
 
 
 def entity_items(operator: Any, context: bpy.types.Context | None) -> Items:
+    """The names of the chosen category's entities."""
     project = state.current.project
-    if project is None or operator.kind == NONE:
+    if project is None or operator.category == NONE:
         return _keep("entity", [])
-    names = [entity.name for entity in project.entities(operator.kind)]
+    names = [entity.name for entity in project.entities_in(operator.category)]
     return _keep("entity", [(name, name, "") for name in names])
 
 
 def task_items(operator: Any, context: bpy.types.Context | None) -> Items:
+    """The chosen entity's tasks: only those with workfiles, if existing_only."""
     entity = selected_entity(operator)
     if entity is None:
         return _keep("task", [])
@@ -49,6 +53,7 @@ def task_items(operator: Any, context: bpy.types.Context | None) -> Items:
 
 
 def version_items(operator: Any, context: bpy.types.Context | None) -> Items:
+    """The chosen task's workfile versions, newest first."""
     entity = selected_entity(operator)
     if entity is None or operator.task == NONE:
         return _keep("version", [])
@@ -58,15 +63,16 @@ def version_items(operator: Any, context: bpy.types.Context | None) -> Items:
 
 
 def selected_entity(operator: Any) -> Entity | None:
+    """The entity chosen in the dialog, or None."""
     project = state.current.project
-    if project is None or NONE in (operator.kind, operator.entity):
+    if project is None or NONE in (operator.category, operator.entity):
         return None
-    return project.entity(entity_kind(operator.kind), operator.entity)
+    return project.entity(entity_kind(operator.category), operator.entity)
 
 
-def entity_kind(kind: str) -> str:
-    """Map a browsing kind (an asset type, "sequence" or "shot") to an entity kind."""
-    return kind if kind in ("sequence", "shot") else "asset"
+def entity_kind(category: str) -> str:
+    """The entity kind for a category: "asset" for an asset type, else the category."""
+    return category if category in ("sequence", "shot") else "asset"
 
 
 # Changing a choice resets the ones after it to their first item.
@@ -91,8 +97,7 @@ def preselect(operator: Any) -> None:
     if project is None or file is None:
         return
     entity = project.entity(file.entity_kind, file.entity)
-    kind = entity.asset_type if isinstance(entity, Asset) else entity.kind
-    operator.kind = kind
+    operator.category = entity.asset_type if isinstance(entity, Asset) else entity.kind
     operator.entity = entity.name
     if file.task in [item[0] for item in task_items(operator, bpy.context)]:
         operator.task = file.task

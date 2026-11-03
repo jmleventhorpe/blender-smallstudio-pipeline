@@ -14,7 +14,7 @@ MODEL_HERO = "assets/character/hero/model/publish/hero_model.blend"
 
 def test_a_rig_workfile_starts_from_the_latest_model(project):
     hero = publish_model(project)
-    bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rig")
+    bpy.ops.pipeline.new_workfile(category="character", entity="hero", task="rig")
 
     assert Path(bpy.data.filepath) == hero.workfile_path("rig", 1)
     root = bpy.data.collections["hero"]
@@ -27,12 +27,12 @@ def test_a_rig_workfile_starts_from_the_latest_model(project):
 def test_a_rig_needs_a_model_publish(project):
     project.create_asset("character", "hero")
     with pytest.raises(RuntimeError, match="no model publish yet"):
-        bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rig")
+        bpy.ops.pipeline.new_workfile(category="character", entity="hero", task="rig")
 
 
 def test_rig_publishes_take_the_models_latest_materials(project):
     hero = publish_model(project, colour=(1, 0, 0, 1))
-    bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rig")
+    bpy.ops.pipeline.new_workfile(category="character", entity="hero", task="rig")
     rig_workfile = Path(bpy.data.filepath)
     give_material(add_cube(bpy.data.collections["hero"], "rig_only"), "plastic", (0, 0, 1, 1))
     save_blend(rig_workfile)

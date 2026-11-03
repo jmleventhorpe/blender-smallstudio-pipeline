@@ -96,7 +96,7 @@ def test_check_updates_skips_publishes_no_longer_linked(project):
 
 def test_a_rig_built_from_an_older_model_is_flagged(project):
     hero = publish_model(project)
-    bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rig")
+    bpy.ops.pipeline.new_workfile(category="character", entity="hero", task="rig")
     rig = Path(bpy.data.filepath)
     publish_model(project)  # Model v002.
 
@@ -108,7 +108,7 @@ def test_a_rig_built_from_an_older_model_is_flagged(project):
 
 def test_a_stale_build_and_someone_else_having_the_file_are_both_warned_about(project):
     publish_model(project)
-    bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rig")
+    bpy.ops.pipeline.new_workfile(category="character", entity="hero", task="rig")
     rig = Path(bpy.data.filepath)
     publish_model(project)  # Model v002; also closes the rig, releasing our mark.
     opened = datetime.now(UTC).isoformat()
@@ -124,7 +124,7 @@ def test_a_stale_build_and_someone_else_having_the_file_are_both_warned_about(pr
 
 def test_an_up_to_date_rig_isnt_flagged(project):
     publish_model(project)
-    bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rig")
+    bpy.ops.pipeline.new_workfile(category="character", entity="hero", task="rig")
     bpy.ops.wm.open_mainfile(filepath=bpy.data.filepath)
     assert state.current.warnings == []
 

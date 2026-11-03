@@ -20,10 +20,11 @@ from ..core.publishing import relative
 
 
 def load(path: Path, kind: str, names: Iterable[str], link: bool, **options: Any) -> dict[str, Any]:
-    """Link or append datablocks of one kind ("collections", "objects", "materials"…) by
-    name. Returns {name asked for: datablock}, without names the file doesn't have.
+    """Link or append datablocks of one kind by name.
 
-    The datablock's own name can differ: appending next to a local "skin" gives "skin.001".
+    kind is a bpy.data collection's name ("collections", "objects", "materials"…). Returns
+    {name asked for: datablock}, leaving out names the file doesn't have. The datablock's
+    own name can differ: appending next to a local "skin" gives "skin.001".
     """
     # The stubs say load() returns None, so it's typed loosely here, in one place.
     loader: Any = bpy.data.libraries.load(str(path), link=link, **options)

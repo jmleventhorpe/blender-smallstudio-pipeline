@@ -27,6 +27,10 @@ from ..core.updates import publish_version
 from . import libraries, updates
 from .identity import asset_identity
 
+# Where the linked asset was placed, kept on the copy's root while it's being edited.
+PLACEMENT = "pipeline_placement"  # The placing empty's world matrix, 16 numbers by row.
+PLACEMENT_NAME = "pipeline_placement_name"  # The empty's name, to place the link again.
+
 
 def linked_asset(obj: bpy.types.Object | None) -> bpy.types.Collection | None:
     """The linked asset root an empty instances, if it is one."""
@@ -36,12 +40,9 @@ def linked_asset(obj: bpy.types.Object | None) -> bpy.types.Collection | None:
     return collection if collection.library and asset_identity(collection) else None
 
 
-# Where the linked asset was placed, kept on the copy's root while it's being edited.
-PLACEMENT = "pipeline_placement"  # The placing empty's world matrix, 16 numbers by row.
-PLACEMENT_NAME = "pipeline_placement_name"  # The empty's name, to place the link again.
-
-
-def make_editable(empty: bpy.types.Object, project: Project) -> bpy.types.Collection:
+def make_editable(
+    empty: bpy.types.Object, project: Project, view_layer: bpy.types.ViewLayer
+) -> bpy.types.Collection:
     """Swap the linked asset an empty instances for a local copy, in the same place."""
     linked = linked_asset(empty)
     identity = asset_identity(linked) if linked else None
@@ -61,7 +62,7 @@ def make_editable(empty: bpy.types.Object, project: Project) -> bpy.types.Collec
 
     placement = empty.matrix_world.copy()
     for obj in top_objects(root):
-        obj.matrix_basis = placement @ world_matrix(obj)
+        obj.matrix_basis = placement @ world_matrix(obj, view_layer)
     root[PLACEMENT] = [value for row in placement for value in row]
     root[PLACEMENT_NAME] = empty.name
     bpy.data.objects.remove(empty)
@@ -84,9 +85,11 @@ def placement_of(root: bpy.types.Collection) -> Matrix | None:
 
 
 @contextmanager
-def in_asset_space(root: bpy.types.Collection) -> Iterator[None]:
-    """Move the root's objects into the asset's own space for as long as this lasts,
-    objects added while editing in place included."""
+def in_asset_space(root: bpy.types.Collection, view_layer: bpy.types.ViewLayer) -> Iterator[None]:
+    """Move the root's objects into the asset's own space for as long as this lasts.
+
+    Objects added while editing in place are moved too.
+    """
     placement = placement_of(root)
     if placement is None:  # Started here: the file's space is the asset's own.
         yield
@@ -95,24 +98,27 @@ def in_asset_space(root: bpy.types.Collection) -> Iterator[None]:
     saved = [(obj, obj.parent, obj.matrix_basis.copy()) for obj in top_objects(root)]
     try:
         for obj, _, _ in saved:
-            world = world_matrix(obj)
+            world = world_matrix(obj, view_layer)
             obj.parent = None
             obj.matrix_basis = to_asset @ world
-        bpy.context.view_layer.update()
+        view_layer.update()
         yield
     finally:
         for obj, parent, basis in saved:
             obj.parent = parent
             obj.matrix_basis = basis
-        bpy.context.view_layer.update()
+        view_layer.update()
 
 
-def world_matrix(obj: bpy.types.Object) -> Matrix:
-    """An object's world matrix, without trusting matrix_world: it's stale until Blender
-    next updates (just after appending or moving something, say)."""
+def world_matrix(obj: bpy.types.Object, view_layer: bpy.types.ViewLayer) -> Matrix:
+    """An object's world matrix, worked out fresh.
+
+    matrix_world is stale until Blender next updates (just after appending or moving
+    something, say), so it isn't trusted as it is.
+    """
     if obj.parent is None:
         return obj.matrix_basis.copy()
-    bpy.context.view_layer.update()
+    view_layer.update()
     return obj.matrix_world.copy()
 
 
@@ -158,10 +164,12 @@ def save_asset_workfile(root: bpy.types.Collection, path: Path, config: Config) 
         temp.unlink(missing_ok=True)
 
 
-def swap_for_link(root: bpy.types.Collection, asset: Asset, hero: Path) -> bpy.types.Object:
+def swap_for_link(
+    root: bpy.types.Collection, asset: Asset, hero: Path, scene: bpy.types.Scene
+) -> bpy.types.Object:
     """Replace the local copy with its published hero, instanced where the copy was placed."""
-    homes = [c for c in bpy.context.scene.collection.children_recursive if root in c.children[:]]
-    home = homes[0] if homes else bpy.context.scene.collection
+    homes = [c for c in scene.collection.children_recursive if root in c.children[:]]
+    home = homes[0] if homes else scene.collection
     placement = placement_of(root)
     name = root.get(PLACEMENT_NAME, asset.name)
 

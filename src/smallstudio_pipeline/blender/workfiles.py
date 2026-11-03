@@ -49,6 +49,7 @@ def bring_in_root(asset: Asset, publish: Dependency, scene: bpy.types.Scene) -> 
 
 
 def apply_project_settings(scene: bpy.types.Scene, config: Config) -> None:
+    """Set the scene's frame rate and resolution from the project."""
     scene.render.fps = config.fps
     scene.render.fps_base = 1.0
     scene.render.resolution_x, scene.render.resolution_y = config.resolution
@@ -56,8 +57,11 @@ def apply_project_settings(scene: bpy.types.Scene, config: Config) -> None:
 
 
 def has_unsaved_changes() -> bool:
-    """Whether the open file has changes since it was saved. (A function so tests can
-    stand in for it: Python edits don't set the flag in background mode.)"""
+    """Whether the open file has changes since it was saved.
+
+    A function so tests can stand in for it: Python edits don't set the flag in background
+    mode.
+    """
     return bpy.data.is_dirty
 
 

@@ -12,11 +12,13 @@ from pathlib import Path
 
 from .project import Project
 
-# (template, entity kind, file kind). Versioned files are tried before hero files.
+PUBLISH_IS_READ_ONLY = "This is a publish, which is read-only. Open the workfile instead."
+
+# (template, entity kind, file type). Versioned files are tried before hero files.
 _FILE_TEMPLATES = [
-    (f"{entity}_{kind}", entity, kind)
+    (f"{entity}_{file_type}", entity, file_type)
     for entity in ("asset", "sequence", "shot")
-    for kind in ("work", "publish", "hero")
+    for file_type in ("work", "publish", "hero")
 ]
 
 
@@ -26,21 +28,22 @@ class FileContext:
     entity: str  # "hero", "010_020", "010_020_0030"
     task: str
     version: int | None  # None for a hero file.
-    kind: str  # "work", "publish" or "hero"
+    file_type: str  # "work", "publish" or "hero"
     padding: int = 3
 
     @property
     def is_publish(self) -> bool:
-        return self.kind != "work"
+        """True for a publish or hero file, which are read-only."""
+        return self.file_type != "work"
 
     @property
     def label(self) -> str:
         """Short text for the top bar, e.g. 'hero · rig · v012'."""
-        if self.kind == "hero":
+        if self.file_type == "hero":
             state = "published"
         else:
             version = f"v{self.version:0{self.padding}d}"
-            state = version if self.kind == "work" else f"publish {version}"
+            state = version if self.file_type == "work" else f"publish {version}"
         return f"{self.entity} · {self.task} · {state}"
 
 
@@ -50,7 +53,7 @@ def file_context(project: Project, path: Path) -> FileContext | None:
         relative = Path(path).resolve().relative_to(project.root)
     except ValueError:
         return None
-    for template, entity_kind, kind in _FILE_TEMPLATES:
+    for template, entity_kind, file_type in _FILE_TEMPLATES:
         fields = project.templates[template].parse(relative.as_posix())
         if fields is not None:
             version = fields.get("version")
@@ -59,7 +62,7 @@ def file_context(project: Project, path: Path) -> FileContext | None:
                 entity=str(fields[entity_kind]),
                 task=str(fields["task"]),
                 version=int(version) if version is not None else None,
-                kind=kind,
+                file_type=file_type,
                 padding=project.config.version_padding,
             )
     return None

@@ -48,6 +48,7 @@ class AssetType:
 
     @property
     def required_tasks(self) -> tuple[str, ...]:
+        """The tasks every asset of this type has."""
         return tuple(task for task in self.tasks if task not in self.optional_tasks)
 
     def task_list(self, tasks: Iterable[str] = ()) -> list[str]:

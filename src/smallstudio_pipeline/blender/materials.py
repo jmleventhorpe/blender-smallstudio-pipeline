@@ -24,6 +24,7 @@ class MaterialSync:
 
     @property
     def summary(self) -> str:
+        """One line for the publish report, e.g. "materials updated on 3 objects"."""
         parts = [f"materials updated on {len(self.updated)} objects"]
         if self.not_in_model:
             parts.append(f"not in the model: {', '.join(self.not_in_model)}")
@@ -66,8 +67,11 @@ def model_materials(model: Path, object_names: list[str]) -> dict[str, list[str]
 
 
 def append_materials(model: Path, names: list[str]) -> dict[str, bpy.types.Material]:
-    """Append materials from the model (with their images and node groups), replacing any
-    local materials of the same name so syncing twice doesn't pile up copies."""
+    """Append materials from the model, replacing local ones of the same name.
+
+    Their images and node groups come with them. Replacing means syncing twice doesn't
+    pile up copies.
+    """
     names = [name for name in names if name]
     old = {name: bpy.data.materials.get((name, None)) for name in names}
     fresh = {}

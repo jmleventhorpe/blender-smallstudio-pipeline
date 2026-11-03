@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import bpy
-from publish_validator import Config, Report, Subject, Validator
+from publish_validator import Config, Subject, Validator
 from publish_validator.hosts.blender import BlenderHost
 
 from ..core.project import Project
@@ -63,11 +63,3 @@ def subject_for(root: bpy.types.Collection, target: PublishTarget, file_entity: 
             "previous": previous,
         },
     )
-
-
-def validate(
-    root: bpy.types.Collection, target: PublishTarget, file_entity: str, fix: bool = False
-) -> Report:
-    """Run every check that applies. The report also lists any check that failed to load."""
-    validator = validator_for(target.asset.project)
-    return validator.run(subject_for(root, target, file_entity), fix=fix)

@@ -20,7 +20,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from .context import FileContext
+from .context import PUBLISH_IS_READ_ONLY, FileContext
 from .entities import Asset, Entity
 from .errors import MetadataError, PipelineError
 from .files import write_atomic
@@ -49,7 +49,7 @@ def publish_target(project: Project, file: FileContext | None, asset_name: str) 
     if file is None:
         raise PipelineError("Save this file as a pipeline workfile before publishing from it.")
     if file.is_publish:
-        raise PipelineError("This is a publish, which is read-only. Open the workfile instead.")
+        raise PipelineError(PUBLISH_IS_READ_ONLY)
     asset = project.asset(asset_name)
     if file.entity_kind == "asset" and file.entity == asset.name:
         return PublishTarget(asset, file.task, in_context=False)
@@ -66,10 +66,12 @@ class PublishPlan:
 
     @property
     def record(self) -> Path:
+        """Where the versioned file's record goes."""
         return record_path(self.path)
 
     @property
     def hero_record(self) -> Path:
+        """Where the hero file's record goes."""
         return record_path(self.hero)
 
 
@@ -95,7 +97,7 @@ class Dependency:
 @dataclass
 class PublishRecord:
     entity: str  # "hero", or a sequence or shot code.
-    kind: str  # "asset", "sequence" or "shot"
+    entity_kind: str  # "asset", "sequence" or "shot"
     task: str
     version: int
     source: str  # The workfile it came from, relative to the project root.
@@ -111,6 +113,7 @@ class PublishRecord:
     schema: int = SCHEMA
 
     def to_json(self) -> str:
+        """The record as JSON text, as written beside the publish."""
         data = asdict(self)
         data["published"] = self.published.isoformat()
         return json.dumps(data, indent=2) + "\n"
@@ -120,7 +123,8 @@ class PublishRecord:
         built_from = get(data, "built_from", dict, default=None)
         return cls(
             entity=get(data, "entity", str),
-            kind=get(data, "kind", str),
+            # Records written before November 2026 call it "kind".
+            entity_kind=get(data, "entity_kind" if "entity_kind" in data else "kind", str),
             task=get(data, "task", str),
             version=get(data, "version", int),
             source=get(data, "source", str),
@@ -152,7 +156,7 @@ def new_record(
     project = plan.entity.project
     return PublishRecord(
         entity=plan.entity.name,
-        kind=plan.entity.kind,
+        entity_kind=plan.entity.kind,
         task=plan.task,
         version=plan.version,
         source=relative(project, source),
@@ -176,6 +180,7 @@ def write_records(plan: PublishPlan, record: PublishRecord) -> None:
 
 
 def read_record(path: Path) -> PublishRecord:
+    """Read a publish record, or raise MetadataError saying what's wrong."""
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         return PublishRecord.from_dict(data)
@@ -205,18 +210,13 @@ def built_from(entity: Entity, task: str) -> Dependency | None:
     return Dependency(relative(entity.project, entity.hero_path(upstream)), record.version)
 
 
-def removed_objects(previous: PublishRecord | None, names: list[str]) -> list[str]:
-    """Objects in the last publish that this one no longer has (renamed or deleted)."""
-    if previous is None:
-        return []
-    return sorted(set(previous.object_names) - set(names))
-
-
 def relative(project: Project, path: Path) -> str:
+    """A path inside the project, relative to its root, with forward slashes."""
     return Path(path).resolve().relative_to(project.root).as_posix()
 
 
 def tool_version() -> str:
+    """The add-on's version, from its manifest."""
     with _MANIFEST.open("rb") as handle:
         return tomllib.load(handle)["version"]
 
