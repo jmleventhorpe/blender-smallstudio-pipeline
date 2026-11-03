@@ -30,7 +30,9 @@ All notable changes to this project are listed here. The format follows
     identity.
   - In-use markers next to open workfiles, with a warning when someone else has a file
     open.
-  - Project folders set per machine in the add-on preferences.
+  - Project folders set per machine in the add-on preferences, kept in a settings file
+    outside Blender (`~/.config/smallstudio-pipeline/projects.json`, or `%APPDATA%` on
+    Windows) so they survive add-on updates and Blender upgrades.
 - Asset publishing (M3):
   - Publish checks the asset with publish-validator (bundled, v0.2.0) and the pipeline's
     own checks, then writes a versioned file and the hero file, each with a JSON record.

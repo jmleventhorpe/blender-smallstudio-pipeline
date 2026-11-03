@@ -46,6 +46,9 @@ flowchart LR
 
 1. Install the extension zip (Preferences > Get Extensions > Install from Disk).
 2. In the add-on's preferences, add your project folder: the one holding `pipeline.toml`.
+   The list is kept for this machine in `~/.config/smallstudio-pipeline/projects.json`
+   (`%APPDATA%\smallstudio-pipeline\` on Windows), so updating the add-on or Blender keeps
+   it. Set `SMALLSTUDIO_PIPELINE_SETTINGS` to use another file.
 3. Use the **Pipeline** menu in the top bar: Open…, New Workfile…, New Asset…, New
    Sequence…, Version Up, Publish and Check Updates. Below those, only where they apply:
    Make Editable (a linked asset selected in an asset's file), Override for Posing (one

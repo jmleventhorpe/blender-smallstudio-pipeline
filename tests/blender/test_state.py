@@ -6,6 +6,7 @@ import bpy
 import pytest
 
 from smallstudio_pipeline.blender import state
+from smallstudio_pipeline.core.machine import MachineSettings, ProjectFolder, save_settings
 from smallstudio_pipeline.core.project import Project
 
 
@@ -53,3 +54,11 @@ def test_refresh_reads_the_open_file(project):
     bpy.ops.wm.save_as_mainfile(filepath=str(path))
     state.refresh()
     assert state.current.label == "hero · model · v001"
+
+
+def test_the_active_project_comes_from_this_machines_settings_file(project, machine_settings):
+    save_settings(MachineSettings([ProjectFolder("show", str(project.root))]), machine_settings)
+    bpy.ops.wm.read_homefile(use_empty=True)
+    state.refresh()
+    assert state.current.project is not None and state.current.project.root == project.root
+    assert state.current.label == "show · unsaved file"

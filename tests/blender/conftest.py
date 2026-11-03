@@ -8,7 +8,16 @@ import pytest
 import smallstudio_pipeline
 from smallstudio_pipeline.blender import state
 from smallstudio_pipeline.blender.identity import create_root_collection
+from smallstudio_pipeline.core.machine import ENV
 from smallstudio_pipeline.core.project import Project
+
+
+@pytest.fixture(autouse=True)
+def machine_settings(tmp_path: Path, monkeypatch) -> Path:
+    """This machine's settings file, in the test's own folder, never the real one."""
+    path = tmp_path / "machine" / "projects.json"
+    monkeypatch.setenv(ENV, str(path))
+    return path
 
 
 @pytest.fixture

@@ -49,6 +49,7 @@ or object it works on, so it runs headless in the tests.
 | `workfiles`, `publishing`, `updates` | The rules for each topic above. |
 | `layout`, `casting` | What a layout publish writes into each shot (range, cut, casting); instance IDs. |
 | `catalogs`, `inuse` | Asset Browser catalogs; markers saying who has a file open. |
+| `machine` | This machine's project folders and the active one, in a settings file outside Blender. |
 
 **blender**:
 
@@ -75,7 +76,8 @@ Outside the two layers: `defaults.toml` (built-in settings), `validation.toml` a
 ## When a file opens
 
 1. `handlers` refreshes `state.current`: the project (from the file's path, or the active
-   project in the preferences), what the file is, and the top bar's label.
+   project in this machine's settings file, `core/machine`), what the file is, and the
+   top bar's label.
 2. It marks the file as in use, or warns whose it is.
 3. It adds the project's `assets` folder to Blender's asset libraries.
 4. `updates` notes the version of every publish the file links, for Check Updates later,

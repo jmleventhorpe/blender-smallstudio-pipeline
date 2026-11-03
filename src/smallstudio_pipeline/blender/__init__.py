@@ -36,6 +36,7 @@ def unregister() -> None:
 
 
 def _first_refresh() -> None:
+    preferences.load_into_preferences()  # From this machine's settings file.
     state.refresh()
     handlers.claim()
     handlers.after_open()
