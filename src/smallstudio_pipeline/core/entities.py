@@ -206,8 +206,8 @@ class Sequence(Entity):
         shots = self.project.shots(include_omitted)
         return [shot for shot in shots if shot.code.sequence == self.code]
 
-    def create_shot(self, after: Shot | None = None) -> Shot:
-        """Create the next shot, or one between `after` and the next.
+    def create_shot(self, after: Shot | None = None, first: bool = False) -> Shot:
+        """Create the next shot, one between `after` and the next, or one before the first.
 
         Omitted shots keep their numbers, so a new shot never reuses one.
         """
@@ -215,7 +215,8 @@ class Sequence(Entity):
             raise PipelineError(f"Shot {after.code} isn't in {self.label}.")
         existing = [int(shot.code.number) for shot in self.shots(include_omitted=True)]
         step = self.project.config.code_step
-        number = next_number(existing, step, int(after.code.number) if after else None)
+        position = 0 if first else int(after.code.number) if after else None
+        number = next_number(existing, step, position)
         metadata = ShotMetadata(str(ShotCode(self.code, f"{number:0{SHOT_DIGITS}d}")))
         self.project.tracker.save_shot(metadata)
         return Shot(self.project, metadata)

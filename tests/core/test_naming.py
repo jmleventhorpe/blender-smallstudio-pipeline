@@ -74,6 +74,11 @@ def test_next_number_inserts_into_a_gap():
     assert next_number([10, 20], step=10, after=20) == 30
 
 
+def test_next_number_inserts_before_the_first():
+    assert next_number([10, 20], step=10, after=0) == 5
+    assert next_number([], step=10, after=0) == 10
+
+
 def test_next_number_refuses_when_there_is_no_gap():
     with pytest.raises(NamingError, match="no free number"):
         next_number([10, 11], step=10, after=10)

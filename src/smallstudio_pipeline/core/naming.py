@@ -93,12 +93,13 @@ def next_number(existing: Iterable[int], step: int, after: int | None = None) ->
     """Return the next code number: a step past the highest, or halfway into a gap.
 
     With `after`, the new number goes between `after` and the next existing number
-    (15 between 10 and 20), so codes can be inserted without renumbering.
+    (15 between 10 and 20), so codes can be inserted without renumbering. after=0 puts
+    it before the first (5 before 10).
     """
     numbers = sorted(set(existing))
     if after is None:
         return (numbers[-1] if numbers else 0) + step
-    if after not in numbers:
+    if after not in numbers and after != 0:
         raise NamingError(f"There's no {after} to insert after.")
     later = [number for number in numbers if number > after]
     if not later:

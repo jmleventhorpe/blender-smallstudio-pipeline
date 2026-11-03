@@ -10,6 +10,8 @@ episodes = true
 render_root = ""
 # The folder registered as the project's Asset Browser library, relative to the root.
 asset_library = "assets"
+# The frame each shot's scene starts on, leaving room before it for run-up.
+shot_start = 101
 
 [naming]
 # Names of assets and tasks. Matched against the whole name.

@@ -15,6 +15,7 @@ def write_project_config(root: Path, text: str) -> Path:
 def test_defaults_load():
     config = load_config()
     assert config.fps == 24
+    assert config.shot_start == 101
     assert config.resolution == (1920, 1080)
     assert config.episodes is True
     assert set(config.asset_types) == {"character", "prop", "set", "lib", "utility"}

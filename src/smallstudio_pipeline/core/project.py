@@ -18,7 +18,7 @@ from .config import PROJECT_FILE, AssetType, Config, load_config
 from .entities import Asset, Sequence, Shot
 from .errors import EntityExists, EntityNotFound, PipelineError
 from .metadata import AssetMetadata, SequenceMetadata
-from .naming import SEQUENCE_DIGITS, SequenceCode, check_name, next_number
+from .naming import EPISODE_DIGITS, SEQUENCE_DIGITS, SequenceCode, check_name, next_number
 from .templates import Fields, Template, build_templates
 from .tracker import FilesystemTracker, Tracker
 
@@ -134,6 +134,11 @@ class Project:
     def episodes(self) -> list[str]:
         """The episodes that have sequences."""
         return sorted({seq.code.episode for seq in self.sequences() if seq.code.episode})
+
+    def next_episode(self) -> str:
+        """The code a new episode gets: a step past the highest."""
+        number = next_number([int(code) for code in self.episodes()], self.config.code_step)
+        return f"{number:0{EPISODE_DIGITS}d}"
 
     def sequences(self, episode: str | None = None) -> list[Sequence]:
         """The sequences in order, only in one episode if given."""

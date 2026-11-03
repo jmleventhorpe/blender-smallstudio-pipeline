@@ -134,6 +134,18 @@ def test_sequences_number_in_steps_and_insert(project):
     assert [str(seq.code) for seq in project.sequences("020")] == ["020_010"]
 
 
+def test_shots_can_go_before_the_first(project):
+    sequence = project.create_sequence("010")
+    sequence.create_shot()
+    assert str(sequence.create_shot(first=True).code) == "010_010_0005"
+
+
+def test_new_episodes_number_in_steps(project):
+    assert project.next_episode() == "010"
+    project.create_sequence("010")
+    assert project.next_episode() == "020"
+
+
 def test_sequences_need_an_episode_when_the_project_uses_them(project):
     with pytest.raises(PipelineError, match="uses episodes"):
         project.create_sequence()

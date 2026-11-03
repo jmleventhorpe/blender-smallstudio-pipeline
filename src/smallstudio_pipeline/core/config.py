@@ -67,6 +67,7 @@ class Config:
     episodes: bool
     render_root: str
     asset_library: str  # The folder registered as an Asset Browser library.
+    shot_start: int  # The frame each shot's scene starts on.
     name_pattern: str
     version_padding: int
     code_step: int
@@ -135,6 +136,7 @@ def _build(data: dict[str, Any]) -> Config:
         episodes=get(project, "episodes", bool, "project"),
         render_root=get(project, "render_root", str, "project"),
         asset_library=get(project, "asset_library", str, "project"),
+        shot_start=_positive(project, "shot_start", "project", minimum=0),
         name_pattern=name_pattern,
         version_padding=_positive(naming, "version_padding", "naming"),
         code_step=_positive(naming, "code_step", "naming", minimum=2),
