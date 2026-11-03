@@ -29,7 +29,7 @@ class Marker:
 
     @classmethod
     def mine(cls) -> Marker:
-        return cls(_user(), socket.gethostname(), os.getpid(), datetime.now(UTC))
+        return cls(current_user(), socket.gethostname(), os.getpid(), datetime.now(UTC))
 
     def is_mine(self) -> bool:
         return (self.machine, self.pid) == (socket.gethostname(), os.getpid())
@@ -81,7 +81,8 @@ def release(workfile: Path) -> None:
         marker_path(workfile).unlink(missing_ok=True)
 
 
-def _user() -> str:
+def current_user() -> str:
+    """The user's login name, for markers and publish records."""
     try:
         return getpass.getuser()
     except OSError:

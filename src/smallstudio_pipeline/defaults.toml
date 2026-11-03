@@ -8,6 +8,8 @@ resolution = [1920, 1080]
 episodes = true
 # Where render/ folders resolve. Empty means the project root; may be absolute.
 render_root = ""
+# The folder registered as the project's Asset Browser library, relative to the root.
+asset_library = "assets"
 
 [naming]
 # Names of assets and tasks. Matched against the whole name.
@@ -28,6 +30,7 @@ publishes = true
 [tasks.rig]
 entity = "asset"
 publishes = true
+builds_on = "model" # Rigging starts from the latest model publish.
 
 [tasks.layout]
 entity = "sequence"

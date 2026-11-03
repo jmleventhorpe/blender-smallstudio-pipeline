@@ -28,6 +28,7 @@ class Task:
     publishes: bool
     renders: str | None  # Where its renders go: "sequence", "shot", or None.
     starter: str | None = None  # A .blend new workfiles start from, relative to the project.
+    builds_on: str | None = None  # A task whose latest publish new workfiles start from.
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,7 @@ class Config:
     resolution: tuple[int, int]
     episodes: bool
     render_root: str
+    asset_library: str  # The folder registered as an Asset Browser library.
     name_pattern: str
     version_padding: int
     code_step: int
@@ -107,6 +109,8 @@ def _build(data: dict[str, Any]) -> Config:
         raise ValueError(f"naming.name_pattern isn't a valid pattern: {error}") from None
 
     tasks = {name: _task(name, table) for name, table in get(data, "tasks", dict).items()}
+    for task in tasks.values():
+        _check_builds_on(task, tasks)
     asset_types = {
         name: _asset_type(name, table, tasks)
         for name, table in get(data, "asset_types", dict).items()
@@ -121,6 +125,7 @@ def _build(data: dict[str, Any]) -> Config:
         resolution=_resolution(project),
         episodes=get(project, "episodes", bool, "project"),
         render_root=get(project, "render_root", str, "project"),
+        asset_library=get(project, "asset_library", str, "project"),
         name_pattern=name_pattern,
         version_padding=_positive(naming, "version_padding", "naming"),
         code_step=_positive(naming, "code_step", "naming", minimum=2),
@@ -141,7 +146,18 @@ def _task(name: str, table: Any) -> Task:
         raise ValueError(f"{where}.renders should be 'sequence' or 'shot', not '{renders}'")
     publishes = get(table, "publishes", bool, where, default=False)
     starter = get(table, "starter", str, where, default=None)
-    return Task(name, entity, publishes, renders, starter)
+    builds_on = get(table, "builds_on", str, where, default=None)
+    return Task(name, entity, publishes, renders, starter, builds_on)
+
+
+def _check_builds_on(task: Task, tasks: dict[str, Task]) -> None:
+    if task.builds_on is None:
+        return
+    upstream = tasks.get(task.builds_on)
+    if upstream is None or upstream.entity != task.entity or not upstream.publishes:
+        raise ValueError(
+            f"tasks.{task.name}.builds_on: '{task.builds_on}' isn't a publishing {task.entity} task"
+        )
 
 
 def _asset_type(name: str, table: Any, tasks: dict[str, Task]) -> AssetType:
