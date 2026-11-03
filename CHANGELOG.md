@@ -31,3 +31,19 @@ All notable changes to this project are listed here. The format follows
   - In-use markers next to open workfiles, with a warning when someone else has a file
     open.
   - Project folders set per machine in the add-on preferences.
+- Asset publishing (M3):
+  - Publish checks the asset with publish-validator (bundled, v0.2.0) and the pipeline's
+    own checks, then writes a versioned file and the hero file, each with a JSON record.
+    The hero is marked for the Asset Browser, links by default, and has a thumbnail and
+    a catalog by asset type; kits mark each piece.
+  - Blocked publishes list their problems in the 3D viewport sidebar, with Select and Fix.
+  - Rigs start from the latest model publish and take its materials on every publish.
+  - Assets can be edited (Make Editable) or started inside another asset's file and
+    published from there; they're linked back in afterwards.
+  - Each project's assets folder becomes an Asset Browser library. Check Updates reloads
+    linked publishes that were published again; files built from an older publish are
+    flagged.
+
+### Changed
+
+- Tasks have short names: model, rig, layout, light, anim.

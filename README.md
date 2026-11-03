@@ -3,10 +3,10 @@
 Publishing, loading and scene construction for one person or a small team, entirely
 inside Blender. Built for an animated comic series, with nothing studio-specific baked in.
 
-> **Status: early.** The design is settled, the Blender behaviour it depends on has been
-> tested (see [spikes](spikes/RESULTS.md)), and the core and workfile handling are built:
-> a Pipeline menu to create assets, start tasks, open and version up workfiles. Publishing
-> comes next; nothing is usable in production yet.
+> **Status: early.** Assets work end to end: create them, work on them, check and publish
+> them, link them from the Asset Browser, and keep files up to date. Layout, shots,
+> animation and lighting come next (see [spikes](spikes/RESULTS.md) for the Blender
+> behaviour they rely on). Not ready for production yet.
 
 ## What it does
 
@@ -45,9 +45,24 @@ flowchart LR
 
 1. Install the extension zip (Preferences > Get Extensions > Install from Disk).
 2. In the add-on's preferences, add your project folder: the one holding `pipeline.toml`.
-3. Use the **Pipeline** menu in the top bar: New Asset…, New Workfile…, Open…, Version Up.
-   Next to it, the top bar shows what the open file is (`hero · rig · v012`), in the
-   warning colour for a publish, a file outside the pipeline, or one someone else has open.
+3. Use the **Pipeline** menu in the top bar: New Asset…, New Workfile…, Open…, Version Up,
+   Publish and Check Updates (and Make Editable when a linked asset is selected). Next to
+   it, the top bar shows what the open file is (`hero · rig · v012`), in the warning colour
+   for a publish, a file outside the pipeline, one someone else has open, or one built
+   from an older publish.
+
+**Publishing** checks the asset first with
+[publish-validator](https://github.com/jmleventhorpe/publish-validator); if anything
+blocks it, the problems are listed under **Pipeline** in the 3D viewport's sidebar, each
+with Select (and Fix where it can). A publish writes a new version and replaces the hero
+file that other files link, marked for the Asset Browser with a thumbnail. Rigs start from
+the latest model publish and take its materials again on every publish. An asset can also
+be edited, or started, inside another asset's file (a prop inside its set) and published
+from there.
+
+A project can tune the checks with a `validation.toml` beside its `pipeline.toml`, and add
+its own checks in a `checks/` folder there (see
+[writing checks](https://github.com/jmleventhorpe/publish-validator/blob/main/docs/writing-checks.md)).
 
 ## Using the core
 
@@ -71,7 +86,9 @@ shot.render_path("light", 1)
 | --- | --- |
 | `src/smallstudio_pipeline/core/` | Pipeline logic with no Blender imports: config, path templates, naming, metadata, entities. Tested in plain Python. |
 | `src/smallstudio_pipeline/defaults.toml` | Built-in settings: asset types, tasks, naming, path templates. A project's `pipeline.toml` overrides any of them. |
-| `src/smallstudio_pipeline/blender/` | The thin Blender layer: preferences, the Pipeline menu and its operators, load/save handlers. Tested in headless Blender. |
+| `src/smallstudio_pipeline/blender/` | The thin Blender layer: preferences, the Pipeline menu and its operators, publishing, the results panel, load/save handlers. Tested in headless Blender. |
+| `src/smallstudio_pipeline/checks/`, `validation.toml` | The pipeline's own publish checks and its publish-validator settings. |
+| `src/smallstudio_pipeline/wheels/` | publish-validator, bundled as a wheel. |
 | `tests/core/`, `tests/blender/` | The two test suites. |
 | `spikes/` | Scripts that tested the Blender behaviour the design relies on, with [results](spikes/RESULTS.md). |
 | `scripts/build_extension.py` | Builds and validates the extension zip. |
