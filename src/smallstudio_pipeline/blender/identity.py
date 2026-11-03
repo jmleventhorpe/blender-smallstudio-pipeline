@@ -49,6 +49,14 @@ def built_from(collection: bpy.types.Collection) -> Dependency | None:
     return Dependency(path, collection.get(BUILT_FROM_VERSION) or None)
 
 
+def linked_asset(obj: bpy.types.Object | None) -> bpy.types.Collection | None:
+    """The linked asset root an empty instances, if it is one."""
+    if obj is None or obj.instance_type != "COLLECTION" or obj.instance_collection is None:
+        return None
+    collection = obj.instance_collection
+    return collection if collection.library and asset_identity(collection) else None
+
+
 def asset_identity(collection: bpy.types.Collection) -> tuple[str, str] | None:
     """Return (asset name, asset type) if the collection is an asset's root, else None."""
     name, asset_type = collection.get(ASSET), collection.get(ASSET_TYPE)

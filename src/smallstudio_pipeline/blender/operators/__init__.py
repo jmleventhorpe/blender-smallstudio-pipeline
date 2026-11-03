@@ -12,6 +12,7 @@ from .new_sequence import PIPELINE_OT_new_sequence
 from .new_workfile import PIPELINE_OT_new_workfile
 from .omit_shot import PIPELINE_OT_omit_shot
 from .open import PIPELINE_OT_open
+from .override_for_posing import PIPELINE_OT_override_for_posing
 from .publish import PIPELINE_OT_publish
 from .version_up import PIPELINE_OT_version_up
 
@@ -24,6 +25,7 @@ CLASSES = (
     PIPELINE_OT_publish,
     PIPELINE_OT_check_updates,
     PIPELINE_OT_make_editable,
+    PIPELINE_OT_override_for_posing,
     PIPELINE_OT_add_shot,
     PIPELINE_OT_omit_shot,
 )

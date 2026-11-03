@@ -10,6 +10,7 @@ import bpy
 from ...core.errors import PipelineError
 from .. import state
 from ..assets import in_context
+from ..identity import linked_asset
 from .common import has_project
 
 
@@ -24,7 +25,11 @@ class PIPELINE_OT_make_editable(bpy.types.Operator):
     def poll(cls, context: bpy.types.Context) -> bool:
         if not has_project(cls):
             return False
-        if in_context.linked_asset(context.active_object) is None:
+        file = state.current.context
+        if file is None or file.entity_kind != "asset" or file.is_publish:
+            cls.poll_message_set("Make Editable works in an asset's workfile, such as a set's.")
+            return False
+        if linked_asset(context.active_object) is None:
             cls.poll_message_set("Select a linked asset (the empty that places it).")
             return False
         return True

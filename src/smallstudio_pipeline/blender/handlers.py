@@ -16,6 +16,7 @@ from bpy.app.handlers import persistent
 
 from ..core import inuse
 from . import libraries, state, updates
+from .shots import instances, layout
 from .ui import results
 
 # The workfile whose in-use marker this Blender holds.
@@ -50,6 +51,14 @@ def after_open() -> None:
     stale = updates.stale_builds(project, bpy.context.scene)
     if stale:
         state.current.warnings.append(updates.stale_warning(stale))
+
+
+@persistent
+def on_save_pre(*_args: object) -> None:
+    """Before a save (or a publish's copy, spike T13): number new instances in each shot."""
+    for scene in bpy.data.scenes:
+        if layout.SHOT in scene:
+            instances.number_instances(scene)
 
 
 @persistent
@@ -105,6 +114,7 @@ def show_message(*lines: str, icon: str = "ERROR") -> None:
 HANDLERS = (
     (bpy.app.handlers.load_pre, on_load_pre),
     (bpy.app.handlers.load_post, on_load_post),
+    (bpy.app.handlers.save_pre, on_save_pre),
     (bpy.app.handlers.save_post, on_save_post),
 )
 

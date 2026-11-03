@@ -25,19 +25,11 @@ from ...core.project import Project
 from ...core.publishing import relative
 from ...core.updates import publish_version
 from .. import libraries, updates
-from ..identity import asset_identity
+from ..identity import asset_identity, linked_asset
 
 # Where the linked asset was placed, kept on the copy's root while it's being edited.
 PLACEMENT = "pipeline_placement"  # The placing empty's world matrix, 16 numbers by row.
 PLACEMENT_NAME = "pipeline_placement_name"  # The empty's name, to place the link again.
-
-
-def linked_asset(obj: bpy.types.Object | None) -> bpy.types.Collection | None:
-    """The linked asset root an empty instances, if it is one."""
-    if obj is None or obj.instance_type != "COLLECTION" or obj.instance_collection is None:
-        return None
-    collection = obj.instance_collection
-    return collection if collection.library and asset_identity(collection) else None
 
 
 def make_editable(

@@ -1,7 +1,9 @@
 """The Pipeline menu, and the label in the top bar saying what the open file is.
 
 Both read state.current and nothing else: the top bar redraws constantly, so nothing
-here may touch the disk. Make Editable only appears when a linked asset is selected.
+here may touch the disk. Below the separator, only what applies: with a linked asset
+selected, Make Editable in an asset's workfile and Override for Posing in a sequence's
+or shot's; Add Shot and Omit Shot in a layout workfile.
 """
 
 from __future__ import annotations
@@ -9,7 +11,7 @@ from __future__ import annotations
 import bpy
 
 from .. import state
-from ..assets import in_context
+from ..identity import linked_asset
 from ..shots.layout import LAYOUT
 
 
@@ -32,11 +34,17 @@ class PIPELINE_MT_main(bpy.types.Menu):
         layout.operator("pipeline.publish", icon="EXPORT")
         layout.operator("pipeline.check_updates", icon="FILE_REFRESH")
         # Below here, only what applies to the open file and selection.
-        if in_context.linked_asset(context.active_object) is not None:
+        file = state.current.context
+        if file is None or file.is_publish:
+            return
+        selected_link = linked_asset(context.active_object) is not None
+        if file.entity_kind == "asset" and selected_link:
             layout.separator()
             layout.operator("pipeline.make_editable", icon="LIBRARY_DATA_OVERRIDE")
-        file = state.current.context
-        if file is not None and file.task == LAYOUT and not file.is_publish:
+        if file.entity_kind != "asset" and selected_link:
+            layout.separator()
+            layout.operator("pipeline.override_for_posing", icon="LIBRARY_DATA_OVERRIDE")
+        if file.task == LAYOUT:
             layout.separator()
             layout.operator("pipeline.add_shot", icon="ADD")
             layout.operator("pipeline.omit_shot", icon="REMOVE")
