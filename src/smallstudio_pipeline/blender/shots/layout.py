@@ -5,7 +5,8 @@ showing that shot's scene (the Storypencil pattern). start_cut() turns a new lay
 workfile's scene into the master. add_shot() creates a shot after the strip at the
 playhead: its code goes between its neighbours' (0015 between 0010 and 0020), its scene
 gets a camera and starts at the project's shot_start, and later strips move along to
-make room. omit_shot() takes a shot's strip out of the cut and marks the shot omitted;
+make room. show_cut_in_sequencer() points each workspace's Video Sequencer at the cut.
+omit_shot() takes a shot's strip out of the cut and marks the shot omitted;
 its scene stays in the file. sync_ranges() makes each shot scene's range what its strip
 shows, so retiming in the cut is what layout publishes. set_playblast_output() points the
 master scene's output at the sequence's layout render folder for the workfile's version.
@@ -36,6 +37,18 @@ def start_cut(scene: bpy.types.Scene, sequence: Sequence) -> None:
     scene[SEQUENCE] = sequence.name
     scene.sequence_editor_create()
     scene.frame_start = scene.frame_end = 1
+    show_cut_in_sequencer(scene)
+
+
+def show_cut_in_sequencer(master: bpy.types.Scene) -> None:
+    """Make each workspace's Video Sequencer edit the cut, where it edits no scene yet.
+
+    Blender 5 gives every workspace a sequencer scene of its own, apart from the scene on
+    show; a new file has none, so a sequencer opened there would have nothing to edit.
+    """
+    for workspace in bpy.data.workspaces:
+        if workspace.sequencer_scene is None:
+            workspace.sequencer_scene = master
 
 
 def master_scene() -> bpy.types.Scene:
@@ -79,6 +92,10 @@ def add_shot(sequence: Sequence, master: bpy.types.Scene, frame: int) -> Shot:
     new = master.sequence_editor.strips.new_scene(shot.name, scene, CHANNEL, start)
     strip = cast(bpy.types.SceneStrip, new)
     strip.scene_camera = scene.camera
+    for other in master.sequence_editor.strips:  # Select the new shot, as clicking it would.
+        other.select = False
+    strip.select = True
+    master.sequence_editor.active_strip = strip
     fit_master_range(master)
     return shot
 

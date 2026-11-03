@@ -67,7 +67,10 @@ def test_omitting_a_shot_closes_the_gap_and_keeps_its_scene(project, sequence):
     for _ in range(3):
         add_shot_at(1000)
     master = layout.master_scene()
-    master.sequence_editor.active_strip = layout.shot_strips(master)[1]
+    strips = layout.shot_strips(master)
+    assert master.sequence_editor.active_strip == strips[2]  # The shot just added.
+    strips[2].select = False
+    strips[1].select = True  # Selected, not made active.
     assert bpy.ops.pipeline.omit_shot() == {"FINISHED"}
     assert cut() == [("010_010_0010", 1, 48), ("010_010_0030", 49, 48)]
     assert project.shot("010_010_0020").omitted
@@ -96,10 +99,24 @@ def test_shot_actions_only_work_in_a_layout_workfile(project):
     assert not bpy.ops.pipeline.omit_shot.poll()
 
 
-def test_omit_shot_needs_a_shot_strip_selected(sequence):
+def test_omit_shot_needs_one_shot_strip_selected(sequence):
     add_shot_at(1)
-    layout.master_scene().sequence_editor.active_strip = None
+    add_shot_at(1000)
+    master = layout.master_scene()
+    master.sequence_editor.active_strip = None
+    for strip in layout.shot_strips(master):
+        strip.select = False
     assert not bpy.ops.pipeline.omit_shot.poll()
+    for strip in layout.shot_strips(master):
+        strip.select = True
+    assert not bpy.ops.pipeline.omit_shot.poll()  # Two selected, neither active.
+    master.sequence_editor.active_strip = layout.shot_strips(master)[0]
+    assert bpy.ops.pipeline.omit_shot.poll()  # The active one of those selected.
+
+
+def test_every_workspaces_sequencer_edits_the_cut(sequence):
+    master = layout.master_scene()
+    assert bpy.data.workspaces and all(w.sequencer_scene == master for w in bpy.data.workspaces)
 
 
 def test_the_playblast_goes_to_the_layout_render_folder_for_each_version(project, sequence):

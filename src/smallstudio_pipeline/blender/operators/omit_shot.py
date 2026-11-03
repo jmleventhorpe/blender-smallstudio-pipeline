@@ -15,13 +15,17 @@ from .common import has_project, in_layout_workfile
 
 
 def selected_shot_strip() -> bpy.types.SceneStrip | None:
-    """The master scene's active strip, if it's a shot's."""
+    """The shot strip selected in the cut: the active one, or else the only one selected."""
     try:
         master = layout.master_scene()
     except PipelineError:
         return None
-    active = master.sequence_editor.active_strip if master.sequence_editor else None
-    return next((strip for strip in layout.shot_strips(master) if strip == active), None)
+    selected = [strip for strip in layout.shot_strips(master) if strip.select]
+    active = master.sequence_editor.active_strip
+    for strip in selected:
+        if strip == active:
+            return strip
+    return selected[0] if len(selected) == 1 else None
 
 
 class PIPELINE_OT_omit_shot(bpy.types.Operator):
@@ -36,7 +40,15 @@ class PIPELINE_OT_omit_shot(bpy.types.Operator):
         if not (has_project(cls) and in_layout_workfile(cls)):
             return False
         if selected_shot_strip() is None:
-            cls.poll_message_set("Select a shot's strip in the cut.")
+            showing = getattr(context, "sequencer_scene", None)
+            master = layout.master_scene()
+            if showing is not None and showing != master:
+                cls.poll_message_set(
+                    f"The Video Sequencer is showing {showing.name}. Set it to {master.name}, "
+                    "the cut, in the sequencer's header."
+                )
+            else:
+                cls.poll_message_set("Select one shot's strip in the cut (in the Video Sequencer).")
             return False
         return True
 

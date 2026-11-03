@@ -11,6 +11,7 @@ up once the UI is ready.
 from __future__ import annotations
 
 import atexit
+import contextlib
 from pathlib import Path
 
 import bpy
@@ -40,6 +41,7 @@ def on_load_post(*_args: object) -> None:
     state.refresh()
     claim()
     after_open()
+    show_cut_in_sequencer()
     if state.current.warnings and state.current.context is not None:
         show_message(*state.current.warnings)  # Publishes, files in use, stale builds.
 
@@ -55,6 +57,15 @@ def after_open() -> None:
     stale = updates.stale_builds(project, bpy.context.scene)
     if stale:
         state.current.warnings.append(updates.stale_warning(stale))
+
+
+def show_cut_in_sequencer() -> None:
+    """In a layout workfile, point any workspace's sequencer that edits nothing at the cut."""
+    file = state.current.context
+    if file is None or file.task != layout.LAYOUT or file.entity_kind != "sequence":
+        return
+    with contextlib.suppress(PipelineError):  # No master scene: nothing to show.
+        layout.show_cut_in_sequencer(layout.master_scene())
 
 
 @persistent
