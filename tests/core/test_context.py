@@ -21,43 +21,43 @@ def entities(project):
 
 def test_asset_files(project, entities):
     hero, _, _ = entities
-    work = context_of(project, hero.workfile_path("rigging", 12))
-    assert work == FileContext("asset", "hero", "rigging", 12, "work")
-    assert work.label == "hero · rigging · v012"
+    work = context_of(project, hero.workfile_path("rig", 12))
+    assert work == FileContext("asset", "hero", "rig", 12, "work")
+    assert work.label == "hero · rig · v012"
     assert not work.is_publish
 
-    publish = context_of(project, hero.publish_path("rigging", 4))
-    assert publish.label == "hero · rigging · publish v004"
+    publish = context_of(project, hero.publish_path("rig", 4))
+    assert publish.label == "hero · rig · publish v004"
     assert publish.is_publish
 
-    hero_file = context_of(project, hero.hero_path("rigging"))
-    assert hero_file == FileContext("asset", "hero", "rigging", None, "hero")
-    assert hero_file.label == "hero · rigging · published"
+    hero_file = context_of(project, hero.hero_path("rig"))
+    assert hero_file == FileContext("asset", "hero", "rig", None, "hero")
+    assert hero_file.label == "hero · rig · published"
 
 
 def test_sequence_and_shot_files(project, entities):
     _, sequence, shot = entities
     layout = file_context(project, sequence.workfile_path("layout", 3))
     assert layout == FileContext("sequence", "010_010", "layout", 3, "work")
-    animation = file_context(project, shot.hero_path("animation"))
-    assert animation == FileContext("shot", "010_010_0010", "animation", None, "hero")
+    anim = file_context(project, shot.hero_path("anim"))
+    assert anim == FileContext("shot", "010_010_0010", "anim", None, "hero")
 
 
 def test_asset_names_that_look_like_versions(project):
     tank = project.create_asset("prop", "tank_v2")
-    assert file_context(project, tank.hero_path("modeling")) == FileContext(
-        "asset", "tank_v2", "modeling", None, "hero"
+    assert file_context(project, tank.hero_path("model")) == FileContext(
+        "asset", "tank_v2", "model", None, "hero"
     )
-    assert file_context(project, tank.publish_path("modeling", 1)) == FileContext(
-        "asset", "tank_v2", "modeling", 1, "publish"
+    assert file_context(project, tank.publish_path("model", 1)) == FileContext(
+        "asset", "tank_v2", "model", 1, "publish"
     )
 
 
 @pytest.mark.parametrize(
     "relative",
     [
-        "assets/character/hero/rigging/work/hero_rigging_v012.blend1",  # Blender's backup.
-        "assets/character/hero/rigging/work/scratch.blend",
+        "assets/character/hero/rig/work/hero_rig_v012.blend1",  # Blender's backup.
+        "assets/character/hero/rig/work/scratch.blend",
         "pipeline.toml",
     ],
 )
@@ -66,4 +66,4 @@ def test_other_files_in_the_project_are_unmanaged(project, entities, relative):
 
 
 def test_files_outside_the_project_are_unmanaged(project, tmp_path: Path):
-    assert file_context(project, tmp_path / "elsewhere/hero_rigging_v001.blend") is None
+    assert file_context(project, tmp_path / "elsewhere/hero_rig_v001.blend") is None

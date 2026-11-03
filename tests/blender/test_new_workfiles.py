@@ -14,7 +14,7 @@ def test_new_asset_saves_its_first_workfile_with_a_root_collection(project):
     bpy.ops.pipeline.new_asset(asset_type="character", name="hero")
 
     hero = project.asset("hero")
-    assert Path(bpy.data.filepath) == hero.workfile_path("modeling", 1)
+    assert Path(bpy.data.filepath) == hero.workfile_path("model", 1)
     root = bpy.data.collections["hero"]
     assert asset_identity(root) == ("hero", "character")
     assert root[INSTANCE_ID] == ""
@@ -48,18 +48,18 @@ def test_new_workfile_starts_from_the_starter_file(project):
 
 def test_new_workfile_refuses_a_started_task(project):
     hero = project.create_asset("character", "hero")
-    save_blend(hero.workfile_path("rigging", 1))
-    with pytest.raises(RuntimeError, match="already has rigging workfiles"):
-        bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rigging")
+    save_blend(hero.workfile_path("rig", 1))
+    with pytest.raises(RuntimeError, match="already has rig workfiles"):
+        bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rig")
 
 
 def test_unsaved_changes_are_saved_first(project, unsaved_changes):
     hero = project.create_asset("character", "hero")
-    first = hero.workfile_path("modeling", 1)
+    first = hero.workfile_path("model", 1)
     save_blend(first)
     add_object("unsaved_work")
 
-    bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rigging")
+    bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rig")
 
     bpy.ops.wm.open_mainfile(filepath=str(first))
     assert "unsaved_work" in bpy.data.objects
@@ -68,8 +68,6 @@ def test_unsaved_changes_are_saved_first(project, unsaved_changes):
 def test_unsaved_changes_in_an_untitled_file_need_a_choice(project, unsaved_changes):
     project.create_asset("character", "hero")
     with pytest.raises(RuntimeError, match="never been saved"):
-        bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rigging")
-    bpy.ops.pipeline.new_workfile(
-        kind="character", entity="hero", task="rigging", unsaved="DISCARD"
-    )
-    assert bpy.data.filepath.endswith("hero_rigging_v001.blend")
+        bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rig")
+    bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rig", unsaved="DISCARD")
+    assert bpy.data.filepath.endswith("hero_rig_v001.blend")

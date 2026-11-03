@@ -30,8 +30,8 @@ Written to be read and extended by other TDs.
 - **Comments.** A one-line docstring on public functions. Comment only where Blender
   behaves in a non-obvious way, and say why.
 - **Formatting.** `ruff format`, line length 100.
-- **Spelling.** American spelling in names and paths (`modeling`, `color`), matching
-  Blender's API.
+- **Names.** Tasks have short names (`model`, `rig`, `layout`, `light`, `anim`). Other
+  names use American spelling (`color`), matching Blender's API.
 
 ## Commits
 

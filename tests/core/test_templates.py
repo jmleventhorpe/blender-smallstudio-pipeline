@@ -9,7 +9,7 @@ from smallstudio_pipeline.core.templates import build_templates
 SAMPLE_VALUES = {
     "asset_type": "character",
     "asset": "street_lamp",
-    "task": "rigging",
+    "task": "rig",
     "version": 12,
     "episode": "010",
     "sequence": "010_020",
@@ -31,11 +31,11 @@ def test_every_default_template_round_trips(templates):
 
 def test_format_builds_the_expected_paths(templates):
     assert str(templates["asset_work"].format(**SAMPLE_VALUES)) == (
-        "assets/character/street_lamp/rigging/work/street_lamp_rigging_v012.blend"
+        "assets/character/street_lamp/rig/work/street_lamp_rig_v012.blend"
     )
-    assert str(
-        templates["shot_render"].format(shot="010_020_0030", task="lighting", version=3)
-    ) == ("shots/010_020_0030/lighting/render/v003")
+    assert str(templates["shot_render"].format(shot="010_020_0030", task="light", version=3)) == (
+        "shots/010_020_0030/light/render/v003"
+    )
 
 
 def test_render_templates_are_marked(templates):
@@ -44,22 +44,22 @@ def test_render_templates_are_marked(templates):
 
 
 def test_parse_reads_windows_paths(templates):
-    path = r"assets\character\hero\rigging\work\hero_rigging_v004.blend"
+    path = r"assets\character\hero\rig\work\hero_rig_v004.blend"
     assert templates["asset_work"].parse(path)["version"] == 4
 
 
 def test_parse_rejects_paths_that_do_not_fit(templates):
     work = templates["asset_work"]
     # The file name must repeat the folder's asset name.
-    assert work.parse("assets/character/hero/rigging/work/villain_rigging_v001.blend") is None
-    assert work.parse("assets/character/hero/rigging/publish/hero_rigging_v001.blend") is None
-    assert work.parse("assets/vehicle/hero/rigging/work/hero_rigging_v001.blend") is None
+    assert work.parse("assets/character/hero/rig/work/villain_rig_v001.blend") is None
+    assert work.parse("assets/character/hero/rig/publish/hero_rig_v001.blend") is None
+    assert work.parse("assets/vehicle/hero/rig/work/hero_rig_v001.blend") is None
 
 
 def test_hero_template_does_not_match_versioned_files(templates):
     hero = templates["asset_hero"]
-    assert hero.parse("assets/character/hero/rigging/publish/hero_rigging.blend") is not None
-    assert hero.parse("assets/character/hero/rigging/publish/hero_rigging_v002.blend") is None
+    assert hero.parse("assets/character/hero/rig/publish/hero_rig.blend") is not None
+    assert hero.parse("assets/character/hero/rig/publish/hero_rig_v002.blend") is None
 
 
 @pytest.mark.parametrize(
@@ -81,13 +81,11 @@ def test_format_needs_every_field(templates):
 
 
 def test_find_lists_matching_files(templates, tmp_path: Path):
-    folder = tmp_path / "assets/character/hero/rigging/work"
+    folder = tmp_path / "assets/character/hero/rig/work"
     folder.mkdir(parents=True)
-    for name in ("hero_rigging_v001.blend", "hero_rigging_v003.blend", "notes.txt"):
+    for name in ("hero_rig_v001.blend", "hero_rig_v003.blend", "notes.txt"):
         (folder / name).touch()
-    found = templates["asset_work"].find(
-        tmp_path, asset_type="character", asset="hero", task="rigging"
-    )
+    found = templates["asset_work"].find(tmp_path, asset_type="character", asset="hero", task="rig")
     assert [fields["version"] for _, fields in found] == [1, 3]
 
 

@@ -29,7 +29,7 @@ def test_write_atomic_creates_folders_and_leaves_no_temp_file(tmp_path: Path):
 @pytest.mark.parametrize(
     "metadata",
     [
-        AssetMetadata("hero", "character", ["modeling", "rigging"]),
+        AssetMetadata("hero", "character", ["model", "rig"]),
         SequenceMetadata("010_020"),
         ShotMetadata(
             "010_020_0030",
@@ -83,7 +83,7 @@ def tracker(tmp_path: Path) -> FilesystemTracker:
 
 
 def test_tracker_saves_and_lists_entities(tracker: FilesystemTracker):
-    tracker.save_asset(AssetMetadata("hero", "character", ["modeling", "rigging"]))
+    tracker.save_asset(AssetMetadata("hero", "character", ["model", "rig"]))
     tracker.save_sequence(SequenceMetadata("010_020"))
     tracker.save_shot(ShotMetadata("010_020_0030"))
     assert (tracker.root / "assets/character/hero/hero.json").is_file()
@@ -93,7 +93,7 @@ def test_tracker_saves_and_lists_entities(tracker: FilesystemTracker):
 
 
 def test_tracker_catches_a_copied_metadata_file(tracker: FilesystemTracker):
-    tracker.save_asset(AssetMetadata("hero", "character", ["modeling"]))
+    tracker.save_asset(AssetMetadata("hero", "character", ["model"]))
     copy = tracker.root / "assets/character/villain/villain.json"
     copy.parent.mkdir(parents=True)
     copy.write_text((tracker.root / "assets/character/hero/hero.json").read_text())

@@ -19,13 +19,13 @@ code_step = 10
 # Tasks: which entity their workfiles belong to, whether they publish, and where their
 # renders go (an entity, or leave it out for no renders). A project can give a task a
 # starter file for new workfiles, relative to the project root:
-#   [tasks.lighting]
-#   starter = "starters/lighting.blend"
-[tasks.modeling]
+#   [tasks.light]
+#   starter = "starters/light.blend"
+[tasks.model]
 entity = "asset"
 publishes = true
 
-[tasks.rigging]
+[tasks.rig]
 entity = "asset"
 publishes = true
 
@@ -34,12 +34,12 @@ entity = "sequence"
 publishes = true
 renders = "sequence" # One layout playblast per sequence.
 
-[tasks.lighting]
+[tasks.light]
 entity = "sequence"
 publishes = false
 renders = "shot" # Lighting and comp renders belong to each shot.
 
-[tasks.animation]
+[tasks.anim]
 entity = "shot"
 publishes = true
 renders = "shot" # Playblasts.
@@ -47,25 +47,25 @@ renders = "shot" # Playblasts.
 # Asset types: their tasks, which are optional, and which task's publish shots link
 # (the first one in shot_link that the asset has).
 [asset_types.character]
-tasks = ["modeling", "rigging"]
-shot_link = ["rigging"]
+tasks = ["model", "rig"]
+shot_link = ["rig"]
 
 [asset_types.prop]
-tasks = ["modeling", "rigging"]
-optional_tasks = ["rigging"]
-shot_link = ["rigging", "modeling"]
+tasks = ["model", "rig"]
+optional_tasks = ["rig"]
+shot_link = ["rig", "model"]
 
 [asset_types.set]
-tasks = ["modeling"]
-shot_link = ["modeling"]
+tasks = ["model"]
+shot_link = ["model"]
 
 [asset_types.lib]
-tasks = ["modeling"]
-shot_link = ["modeling"]
+tasks = ["model"]
+shot_link = ["model"]
 
 [asset_types.utility]
-tasks = ["rigging"]
-shot_link = ["rigging"]
+tasks = ["rig"]
+shot_link = ["rig"]
 
 # Paths relative to the project root. {@name} includes another template.
 [templates]

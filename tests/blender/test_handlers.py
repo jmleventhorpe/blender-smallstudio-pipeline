@@ -13,19 +13,19 @@ from smallstudio_pipeline.core.inuse import marker_path, read_marker
 
 def test_saving_a_workfile_marks_it_in_use_and_versioning_up_moves_the_mark(project):
     hero = project.create_asset("character", "hero")
-    first = hero.workfile_path("modeling", 1)
+    first = hero.workfile_path("model", 1)
     save_blend(first)
     marker = read_marker(first)
     assert marker is not None and marker.is_mine()
 
     bpy.ops.pipeline.version_up()
     assert not marker_path(first).exists()
-    assert read_marker(hero.workfile_path("modeling", 2)) is not None
+    assert read_marker(hero.workfile_path("model", 2)) is not None
 
 
 def test_opening_another_file_releases_the_mark(project):
     hero = project.create_asset("character", "hero")
-    first, second = hero.workfile_path("modeling", 1), hero.workfile_path("modeling", 2)
+    first, second = hero.workfile_path("model", 1), hero.workfile_path("model", 2)
     save_blend(first)
     save_blend(second)
     bpy.ops.wm.open_mainfile(filepath=str(first))
@@ -35,7 +35,7 @@ def test_opening_another_file_releases_the_mark(project):
 
 def test_someone_elses_mark_is_kept_and_warned_about(project):
     hero = project.create_asset("character", "hero")
-    path = hero.workfile_path("modeling", 1)
+    path = hero.workfile_path("model", 1)
     save_blend(path)
     bpy.ops.wm.read_homefile(use_empty=True)  # Close it, releasing our mark.
     opened = datetime.now(UTC).isoformat()
@@ -53,7 +53,7 @@ def test_someone_elses_mark_is_kept_and_warned_about(project):
 
 def test_publishes_are_not_marked_and_warn(project):
     hero = project.create_asset("character", "hero")
-    publish = hero.hero_path("modeling")
+    publish = hero.hero_path("model")
     save_blend(publish)
     bpy.ops.wm.open_mainfile(filepath=str(publish))
     assert not marker_path(publish).exists()
@@ -62,7 +62,7 @@ def test_publishes_are_not_marked_and_warn(project):
 
 def test_unregistering_releases_the_mark_and_removes_the_menu(project):
     hero = project.create_asset("character", "hero")
-    path = hero.workfile_path("modeling", 1)
+    path = hero.workfile_path("model", 1)
     save_blend(path)
     top_bar = bpy.types.TOPBAR_MT_editor_menus
     assert menu.draw_in_top_bar in top_bar._dyn_ui_initialize()

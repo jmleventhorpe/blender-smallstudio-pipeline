@@ -10,7 +10,7 @@ from smallstudio_pipeline.core.inuse import Marker, claim, marker_path, read_mar
 
 @pytest.fixture
 def workfile(tmp_path: Path) -> Path:
-    path = tmp_path / "hero_rigging_v001.blend"
+    path = tmp_path / "hero_rig_v001.blend"
     path.touch()
     return path
 
@@ -25,7 +25,7 @@ def test_claim_writes_our_marker_and_release_removes_it(workfile):
     assert claim(workfile) is None
     marker = read_marker(workfile)
     assert marker is not None and marker.is_mine()
-    assert marker_path(workfile).name == ".hero_rigging_v001.blend.inuse"
+    assert marker_path(workfile).name == ".hero_rig_v001.blend.inuse"
     release(workfile)
     assert not marker_path(workfile).exists()
 

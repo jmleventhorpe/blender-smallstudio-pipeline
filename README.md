@@ -46,7 +46,7 @@ flowchart LR
 1. Install the extension zip (Preferences > Get Extensions > Install from Disk).
 2. In the add-on's preferences, add your project folder: the one holding `pipeline.toml`.
 3. Use the **Pipeline** menu in the top bar: New Asset…, New Workfile…, Open…, Version Up.
-   Next to it, the top bar shows what the open file is (`hero · rigging · v012`), in the
+   Next to it, the top bar shows what the open file is (`hero · rig · v012`), in the
    warning colour for a publish, a file outside the pipeline, or one someone else has open.
 
 ## Using the core
@@ -57,12 +57,12 @@ from smallstudio_pipeline.core.entities import Project
 
 project = Project.create(Path("/mnt/show"))
 hero = project.create_asset("character", "hero")
-hero.workfile_path("rigging", hero.next_workfile_version("rigging"))
-# /mnt/show/assets/character/hero/rigging/work/hero_rigging_v001.blend
+hero.workfile_path("rig", hero.next_workfile_version("rig"))
+# /mnt/show/assets/character/hero/rig/work/hero_rig_v001.blend
 
 shot = project.create_sequence(episode="010").create_shot()
-shot.render_path("lighting", 1)
-# /mnt/show/shots/010_010_0010/lighting/render/v001
+shot.render_path("light", 1)
+# /mnt/show/shots/010_010_0010/light/render/v001
 ```
 
 ## Layout of the code

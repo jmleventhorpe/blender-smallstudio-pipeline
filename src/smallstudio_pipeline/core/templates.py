@@ -2,10 +2,10 @@
 
 asset_work = "assets/{asset_type}/{asset}/{task}/work/{asset}_{task}_v{version}.blend"
 
-format(asset_type="character", asset="hero", task="rigging", version=12)
-    -> assets/character/hero/rigging/work/hero_rigging_v012.blend
-parse("assets/character/hero/rigging/work/hero_rigging_v012.blend")
-    -> {"asset_type": "character", "asset": "hero", "task": "rigging", "version": 12}
+format(asset_type="character", asset="hero", task="rig", version=12)
+    -> assets/character/hero/rig/work/hero_rig_v012.blend
+parse("assets/character/hero/rig/work/hero_rig_v012.blend")
+    -> {"asset_type": "character", "asset": "hero", "task": "rig", "version": 12}
 """
 
 from __future__ import annotations

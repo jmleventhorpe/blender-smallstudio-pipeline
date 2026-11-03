@@ -30,7 +30,7 @@ class FileContext:
 
     @property
     def label(self) -> str:
-        """Short text for the top bar, e.g. 'hero · rigging · v012'."""
+        """Short text for the top bar, e.g. 'hero · rig · v012'."""
         if self.kind == "hero":
             state = "published"
         else:

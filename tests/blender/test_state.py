@@ -16,15 +16,15 @@ def project(tmp_path: Path) -> Project:
 
 def test_a_workfile(project):
     hero = project.create_asset("character", "hero")
-    current = state.describe(str(hero.workfile_path("rigging", 3)), None)
-    assert current.label == "hero · rigging · v003"
+    current = state.describe(str(hero.workfile_path("rig", 3)), None)
+    assert current.label == "hero · rig · v003"
     assert current.warning is None
 
 
 def test_a_publish_warns(project):
     hero = project.create_asset("character", "hero")
-    current = state.describe(str(hero.hero_path("rigging")), None)
-    assert current.label == "hero · rigging · published"
+    current = state.describe(str(hero.hero_path("rig")), None)
+    assert current.label == "hero · rig · published"
     assert current.warning == state.PUBLISH
 
 
@@ -48,8 +48,8 @@ def test_a_broken_config_is_shown_not_raised(project):
 
 def test_refresh_reads_the_open_file(project):
     hero = project.create_asset("character", "hero")
-    path = hero.workfile_path("modeling", 1)
+    path = hero.workfile_path("model", 1)
     path.parent.mkdir(parents=True)
     bpy.ops.wm.save_as_mainfile(filepath=str(path))
     state.refresh()
-    assert state.current.label == "hero · modeling · v001"
+    assert state.current.label == "hero · model · v001"

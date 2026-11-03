@@ -2,7 +2,7 @@
 
 project = Project.find(Path("/mnt/show/assets/character/hero"))
 hero = project.asset("hero")
-hero.workfile_path("rigging", hero.next_workfile_version("rigging"))
+hero.workfile_path("rig", hero.next_workfile_version("rig"))
 hero.hero_path(hero.shot_task())        # The file shots link.
 """
 
@@ -303,7 +303,7 @@ class Asset(Entity):
         return next(task for task in self.settings.shot_link if self.has_task(task))
 
     def add_task(self, task: str) -> None:
-        """Add one of the type's optional tasks, e.g. rigging for a prop."""
+        """Add one of the type's optional tasks, e.g. the rig task for a prop."""
         if self.has_task(task):
             raise PipelineError(f"{self.name} already has a {task} task.")
         self.metadata.tasks = self.settings.task_list([*self.tasks, task])

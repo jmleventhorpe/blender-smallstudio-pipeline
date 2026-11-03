@@ -13,8 +13,8 @@ def touch(path: Path) -> None:
 
 def test_new_workfile_starts_at_v001_with_no_starter(project):
     hero = project.create_asset("character", "hero")
-    plan = new_workfile(hero, "modeling")
-    assert plan.path == hero.workfile_path("modeling", 1)
+    plan = new_workfile(hero, "model")
+    assert plan.path == hero.workfile_path("model", 1)
     assert plan.starter is None
 
 
@@ -33,30 +33,28 @@ def test_a_missing_starter_file_is_reported(make_project):
 
 def test_new_workfile_refuses_when_the_task_has_workfiles(project):
     hero = project.create_asset("character", "hero")
-    touch(hero.workfile_path("rigging", 3))
-    with pytest.raises(PipelineError, match=r"hero_rigging_v003\.blend"):
-        new_workfile(hero, "rigging")
+    touch(hero.workfile_path("rig", 3))
+    with pytest.raises(PipelineError, match=r"hero_rig_v003\.blend"):
+        new_workfile(hero, "rig")
 
 
 def test_new_workfile_only_for_the_entitys_tasks(project):
-    with pytest.raises(PipelineError, match="has no animation task"):
-        new_workfile(project.create_sequence("010"), "animation")
+    with pytest.raises(PipelineError, match="has no anim task"):
+        new_workfile(project.create_sequence("010"), "anim")
 
 
 def test_version_up_goes_to_the_next_free_version(project):
     hero = project.create_asset("character", "hero")
     for version in (1, 2, 5):
-        touch(hero.workfile_path("rigging", version))
+        touch(hero.workfile_path("rig", version))
     # Versioning up from v002 skips past v005, which someone else saved.
-    assert version_up_path(project, hero.workfile_path("rigging", 2)) == hero.workfile_path(
-        "rigging", 6
-    )
+    assert version_up_path(project, hero.workfile_path("rig", 2)) == hero.workfile_path("rig", 6)
 
 
 def test_version_up_refuses_publishes_and_other_files(project):
     hero = project.create_asset("character", "hero")
     with pytest.raises(PipelineError, match="read-only"):
-        version_up_path(project, hero.hero_path("rigging"))
+        version_up_path(project, hero.hero_path("rig"))
     with pytest.raises(PipelineError, match="isn't a pipeline workfile"):
         version_up_path(project, project.root / "scratch.blend")
 
@@ -76,13 +74,13 @@ def test_tasks_with_workfiles(project):
     hero = project.create_asset("character", "hero")
     sequence = project.create_sequence("010")
     assert hero.tasks_with_workfiles() == []
-    touch(hero.workfile_path("rigging", 1))
-    touch(sequence.workfile_path("lighting", 1))
-    assert hero.tasks_with_workfiles() == ["rigging"]
-    assert sequence.tasks == ["layout", "lighting"]
-    assert sequence.tasks_with_workfiles() == ["lighting"]
+    touch(hero.workfile_path("rig", 1))
+    touch(sequence.workfile_path("light", 1))
+    assert hero.tasks_with_workfiles() == ["rig"]
+    assert sequence.tasks == ["layout", "light"]
+    assert sequence.tasks_with_workfiles() == ["light"]
 
 
 def test_asset_types_cannot_be_called_sequence_or_shot(make_project):
     with pytest.raises(ConfigError, match="can't be an asset type name"):
-        make_project('[asset_types.shot]\ntasks = ["modeling"]\nshot_link = ["modeling"]\n')
+        make_project('[asset_types.shot]\ntasks = ["model"]\nshot_link = ["model"]\n')
