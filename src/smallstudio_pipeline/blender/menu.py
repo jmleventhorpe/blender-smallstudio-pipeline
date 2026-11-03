@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import bpy
 
-from . import state
+from . import in_context, state
 
 
 class PIPELINE_MT_main(bpy.types.Menu):
@@ -23,6 +23,10 @@ class PIPELINE_MT_main(bpy.types.Menu):
         layout.operator("pipeline.version_up", icon="DUPLICATE")
         layout.operator("pipeline.publish", icon="EXPORT")
         layout.operator("pipeline.check_updates", icon="FILE_REFRESH")
+        # Below here, only what applies to the open file and selection.
+        if in_context.linked_asset(context.active_object) is not None:
+            layout.separator()
+            layout.operator("pipeline.make_editable", icon="LIBRARY_DATA_OVERRIDE")
 
 
 def draw_in_top_bar(self: bpy.types.Menu, context: bpy.types.Context) -> None:

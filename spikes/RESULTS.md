@@ -172,3 +172,21 @@ per fresh Blender and all shots in one session. The material stays shared and li
 consistently (e.g. `char_tint`). Lighting sets defaults on the sequence world and per-shot
 values on scenes. Visibility and holdouts use per-view-layer collection settings; anything
 else goes back to animation or the asset.
+
+## T12. Publishing an asset from inside another asset's file: pass (2026-11-03)
+
+Tested as Blender tests in `tests/blender/test_in_context.py` rather than a spike script,
+since it exercises the real Make Editable and Publish.
+
+- Make Editable appends the asset's latest publish as a local copy and parents its
+  top-level objects to the empty that placed it (no longer instancing), so it stays put.
+- Publishing the copy first moves it into the asset's own space: objects come off the
+  empty, keeping their local transforms, and objects added in place are converted with
+  the inverse of the empty's transform. A crate placed at (5, 0, 0) and turned 90°, with
+  a lid added at (5, 1, 2) in the set, publishes with the lid at (1, 0, 2).
+- The copy is saved as the asset's next workfile, published, and swapped back for a link
+  on the same empty. An asset started from scratch in the set gets an empty of its own.
+
+**Finding: `bpy.data.libraries.write` can't write scenes.** Writing any scene, even an
+empty one, crashes Blender 5.2.2. Collections are fine. The asset's workfile is therefore
+built by a short headless Blender that appends the written root into a fresh scene.

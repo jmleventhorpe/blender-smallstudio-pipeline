@@ -37,6 +37,12 @@ def pick_root(context: bpy.types.Context) -> bpy.types.Collection:
     selected = context.selected_objects
     if selected:
         holding = [root for root in roots if any(obj in root.all_objects[:] for obj in selected)]
+        # A prop being edited inside its set is in both roots: the innermost one wins.
+        holding = [
+            root
+            for root in holding
+            if not any(other in root.children_recursive[:] for other in holding)
+        ]
         if len(holding) == 1:
             return holding[0]
         if len(holding) > 1:
