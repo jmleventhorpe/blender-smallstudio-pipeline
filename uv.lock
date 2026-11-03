@@ -86,7 +86,7 @@ name = "publish-validator"
 version = "0.2.0"
 source = { path = "src/smallstudio_pipeline/wheels/publish_validator-0.2.0-py3-none-any.whl" }
 wheels = [
-    { filename = "publish_validator-0.2.0-py3-none-any.whl", hash = "sha256:6a57fcd06df16f08698f61b269b93a2ec94a6379782e8b3c2fd3d70bfbd43e2e" },
+    { filename = "publish_validator-0.2.0-py3-none-any.whl", hash = "sha256:743b10a3f33205b11816e30b9d5f7b5df6035aa5ce75bdd968d6746e95abbcf3" },
 ]
 
 [[package]]
