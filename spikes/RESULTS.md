@@ -178,14 +178,20 @@ else goes back to animation or the asset.
 Tested as Blender tests in `tests/blender/test_in_context.py` rather than a spike script,
 since it exercises the real Make Editable and Publish.
 
-- Make Editable appends the asset's latest publish as a local copy and parents its
-  top-level objects to the empty that placed it (no longer instancing), so it stays put.
-- Publishing the copy first moves it into the asset's own space: objects come off the
-  empty, keeping their local transforms, and objects added in place are converted with
-  the inverse of the empty's transform. A crate placed at (5, 0, 0) and turned 90°, with
-  a lid added at (5, 1, 2) in the set, publishes with the lid at (1, 0, 2).
+- Make Editable appends the asset's latest versioned publish as a plain local copy where
+  the linked one was: the placing empty's transform is baked into the copy's objects and
+  kept on its root collection, and the empty is removed. (A first version kept the empty
+  as the copy's parent; in the UI that read as an object and a collection tangled
+  together.) It appends from the versioned file because Blender won't append cleanly from
+  the hero this file already links ("ID is already linked"), which gave .001 names.
+- Publishing the copy first moves it into the asset's own space with the inverse of the
+  stored placement, objects added in place included. A crate placed at (5, 0, 0) and
+  turned 90°, with a lid added at (5, 1, 2) in the set, publishes with the lid at (1, 0, 2).
 - The copy is saved as the asset's next workfile, published, and swapped back for a link
-  on the same empty. An asset started from scratch in the set gets an empty of its own.
+  where it was; the copy's meshes and materials are removed too, so editing again doesn't
+  give .001 names. The set file is saved. An asset started from scratch in the set is
+  linked where it was built.
+- Publish leaves Edit Mode first: edits made in Edit Mode only reach the mesh then.
 
 **Finding: `bpy.data.libraries.write` can't write scenes.** Writing any scene, even an
 empty one, crashes Blender 5.2.2. Collections are fine. The asset's workfile is therefore

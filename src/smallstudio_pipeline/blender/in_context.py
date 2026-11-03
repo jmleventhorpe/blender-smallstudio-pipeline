@@ -1,9 +1,9 @@
 """Working on an asset inside another asset's file, such as a prop in its set.
 
-Make Editable swaps a linked asset for a local copy, keeping the empty that placed it as
-a parent (spike T5). Publishing the copy moves it into the asset's own space for the
-moment of writing, saves it as the asset's next workfile, publishes it, and swaps it back
-for a link on the same empty.
+Make Editable swaps a linked asset for a plain local copy where it was, and remembers
+the placement on the copy's root. Publishing the copy moves it back into the asset's own
+space for the moment of writing, saves it as the asset's next workfile, publishes it, and
+links it in again where it was.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import bpy
+from mathutils import Matrix
 
 from ..core.config import Config
 from ..core.entities import Asset, Project
@@ -31,23 +32,35 @@ def linked_asset(obj: bpy.types.Object | None) -> bpy.types.Collection | None:
     return collection if collection.library and asset_identity(collection) else None
 
 
-def make_editable(placement: bpy.types.Object, project: Project) -> bpy.types.Collection:
+# Where the linked asset was placed, kept on the copy's root while it's being edited.
+PLACEMENT = "pipeline_placement"  # The placing empty's world matrix, 16 numbers by row.
+PLACEMENT_NAME = "pipeline_placement_name"  # The empty's name, to place the link again.
+
+
+def make_editable(empty: bpy.types.Object, project: Project) -> bpy.types.Collection:
     """Swap the linked asset an empty instances for a local copy, in the same place."""
-    linked = linked_asset(placement)
+    linked = linked_asset(empty)
     identity = asset_identity(linked) if linked else None
     if identity is None:
         raise PipelineError("Select the empty that places a linked asset.")
     asset = project.asset(identity[0])
-    hero = asset.hero_path(asset.tasks[0])  # Editing in place is that first task's work.
-    found = libraries.load(hero, "collections", [asset.name], link=False, clear_asset_data=True)
-    root = found[asset.name]
-    for collection in placement.users_collection:
+    task = asset.tasks[0]  # Editing in place is that first task's work.
+    version = asset.latest_publish_version(task)
+    if version is None:
+        raise PipelineError(f"{asset.name} has no {task} publish to edit.")
+    # The versioned copy, not the hero: this file links the hero, and Blender won't
+    # append cleanly from a file it already links.
+    source = asset.publish_path(task, version)
+    root = libraries.load(source, "collections", [asset.name], link=False)[asset.name]
+    for collection in empty.users_collection:
         collection.children.link(root)
-    # The empty stops instancing and becomes the copy's parent, so it stays where it was.
+
+    placement = empty.matrix_world.copy()
     for obj in top_objects(root):
-        obj.parent = placement
-    placement.instance_type = "NONE"
-    placement.instance_collection = None
+        obj.matrix_basis = placement @ world_matrix(obj)
+    root[PLACEMENT] = [value for row in placement for value in row]
+    root[PLACEMENT_NAME] = empty.name
+    bpy.data.objects.remove(empty)
     return root
 
 
@@ -57,32 +70,46 @@ def top_objects(root: bpy.types.Collection) -> list[bpy.types.Object]:
     return [obj for obj in root.all_objects if obj.parent not in inside]
 
 
-def placement_of(root: bpy.types.Collection) -> bpy.types.Object | None:
-    """The empty a made-editable copy hangs from, if it has one."""
-    parents = {obj.parent for obj in top_objects(root)} - {None}
-    return parents.pop() if len(parents) == 1 else None
+def placement_of(root: bpy.types.Collection) -> Matrix | None:
+    """Where a made-editable copy was placed, or None for an asset started here."""
+    values = root.get(PLACEMENT)
+    if values is None:
+        return None
+    values = list(values)
+    return Matrix([values[row * 4 : row * 4 + 4] for row in range(4)])
 
 
 @contextmanager
 def in_asset_space(root: bpy.types.Collection) -> Iterator[None]:
-    """Move the root's objects into the asset's own space for as long as this lasts:
-    unparented from the empty placing them, and objects added in place converted too."""
+    """Move the root's objects into the asset's own space for as long as this lasts,
+    objects added while editing in place included."""
     placement = placement_of(root)
-    to_asset = placement.matrix_world.inverted() if placement else None
-    saved = [(obj, obj.parent, obj.matrix_world.copy()) for obj in top_objects(root)]
+    if placement is None:  # Started here: the file's space is the asset's own.
+        yield
+        return
+    to_asset = placement.inverted()
+    saved = [(obj, obj.parent, obj.matrix_basis.copy()) for obj in top_objects(root)]
     try:
-        for obj, parent, world in saved:
-            if parent is not None:
-                obj.parent = None  # Keeps its local transform: its place in the asset.
-            elif to_asset is not None:
-                obj.matrix_world = to_asset @ world  # Added in place: bring it in too.
+        for obj, _, _ in saved:
+            world = world_matrix(obj)
+            obj.parent = None
+            obj.matrix_basis = to_asset @ world
         bpy.context.view_layer.update()
         yield
     finally:
-        for obj, parent, world in saved:
+        for obj, parent, basis in saved:
             obj.parent = parent
-            obj.matrix_world = world
+            obj.matrix_basis = basis
         bpy.context.view_layer.update()
+
+
+def world_matrix(obj: bpy.types.Object) -> Matrix:
+    """An object's world matrix, without trusting matrix_world: it's stale until Blender
+    next updates (just after appending or moving something, say)."""
+    if obj.parent is None:
+        return obj.matrix_basis.copy()
+    bpy.context.view_layer.update()
+    return obj.matrix_world.copy()
 
 
 # Run in a separate Blender: libraries.write can't write scenes (Blender 5.2 crashes), so
@@ -127,22 +154,26 @@ def save_asset_workfile(root: bpy.types.Collection, path: Path, config: Config) 
         temp.unlink(missing_ok=True)
 
 
-def swap_for_link(
-    root: bpy.types.Collection, asset: Asset, hero: Path, placement: bpy.types.Object | None
-) -> bpy.types.Object:
-    """Replace the local copy with its published hero, instanced by the same empty."""
+def swap_for_link(root: bpy.types.Collection, asset: Asset, hero: Path) -> bpy.types.Object:
+    """Replace the local copy with its published hero, instanced where the copy was placed."""
     homes = [c for c in bpy.context.scene.collection.children_recursive if root in c.children[:]]
     home = homes[0] if homes else bpy.context.scene.collection
-    for obj in list(root.all_objects):
-        bpy.data.objects.remove(obj)
-    for child in list(root.children_recursive):
-        bpy.data.collections.remove(child)
-    bpy.data.collections.remove(root)
+    placement = placement_of(root)
+    name = root.get(PLACEMENT_NAME, asset.name)
+
+    # Remove the copy and the data only it used, so the next copy doesn't get .001 names.
+    objects = list(root.all_objects)
+    data = {obj.data for obj in objects if obj.data is not None}
+    materials = {slot.material for obj in objects for slot in obj.material_slots if slot.material}
+    bpy.data.batch_remove([*objects, *root.children_recursive, root])
+    bpy.data.batch_remove([d for d in data if d.users == 0])
+    bpy.data.batch_remove([m for m in materials if m.users == 0])
 
     linked = libraries.load(hero, "collections", [asset.name], link=True)[asset.name]
-    if placement is None:  # Built here from scratch: place it where it was built.
-        placement = bpy.data.objects.new(asset.name, None)
-        home.objects.link(placement)
-    placement.instance_type = "COLLECTION"
-    placement.instance_collection = linked
-    return placement
+    empty = bpy.data.objects.new(name, None)
+    home.objects.link(empty)
+    empty.instance_type = "COLLECTION"
+    empty.instance_collection = linked
+    if placement is not None:
+        empty.matrix_world = placement
+    return empty

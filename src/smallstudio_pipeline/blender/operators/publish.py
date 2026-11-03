@@ -43,6 +43,9 @@ class PIPELINE_OT_publish(bpy.types.Operator):
     def execute(self, context: Context) -> set[str]:
         project, file = state.current.project, state.current.context
         assert project is not None and file is not None  # Checked by poll.
+        # Edit Mode changes only reach the mesh when leaving Edit Mode.
+        if context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
         try:
             root = pick_root(context)
             identity = asset_identity(root)
@@ -84,7 +87,6 @@ class PIPELINE_OT_publish(bpy.types.Operator):
     ) -> str | None:
         """Publish an asset worked on inside another asset's file, then link it back in."""
         asset = target.asset
-        placement = in_context.placement_of(root)
         with in_context.in_asset_space(root):
             last = self.run_checks(context, root, target, file_entity)
             if last is None:
@@ -93,7 +95,8 @@ class PIPELINE_OT_publish(bpy.types.Operator):
             workfile = asset.workfile_path(target.task, asset.next_workfile_version(target.task))
             in_context.save_asset_workfile(root, workfile, asset.project.config)
             published = self.write_files(root, target, last, workfile, None)
-        in_context.swap_for_link(root, asset, asset.hero_path(target.task), placement)
+        in_context.swap_for_link(root, asset, asset.hero_path(target.task))
+        workfiles.save_changes()  # This file now links the new publish.
         return f"{published}; it's linked here now"
 
     def run_checks(

@@ -7,6 +7,7 @@ editable and published from there, it must publish in its own space, not the set
 import math
 from pathlib import Path
 
+import bmesh
 import bpy
 import pytest
 from conftest import add_cube, link_collection, save_blend
@@ -72,33 +73,39 @@ def published_positions(path, name):
     return {obj.name: position(obj) for obj in linked.all_objects}
 
 
-def test_make_editable_keeps_the_placement(project, placement):
+def local_copy():
+    return next(c for c in bpy.data.collections if c.name == "crate" and c.library is None)
+
+
+def test_make_editable_gives_a_plain_local_copy_in_the_same_place(project, placement):
     bpy.ops.pipeline.make_editable()
 
-    local = next(c for c in bpy.data.collections if c.name == "crate" and c.library is None)
+    local = local_copy()
     assert asset_identity(local) == ("crate", "prop")
     assert local.asset_data is None
-    assert position(local_object("crate_body")) == (5, 0, 0.5)
-    assert placement.instance_type == "NONE"
     assert local in bpy.data.collections["street"].children[:]
+    body = local_object("crate_body")
+    assert body.parent is None and position(body) == (5, 0, 0.5)
+    assert "crate_place" not in bpy.data.objects  # Just the collection while editing.
 
 
 def test_publishing_in_place_publishes_in_the_assets_own_space(project, crate, placement):
     bpy.ops.pipeline.make_editable()
     body = local_object("crate_body")
-    body.location = (0, 0, 1)  # Raised, in the crate's own space (it's parented).
-    local = next(c for c in bpy.data.collections if c.name == "crate" and c.library is None)
-    lid = add_cube(local, "crate_lid")
+    body.location.z += 0.5  # Raised by half, so 1 up in the crate's own space.
+    lid = add_cube(local_copy(), "crate_lid")
     lid.location = (5, 1, 2)  # Added in place, in the set's space.
     street_file = Path(bpy.data.filepath)
     select_only(body)
 
     bpy.ops.pipeline.publish()
 
-    # The set links the crate again, on the same empty.
+    # The set links the crate again where it was, and is saved that way.
     assert not any(c.name == "crate" and c.library is None for c in bpy.data.collections)
-    assert placement.instance_type == "COLLECTION"
-    assert placement.instance_collection.library is not None
+    bpy.ops.wm.open_mainfile(filepath=str(street_file))
+    again = bpy.data.objects["crate_place"]
+    assert again.instance_type == "COLLECTION" and again.instance_collection.library
+    assert position(again) == (5, 0, 0)
     # The crate's history: a new workfile, and v002 from it.
     assert crate.workfile_versions("model") == [1, 2]
     record = hero_record(crate, "model")
@@ -108,7 +115,37 @@ def test_publishing_in_place_publishes_in_the_assets_own_space(project, crate, p
     positions = published_positions(crate.hero_path("model"), "crate")
     assert positions == {"crate_body": (0, 0, 1), "crate_lid": (1, 0, 2)}
     assert published_positions(crate.workfile_path("model", 2), "crate") == positions
-    assert street_file.exists()
+
+
+def test_edits_still_in_edit_mode_are_published(project, crate, placement):
+    bpy.ops.pipeline.make_editable()
+    body = local_object("crate_body")
+    select_only(body)
+    bpy.ops.object.mode_set(mode="EDIT")
+    data = body.data
+    assert isinstance(data, bpy.types.Mesh)
+    mesh = bmesh.from_edit_mesh(data)
+    for vertex in mesh.verts:
+        vertex.co.z += 1
+    bmesh.update_edit_mesh(data)
+
+    bpy.ops.pipeline.publish()  # Without leaving Edit Mode first.
+
+    bpy.ops.wm.read_homefile(use_empty=True)
+    linked = link_collection(crate.hero_path("model"), "crate")
+    top = max(v.co.z for v in linked.all_objects["crate_body"].data.vertices)
+    assert round(top, 4) == 1.5  # The cube's top (0.5) raised by 1.
+
+
+def test_editing_again_keeps_the_names(project, crate, placement):
+    for _ in range(2):
+        select_only(bpy.data.objects["crate_place"])
+        bpy.ops.pipeline.make_editable()
+        assert [obj.name for obj in local_copy().all_objects] == ["crate_body"]
+        local_meshes = [mesh.name for mesh in bpy.data.meshes if mesh.library is None]
+        assert all(not name.startswith("crate_body.") for name in local_meshes), local_meshes
+        select_only(local_object("crate_body"))
+        bpy.ops.pipeline.publish()
 
 
 def test_an_asset_built_from_scratch_inside_a_set(project, placement):
