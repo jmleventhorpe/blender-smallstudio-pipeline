@@ -7,7 +7,8 @@ playhead: its code goes between its neighbours' (0015 between 0010 and 0020), it
 gets a camera and starts at the project's shot_start, and later strips move along to
 make room. omit_shot() takes a shot's strip out of the cut and marks the shot omitted;
 its scene stays in the file. sync_ranges() makes each shot scene's range what its strip
-shows, so retiming in the cut is what layout publishes.
+shows, so retiming in the cut is what layout publishes. set_playblast_output() points the
+master scene's output at the sequence's layout render folder for the workfile's version.
 """
 
 from __future__ import annotations
@@ -135,6 +136,12 @@ def sync_ranges(master: bpy.types.Scene) -> None:
         strip.left_handle_offset = strip.right_handle_offset = 0
         strip.content_start = cut_in
         strip.duration = length
+
+
+def set_playblast_output(master: bpy.types.Scene, sequence: Sequence, version: int) -> None:
+    """Point the master scene's output at this version's layout render folder."""
+    folder = sequence.render_path(LAYOUT, version)
+    master.render.filepath = str(folder / f"{sequence.name}_{LAYOUT}_")
 
 
 def cut(master: bpy.types.Scene, casting: dict[str, tuple[CastEntry, ...]]) -> list[ShotCut]:

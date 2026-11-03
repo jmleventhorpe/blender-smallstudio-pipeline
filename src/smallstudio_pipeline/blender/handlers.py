@@ -2,8 +2,10 @@
 
 After a file loads: refresh the state, mark the file as in use (or warn whose it is),
 register the project's asset library, note the versions of the publishes it links, and
-flag anything built from an older publish. After a save, including Save As and Version
-Up, the in-use marker moves to the new file. Warnings pop up once the UI is ready.
+flag anything built from an older publish. Before a save, new instances in shots get
+their IDs and a layout file's playblast output follows its version. After a save,
+including Save As and Version Up, the in-use marker moves to the new file. Warnings pop
+up once the UI is ready.
 """
 
 from __future__ import annotations
@@ -15,6 +17,8 @@ import bpy
 from bpy.app.handlers import persistent
 
 from ..core import inuse
+from ..core.context import file_context
+from ..core.errors import PipelineError
 from . import libraries, state, updates
 from .shots import instances, layout
 from .ui import results
@@ -54,11 +58,22 @@ def after_open() -> None:
 
 
 @persistent
-def on_save_pre(*_args: object) -> None:
-    """Before a save (or a publish's copy, spike T13): number new instances in each shot."""
+def on_save_pre(path: object = "", *_args: object) -> None:
+    """Before a save (or a publish's copy, spike T13): number new instances in each shot,
+    and point a layout workfile's playblast output at the version being saved."""
     for scene in bpy.data.scenes:
         if layout.SHOT in scene:
             instances.number_instances(scene)
+    project = state.current.project
+    if project is None or not isinstance(path, str) or not path:
+        return
+    file = file_context(project, Path(path))  # Save As and Version Up save somewhere new.
+    if file and file.task == layout.LAYOUT and file.entity_kind == "sequence" and file.version:
+        try:
+            master = layout.master_scene()
+        except PipelineError:
+            return
+        layout.set_playblast_output(master, project.sequence(file.entity), file.version)
 
 
 @persistent

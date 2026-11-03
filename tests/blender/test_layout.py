@@ -97,3 +97,13 @@ def test_omit_shot_needs_a_shot_strip_selected(sequence):
     add_shot_at(1)
     layout.master_scene().sequence_editor.active_strip = None
     assert not bpy.ops.pipeline.omit_shot.poll()
+
+
+def test_the_playblast_goes_to_the_layout_render_folder_for_each_version(project, sequence):
+    master = layout.master_scene()
+    folder = sequence.render_path("layout", 1)
+    assert master.render.filepath == str(folder / "010_010_layout_")
+    bpy.ops.pipeline.version_up()
+    folder = sequence.render_path("layout", 2)
+    assert layout.master_scene().render.filepath == str(folder / "010_010_layout_")
+    assert "sequences/010_010/layout/render/v002" in folder.as_posix()
