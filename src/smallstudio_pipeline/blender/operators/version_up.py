@@ -1,3 +1,9 @@
+"""Pipeline > Version Up: save the open workfile as its task's next free version.
+
+The next free version may be beyond the current one + 1 if someone else saved since
+(core/workfiles.py). The save handler moves the in-use marker to the new file.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path

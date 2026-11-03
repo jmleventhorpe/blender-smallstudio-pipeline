@@ -1,4 +1,10 @@
-"""Keeping a rig's materials in step with its model: re-applied by object name at publish."""
+"""Keeping a rig's materials in step with its model, re-applied by object name at publish.
+
+sync_materials() reads which material each of the model publish's objects uses, appends
+those materials with their images and node groups, replaces same-named materials in the
+rig file so copies don't pile up, and assigns them slot by slot. Objects the model
+doesn't have, or whose slot counts differ, are reported and left alone.
+"""
 
 from __future__ import annotations
 

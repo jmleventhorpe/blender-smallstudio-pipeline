@@ -1,4 +1,9 @@
-"""The last publish's check results, in the 3D viewport's sidebar (Pipeline tab)."""
+"""The last publish's check results, in the 3D viewport's sidebar (Pipeline tab).
+
+results.last holds the report, the subject and the validator from the last publish. The
+panel lists failed, warning and fixed checks with their issues; Select picks an issue's
+objects, and Fix runs a check's fix and checks again.
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,10 @@
-"""What's out of date: linked publishes that moved on, and builds from an older publish."""
+"""What's out of date: publishes published again since a file saw them, and older builds.
+
+Every publish's record carries its version, so this needs no Blender. changed() compares
+a file's linked publishes with the versions seen when it opened; stale_build() compares a
+root's built_from with that publish now. The Blender side, blender/updates.py, reloads
+libraries and flags files.
+"""
 
 from __future__ import annotations
 

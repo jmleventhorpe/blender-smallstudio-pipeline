@@ -1,3 +1,7 @@
+"""Pipeline > Check Updates: reload linked publishes that were published again, and say
+which, along with anything built from an older publish.
+"""
+
 from __future__ import annotations
 
 import bpy

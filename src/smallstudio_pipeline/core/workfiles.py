@@ -1,6 +1,9 @@
-"""Workfile decisions: where a new workfile goes, what it starts from, and versioning up.
+"""The rules behind New Workfile and Version Up. The Blender side is blender/workfiles.py.
 
-The Blender operators do the opening and saving; the rules live here so they're testable.
+new_workfile() says where a task's first workfile goes and what it starts from: the
+task's starter file, or the latest publish of the task it builds on (a rig starts from
+the model). version_up_path() picks the task's next free version, which may be beyond
+current + 1 if someone else has saved since.
 """
 
 from __future__ import annotations

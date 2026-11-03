@@ -1,4 +1,10 @@
-"""Running publish-validator on an asset before it's published."""
+"""Checking an asset with publish-validator before it's published.
+
+validator_for() sets up the validator with the pipeline's checks (checks/) and settings
+(validation.toml), then the project's own if it has them. subject_for() describes the
+asset to the checks; the facts they need (identity, target, the last publish's object
+names) go in its extras, because check files can't import the add-on.
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,10 @@
-"""Libraries: loading from publishes, what a file links, and the Asset Browser library."""
+"""Libraries: loading from publishes, what a file links, and the Asset Browser library.
+
+load() links or appends datablocks by name. It is the one place bpy.data.libraries.load
+is called, since its type stubs are wrong and it fills lists in place. linked_publishes()
+maps a file's libraries to the publishes they are; register_asset_library() adds a
+project's assets folder to Blender's asset libraries, linking by default.
+"""
 
 from __future__ import annotations
 

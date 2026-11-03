@@ -1,8 +1,14 @@
 """Assets, sequences and shots: their tasks, and where each task's files go.
 
-hero = project.asset("hero")
-hero.workfile_path("rig", hero.next_workfile_version("rig"))
-hero.hero_path(hero.shot_task())        # The file shots link.
+Entity holds what the three share: each task's workfiles, publishes, hero file and
+renders, and their version numbers, all from the templates and the files on disk, with
+clear errors for tasks the entity doesn't have or that don't publish or render there.
+Asset adds its type's settings and which task shots link; Sequence creates shots; Shot
+carries its frame range and can be omitted.
+
+    hero = project.asset("hero")
+    hero.workfile_path("rig", hero.next_workfile_version("rig"))
+    hero.hero_path(hero.shot_task())        # The file shots link.
 """
 
 from __future__ import annotations

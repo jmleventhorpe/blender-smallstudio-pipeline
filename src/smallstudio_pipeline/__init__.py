@@ -1,7 +1,12 @@
 """Small Studio Pipeline: publishing, loading and scene construction inside Blender.
 
-`core` holds the pipeline logic and never imports bpy, so it runs and tests in plain
-Python. `blender` is the thin layer of operators, menus and panels on top of it.
+The add-on has two layers. `core` holds the pipeline's rules (project settings, names
+and paths, what exists on disk, what a publish is) and never imports Blender, so it runs
+and is tested in plain Python. `blender` sits on top and does the work in Blender: the
+Pipeline menu and its operators, publishing, and keeping files in step.
+
+Blender calls register() when the add-on is enabled and unregister() when it's disabled.
+See docs/architecture.md for how the modules fit together.
 """
 
 

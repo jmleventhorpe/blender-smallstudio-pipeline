@@ -1,7 +1,10 @@
-"""What a publish is and what it records. The Blender side writes the .blend files.
+"""What a publish is and what it records. The Blender side is blender/publishing.py.
 
-Each publish writes a versioned file and overwrites the hero file that other files link,
-each with a JSON record beside it of the same name:
+publish_target() decides what publishing a root means: which asset and task, and whether
+it's in context (a prop published from inside its set). plan_publish() gives the next
+version and where its files go; PublishRecord is what's written beside them; built_from()
+is the publish a task starts from. Each publish writes a versioned file and overwrites
+the hero file that other files link, each with a JSON record of the same name:
 
     hero_rig_v004.blend   hero_rig_v004.json     this version, kept
     hero_rig.blend        hero_rig.json          always the latest

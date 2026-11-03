@@ -1,4 +1,10 @@
-"""Name rules, and the codes for episodes, sequences and shots (010_010_0010)."""
+"""Names and codes: the rule for names, and episode, sequence and shot codes.
+
+Codes look like 010_020_0030 (episode, sequence, shot), or 020_0030 in projects without
+episodes. SequenceCode and ShotCode parse and print them, and a ShotCode holds its
+SequenceCode. next_number() numbers new codes in steps (10, 20…) or halfway into a gap,
+so a shot can go between two others (0015 between 0010 and 0020) without renumbering.
+"""
 
 from __future__ import annotations
 

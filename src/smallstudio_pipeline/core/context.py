@@ -1,4 +1,9 @@
-"""What a file is, worked out from its path: entity, task, version, workfile or publish."""
+"""What a file is, from its path alone: entity, task, version, and workfile, publish or hero.
+
+file_context() tries each workfile and publish template; a file that fits none of them
+isn't a pipeline file. The top bar's label ("hero · rig · v012") and the checks in
+Version Up and Publish are built on it.
+"""
 
 from __future__ import annotations
 

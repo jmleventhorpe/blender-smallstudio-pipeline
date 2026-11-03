@@ -1,11 +1,16 @@
 """Path templates: named patterns that turn fields into paths, and paths back into fields.
 
-asset_work = "assets/{asset_type}/{asset}/{task}/work/{asset}_{task}_v{version}.blend"
+The patterns come from the config's [templates] tables, so a project can change its
+folder layout without changing code. Each field must match a pattern built from the
+config (asset types, task names, the name rule, code shapes), so names and paths can't
+drift apart. Project.path() and Project.find_files() are the usual way in.
 
-format(asset_type="character", asset="hero", task="rig", version=12)
-    -> assets/character/hero/rig/work/hero_rig_v012.blend
-parse("assets/character/hero/rig/work/hero_rig_v012.blend")
-    -> {"asset_type": "character", "asset": "hero", "task": "rig", "version": 12}
+    asset_work = "assets/{asset_type}/{asset}/{task}/work/{asset}_{task}_v{version}.blend"
+
+    format(asset_type="character", asset="hero", task="rig", version=12)
+        -> assets/character/hero/rig/work/hero_rig_v012.blend
+    parse("assets/character/hero/rig/work/hero_rig_v012.blend")
+        -> {"asset_type": "character", "asset": "hero", "task": "rig", "version": 12}
 """
 
 from __future__ import annotations

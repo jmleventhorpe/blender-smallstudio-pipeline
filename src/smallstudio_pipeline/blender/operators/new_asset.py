@@ -1,3 +1,9 @@
+"""Pipeline > New Asset: create an asset and open its first workfile.
+
+With "Build in This File", the asset starts in the open file instead (a prop inside its
+set, say); publishing it from there saves its first workfile and links it back.
+"""
+
 from __future__ import annotations
 
 import bpy

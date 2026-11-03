@@ -1,4 +1,10 @@
-"""Entity metadata: one small JSON file per asset, sequence and shot."""
+"""Entity metadata: one small JSON file per asset, sequence and shot.
+
+AssetMetadata (name, type, tasks), SequenceMetadata (code) and ShotMetadata (frame
+range, cut, casting, omitted) are plain dataclasses. read_metadata() checks a file field
+by field and says what's wrong; write_metadata() writes it atomically. Each file carries
+a schema number, so the format can change later without breaking existing projects.
+"""
 
 from __future__ import annotations
 

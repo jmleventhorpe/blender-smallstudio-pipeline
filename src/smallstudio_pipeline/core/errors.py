@@ -1,4 +1,9 @@
-"""Errors the pipeline reports to artists. Messages are plain English and say what to do."""
+"""The errors the pipeline raises, all subclasses of PipelineError.
+
+Each message is written for the artist: what's wrong and what to do. Operators catch
+PipelineError and show the message as it is, so anything raised here reaches the artist
+word for word.
+"""
 
 
 class PipelineError(Exception):

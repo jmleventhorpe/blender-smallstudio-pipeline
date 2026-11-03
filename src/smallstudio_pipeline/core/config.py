@@ -1,4 +1,11 @@
-"""Project config: the built-in defaults, overridden by pipeline.toml at the project root."""
+"""Project settings: the add-on's defaults.toml, overridden by a project's pipeline.toml.
+
+load_config() merges the two, table by table, and checks every setting on load, so a
+mistake in pipeline.toml is reported once with the file and setting named. The result is
+a Config of plain dataclasses: a Task says which entity it belongs to, whether it
+publishes, where it renders and what it starts from; an AssetType lists its tasks, which
+are optional and which task's publish shots link. Everything else reads settings here.
+"""
 
 from __future__ import annotations
 

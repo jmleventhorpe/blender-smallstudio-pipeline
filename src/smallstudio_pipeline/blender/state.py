@@ -1,4 +1,9 @@
-"""What the open file is, worked out once per load or save so drawing the UI stays cheap."""
+"""What the open file is, worked out once per load or save so drawing the UI stays cheap.
+
+state.current holds the project (from the file's path, or else the active project in the
+preferences), the file's context, the top-bar label and any warning. refresh() rebuilds
+it; the load and save handlers call it, and the menu, top bar and operators only read it.
+"""
 
 from __future__ import annotations
 

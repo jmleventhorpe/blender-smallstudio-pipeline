@@ -1,4 +1,10 @@
-"""The Blender layer: operators, menus and panels. Only this package imports bpy."""
+"""The Blender layer: everything that uses bpy, on top of the core.
+
+Modules here do in Blender what the matching core module decides (workfiles, publishing,
+updates…); operators/ holds the Pipeline menu's actions and ui/ the interface. register()
+registers each module's classes and handlers in turn, then looks at the open file on a
+timer, since bpy.data can't be read while add-ons register at startup.
+"""
 
 import bpy
 

@@ -1,4 +1,9 @@
-"""Add-on preferences: this machine's project roots. A fuller settings page comes later."""
+"""Add-on preferences: the project folders on this machine, and which one is active.
+
+The active project is used when the open file isn't inside a project (a new, unsaved
+file, say). Paths are per machine, so the same project can live on a NAS mounted
+differently on Windows and Linux. A fuller settings page is planned.
+"""
 
 from __future__ import annotations
 

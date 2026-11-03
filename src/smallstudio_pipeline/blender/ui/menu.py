@@ -1,4 +1,8 @@
-"""The Pipeline menu and the label in the top bar saying what the open file is."""
+"""The Pipeline menu, and the label in the top bar saying what the open file is.
+
+Both read state.current and nothing else: the top bar redraws constantly, so nothing
+here may touch the disk. Make Editable only appears when a linked asset is selected.
+"""
 
 from __future__ import annotations
 

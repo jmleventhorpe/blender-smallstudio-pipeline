@@ -1,9 +1,10 @@
 """Working on an asset inside another asset's file, such as a prop in its set.
 
-Make Editable swaps a linked asset for a plain local copy where it was, and remembers
-the placement on the copy's root. Publishing the copy moves it back into the asset's own
-space for the moment of writing, saves it as the asset's next workfile, publishes it, and
-links it in again where it was.
+make_editable() swaps a linked asset for a plain local copy where it was, remembering the
+placement on the copy's root. When it's published, in_asset_space() moves it back into
+the asset's own space for the write, save_asset_workfile() saves it as the asset's next
+workfile, and swap_for_link() links the new publish back in where the copy was. Tested as
+spike T12.
 """
 
 from __future__ import annotations

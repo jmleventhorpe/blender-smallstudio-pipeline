@@ -1,6 +1,9 @@
 """Reading typed values out of TOML and JSON data, with errors that name the setting.
 
-The readers raise ValueError; config and metadata turn that into their own error types.
+get() and get_names() check a value's type and say which setting is wrong, e.g.
+"tasks.rig.builds_on should be text, not 3". Config, entity metadata and publish
+records all read through them, so they report problems the same way. The readers raise
+ValueError; config and metadata turn that into their own error types.
 """
 
 from __future__ import annotations

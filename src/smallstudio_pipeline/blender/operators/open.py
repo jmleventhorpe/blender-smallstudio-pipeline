@@ -1,3 +1,10 @@
+"""Pipeline > Open: open a workfile by kind, name, task and version (newest first).
+
+The choices come from ui/browse.py and start on the open file's own entity and task.
+Unsaved changes are asked about first; the load handler then warns if someone else has
+the file open.
+"""
+
 from __future__ import annotations
 
 import bpy

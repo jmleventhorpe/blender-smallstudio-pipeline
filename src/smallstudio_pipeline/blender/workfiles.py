@@ -1,4 +1,10 @@
-"""Starting, saving and opening workfiles in Blender. The rules are in core.workfiles."""
+"""Starting, saving and opening workfiles: the Blender side of core/workfiles.py.
+
+start_workfile() opens a task's starter file (or an empty one), brings in the publish
+the task builds on or creates the asset's root collection, applies the project's frame
+rate and resolution, and saves v001. Operators check for unsaved changes through
+has_unsaved_changes(), so tests can stand in for Blender's flag.
+"""
 
 from __future__ import annotations
 

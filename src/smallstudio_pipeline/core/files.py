@@ -1,4 +1,10 @@
-"""Writing files safely on shared storage."""
+"""Writing files safely on shared storage.
+
+write_atomic() writes through a temp file in the same folder and renames it into place,
+so another machine never reads half a file. replace_with_retry() retries that rename,
+which Windows refuses while another process is reading the file. Metadata, publish
+records, in-use markers and hero files are all written this way.
+"""
 
 from __future__ import annotations
 

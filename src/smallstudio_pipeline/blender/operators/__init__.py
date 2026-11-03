@@ -1,4 +1,8 @@
-"""The Pipeline menu's operators."""
+"""The Pipeline menu's operators, one per file.
+
+Each operator gathers what the artist chose, leaves the rules to the core and the work to
+the Blender layer, and turns a PipelineError into a message for the artist.
+"""
 
 from .check_updates import PIPELINE_OT_check_updates
 from .make_editable import PIPELINE_OT_make_editable

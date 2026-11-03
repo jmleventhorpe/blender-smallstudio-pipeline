@@ -1,8 +1,10 @@
-"""Writing a publish from the open session: the hero file and the versioned copy.
+"""Writing a publish from the open session: the Blender side of core/publishing.py.
 
-Only the asset's root collection and what it uses are written (spike T3). The hero is
-marked as an asset, set to link and given a thumbnail and catalog (T8, T10); the
-versioned copy and the artist's session are left unmarked.
+pick_root() finds the asset root to publish: the innermost one holding the selection, or
+the file's only one. write_publish() writes only that root and what it uses (spike T3):
+the hero file, marked as an asset that links, with a thumbnail and catalog (T8, T10),
+then the versioned copy, unmarked; the artist's session is left as it was. Thumbnails are
+a quick Workbench render, falling back to Blender's generator where it can't render.
 """
 
 from __future__ import annotations

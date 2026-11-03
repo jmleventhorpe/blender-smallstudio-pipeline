@@ -1,4 +1,10 @@
-"""Where entity data lives: the filesystem now, with room for a Kitsu tracker later."""
+"""Where entity data comes from: the filesystem now, a production tracker (Kitsu) later.
+
+The Tracker interface lists and saves assets, sequences and shots. FilesystemTracker
+keeps them as JSON metadata files found through the templates, and refuses a file copied
+into another entity's folder. Paths never come from a tracker, whichever one is used:
+they always come from the templates.
+"""
 
 from __future__ import annotations
 

@@ -1,3 +1,8 @@
+"""Pipeline > Make Editable: swap the selected linked asset for a local copy to edit here.
+
+Publishing the copy links the asset back in; see blender/in_context.py.
+"""
+
 from __future__ import annotations
 
 import bpy

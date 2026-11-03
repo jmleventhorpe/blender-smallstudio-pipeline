@@ -1,3 +1,8 @@
+"""Pipeline > New Workfile: start a task's first workfile.
+
+core/workfiles.py decides what it starts from; blender/workfiles.py starts it.
+"""
+
 from __future__ import annotations
 
 import bpy

@@ -1,3 +1,11 @@
+"""Pipeline > Publish: check the asset holding the selection, then publish it.
+
+In the asset's own workfile, a task that builds on another (a rig) first takes that
+publish's materials, and the file is saved. Inside another asset's file, the asset is
+moved into its own space, saved as its next workfile, published and linked back. Both
+check with publish-validator first; a blocked publish lists its problems in the sidebar.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path

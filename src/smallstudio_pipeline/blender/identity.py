@@ -1,4 +1,11 @@
-"""Identity on Blender data: which asset a root collection is. Publishing reads it (M3)."""
+"""Identity on Blender data: which asset a root collection is.
+
+An asset's root collection carries its name and type; an empty instance_id that each
+instance in a shot fills in (declared overridable, since spike T2 found overrides drop
+properties their reference lacks); and, when it was brought in from another publish (a
+rig from its model), which one and its version. Publishing, validation and updates read
+identity from here.
+"""
 
 from __future__ import annotations
 

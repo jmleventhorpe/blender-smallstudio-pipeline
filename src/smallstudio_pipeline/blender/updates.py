@@ -1,4 +1,9 @@
-"""Keeping a file's links current: the Blender side of core/updates.py."""
+"""Keeping a file's links current: the Blender side of core/updates.py.
+
+remember_versions() notes, when a file opens, the version of every publish it links;
+reload_changed() (Check Updates) reloads the ones published again since; stale_builds()
+finds roots built from an older publish, for the top bar's warning.
+"""
 
 from __future__ import annotations
 

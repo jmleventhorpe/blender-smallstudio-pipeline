@@ -1,4 +1,9 @@
-"""Pieces the pipeline operators share."""
+"""Pieces the pipeline's operators share.
+
+has_project() greys an operator out, with the reason as its tooltip, when there's no
+project. UnsavedChanges asks what to do with the open file's unsaved changes before an
+operator replaces that file.
+"""
 
 from __future__ import annotations
 

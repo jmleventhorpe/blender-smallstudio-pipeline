@@ -1,7 +1,12 @@
-"""A project: its folder, settings and path templates, and the entities in it.
+"""A project: its folder, settings, path templates and tracker, and the entities in it.
 
-project = Project.find(Path("/mnt/show/assets/character/hero"))
-hero = project.asset("hero")
+Project.find() works out the project from any path inside it (the nearest folder with a
+pipeline.toml); Project.create() starts a new one. From a Project you look up and create
+assets, sequences and shots, and turn a template and its fields into an absolute path
+(path(), find_files()), with renders going under the render root.
+
+    project = Project.find(Path("/mnt/show/assets/character/hero"))
+    hero = project.asset("hero")
 """
 
 from __future__ import annotations

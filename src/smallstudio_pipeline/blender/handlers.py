@@ -1,4 +1,10 @@
-"""Keeping the state, the in-use marker and warnings in step with the open file."""
+"""Keeping things in step with the open file, through Blender's load and save handlers.
+
+After a file loads: refresh the state, mark the file as in use (or warn whose it is),
+register the project's asset library, note the versions of the publishes it links, and
+flag anything built from an older publish. After a save, including Save As and Version
+Up, the in-use marker moves to the new file. Warnings pop up once the UI is ready.
+"""
 
 from __future__ import annotations
 
