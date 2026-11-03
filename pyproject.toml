@@ -13,6 +13,7 @@ dependencies = []
 [dependency-groups]
 dev = [
     "fake-bpy-module-5.2>=20260730",
+    "publish-validator",
     "pyright>=1.1.414",
     "pytest>=9.2",
     "ruff>=0.17",
@@ -21,6 +22,10 @@ dev = [
 [tool.uv]
 # The code ships as a Blender extension, not a wheel; tests import it from src/.
 package = false
+
+[tool.uv.sources]
+# The same wheel the extension bundles (see blender_manifest.toml).
+publish-validator = { path = "src/smallstudio_pipeline/wheels/publish_validator-0.2.0-py3-none-any.whl" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests/core"]

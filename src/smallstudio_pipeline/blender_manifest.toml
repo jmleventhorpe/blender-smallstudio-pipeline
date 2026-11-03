@@ -12,6 +12,9 @@ tags = ["Pipeline"]
 blender_version_min = "5.2.0"
 license = ["SPDX:GPL-3.0-or-later"]
 
+# publish-validator, built from its v0.2.0 tag and committed here; Blender installs it.
+wheels = ["./wheels/publish_validator-0.2.0-py3-none-any.whl"]
+
 [permissions]
 files = "Read and write project workfiles, publishes and metadata"
 

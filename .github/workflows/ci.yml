@@ -62,8 +62,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libxi6 libxkbcommon0 libsm6 libxrender1 libxxf86vm1 libgl1 libegl1
 
-      - name: Install pytest for Blender's Python
-        run: uv pip install --python 3.13 --target .blender-site pytest
+      - name: Install pytest and publish-validator for Blender's Python
+        run: uv pip install --python 3.13 --target .blender-site pytest src/smallstudio_pipeline/wheels/*.whl
 
       - name: Blender tests
         run: ~/blender/blender -b --factory-startup --python tests/blender/run.py

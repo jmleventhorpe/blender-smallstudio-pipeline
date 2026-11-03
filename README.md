@@ -92,10 +92,11 @@ uv run pytest
 uv run ruff check && uv run ruff format --check && uv run pyright
 ```
 
-Tests inside Blender use a pytest installed next to the repo, since Blender doesn't bundle it:
+Tests inside Blender use pytest and publish-validator installed next to the repo, since
+Blender doesn't bundle them:
 
 ```bash
-uv pip install --python 3.13 --target .blender-site pytest
+uv pip install --python 3.13 --target .blender-site pytest src/smallstudio_pipeline/wheels/*.whl
 ```
 
 ```bash

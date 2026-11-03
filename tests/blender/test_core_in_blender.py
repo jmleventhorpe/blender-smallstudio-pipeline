@@ -13,3 +13,12 @@ def test_core_builds_a_project_in_blender(tmp_path: Path):
     context = file_context(project, hero.workfile_path("rig", 1))
     assert context is not None and context.label == "hero · rig · v001"
     assert shot.render_path("light", 1).name == "v001"
+
+
+def test_the_bundled_validator_runs_in_blender():
+    from importlib.metadata import version
+
+    from publish_validator.hosts.blender import BlenderHost
+
+    assert version("publish-validator") == "0.2.0"
+    assert BlenderHost.name == "blender"
