@@ -38,16 +38,25 @@ target-version = "py313"
 src = ["src", "tests", "spikes"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "TID251"]
+
+# The core runs without Blender: Blender modules are banned everywhere, then allowed in
+# the Blender layer, the checks, the Blender tests and the spikes (per-file-ignores).
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"bpy".msg = "Only the Blender layer imports Blender; put this in smallstudio_pipeline.blender."
+"bmesh".msg = "Only the Blender layer imports Blender; put this in smallstudio_pipeline.blender."
+"mathutils".msg = "Only the Blender layer imports Blender; put this in smallstudio_pipeline.blender."
 
 [tool.ruff.lint.per-file-ignores]
-# Spikes and the Blender test runner set sys.path before importing.
-"spikes/*" = ["E402"]
-"tests/blender/run.py" = ["E402"]
-# Blender declares operator settings as class attributes: bl_options = {"REGISTER"},
-# and publish-validator checks do the same: hosts = ["blender"].
-"src/smallstudio_pipeline/blender/**" = ["RUF012"]
-"src/smallstudio_pipeline/checks/**" = ["RUF012"]
+# Blender's own code: Blender imports allowed (TID251). Spikes and the Blender test
+# runner set sys.path before importing (E402). Blender declares operator settings as
+# class attributes, bl_options = {"REGISTER"}, and publish-validator checks do the same,
+# hosts = ["blender"] (RUF012).
+"spikes/*" = ["E402", "TID251"]
+"tests/blender/*" = ["TID251"]
+"tests/blender/run.py" = ["E402", "TID251"]
+"src/smallstudio_pipeline/blender/**" = ["RUF012", "TID251"]
+"src/smallstudio_pipeline/checks/**" = ["RUF012", "TID251"]
 
 [tool.pyright]
 include = ["src", "tests", "scripts"]

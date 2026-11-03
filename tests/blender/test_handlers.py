@@ -7,7 +7,8 @@ import bpy
 from conftest import save_blend
 
 import smallstudio_pipeline
-from smallstudio_pipeline.blender import menu, state
+from smallstudio_pipeline.blender import state
+from smallstudio_pipeline.blender.ui import menu
 from smallstudio_pipeline.core.inuse import marker_path, read_marker
 
 

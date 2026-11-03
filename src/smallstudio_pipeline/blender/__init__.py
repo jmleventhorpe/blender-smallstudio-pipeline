@@ -2,7 +2,8 @@
 
 import bpy
 
-from . import handlers, menu, operators, preferences, results, state
+from . import handlers, operators, state
+from .ui import menu, preferences, results
 
 # Registered in this order: each module's CLASSES, then its own register() if it has one.
 MODULES = (preferences, operators, results, menu, handlers)

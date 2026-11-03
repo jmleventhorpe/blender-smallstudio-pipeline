@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .entities import Project
+from .project import Project
 
 # (template, entity kind, file kind). Versioned files are tried before hero files.
 _FILE_TEMPLATES = [

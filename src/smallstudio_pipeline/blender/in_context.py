@@ -18,11 +18,12 @@ import bpy
 from mathutils import Matrix
 
 from ..core.config import Config
-from ..core.entities import Asset, Project
+from ..core.entities import Asset
 from ..core.errors import PipelineError
+from ..core.project import Project
 from ..core.publishing import relative
 from ..core.updates import publish_version
-from . import libraries
+from . import libraries, updates
 from .identity import asset_identity
 
 
@@ -178,7 +179,7 @@ def swap_for_link(root: bpy.types.Collection, asset: Asset, hero: Path) -> bpy.t
     if library is not None:
         library.reload()
     linked = libraries.load(hero, "collections", [asset.name], link=True)[asset.name]
-    libraries.seen[path] = publish_version(asset.project, path)
+    updates.seen[path] = publish_version(asset.project, path)
     empty = bpy.data.objects.new(name, None)
     home.objects.link(empty)
     empty.instance_type = "COLLECTION"

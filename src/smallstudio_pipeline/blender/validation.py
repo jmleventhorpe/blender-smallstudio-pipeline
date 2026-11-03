@@ -8,7 +8,7 @@ import bpy
 from publish_validator import Config, Report, Subject, Validator
 from publish_validator.hosts.blender import BlenderHost
 
-from ..core.entities import Project
+from ..core.project import Project
 from ..core.publishing import PublishTarget, hero_record
 from .identity import asset_identity
 

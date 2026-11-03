@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .entities import Project
 from .errors import MetadataError
+from .project import Project
 from .publishing import Dependency, read_record, record_path
 
 

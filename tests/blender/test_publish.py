@@ -4,8 +4,9 @@ import bpy
 import pytest
 from conftest import add_cube, assets_in, link_collection, save_blend
 
-from smallstudio_pipeline.blender import results, state
+from smallstudio_pipeline.blender import state
 from smallstudio_pipeline.blender.identity import create_root_collection
+from smallstudio_pipeline.blender.ui import results
 from smallstudio_pipeline.core.catalogs import read_catalogs
 from smallstudio_pipeline.core.publishing import hero_record, read_record, record_path
 

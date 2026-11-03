@@ -5,8 +5,8 @@ from bpy.props import BoolProperty, EnumProperty, StringProperty
 
 from ...core.errors import PipelineError
 from .. import state
-from ..browse import Items, kind_items
 from ..identity import create_root_collection
+from ..ui.browse import Items, kind_items
 from ..workfiles import start_workfile
 from .common import UnsavedChanges, has_project
 

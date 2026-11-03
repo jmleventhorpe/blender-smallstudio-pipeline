@@ -8,9 +8,9 @@ from pathlib import Path
 import bpy
 
 from ..core.context import FileContext, file_context
-from ..core.entities import Project
 from ..core.errors import PipelineError
-from .preferences import active_project_root
+from ..core.project import Project
+from .ui.preferences import active_project_root
 
 
 @dataclass

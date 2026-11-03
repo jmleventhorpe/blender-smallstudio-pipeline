@@ -18,10 +18,11 @@ from pathlib import Path
 from typing import Any
 
 from .context import FileContext
-from .entities import Asset, Entity, Project
+from .entities import Asset, Entity
 from .errors import MetadataError, PipelineError
 from .files import write_atomic
 from .inuse import current_user
+from .project import Project
 from .reading import get, get_names
 
 SCHEMA = 1

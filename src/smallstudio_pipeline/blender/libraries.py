@@ -1,4 +1,4 @@
-"""Libraries: loading from publishes, what a file links, updates and the Asset Browser."""
+"""Libraries: loading from publishes, what a file links, and the Asset Browser library."""
 
 from __future__ import annotations
 
@@ -8,10 +8,8 @@ from typing import Any
 
 import bpy
 
-from ..core.entities import Project
+from ..core.project import Project
 from ..core.publishing import relative
-from ..core.updates import Change, changed, publish_version, stale_build
-from .identity import built_from
 
 
 def load(path: Path, kind: str, names: Iterable[str], link: bool, **options: Any) -> dict[str, Any]:
@@ -32,10 +30,6 @@ def load(path: Path, kind: str, names: Iterable[str], link: bool, **options: Any
     return {name: datablock for name, datablock in loaded if datablock is not None}
 
 
-# The publishes this file links, and their versions when it was opened (or last updated).
-seen: dict[str, int | None] = {}
-
-
 def linked_publishes(project: Project) -> dict[str, bpy.types.Library]:
     """The libraries this file links from inside the project, by path relative to it."""
     found = {}
@@ -43,33 +37,6 @@ def linked_publishes(project: Project) -> dict[str, bpy.types.Library]:
         path = Path(bpy.path.abspath(library.filepath)).resolve()
         if path.is_relative_to(project.root):
             found[relative(project, path)] = library
-    return found
-
-
-def remember_versions(project: Project) -> None:
-    """Note the version of every linked publish, to tell later what's changed."""
-    seen.clear()
-    seen.update({path: publish_version(project, path) for path in linked_publishes(project)})
-
-
-def reload_changed(project: Project) -> list[Change]:
-    """Reload linked publishes that have been published again since they were seen."""
-    changes = changed(project, seen)
-    libraries = linked_publishes(project)
-    for change in changes:
-        libraries[change.path].reload()
-        seen[change.path] = change.new
-    return changes
-
-
-def stale_builds(project: Project, scene: bpy.types.Scene) -> list[Change]:
-    """Asset roots built from a publish that has moved on since (a rig from an older model)."""
-    found = []
-    for root in scene.collection.children_recursive:
-        source = built_from(root)
-        change = stale_build(project, source) if source else None
-        if change is not None:
-            found.append(change)
     return found
 
 

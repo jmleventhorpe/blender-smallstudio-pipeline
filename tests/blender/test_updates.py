@@ -5,7 +5,7 @@ from pathlib import Path
 import bpy
 from conftest import add_cube, link_collection, publish_model, save_blend
 
-from smallstudio_pipeline.blender import libraries, state
+from smallstudio_pipeline.blender import libraries, state, updates
 from smallstudio_pipeline.core.publishing import new_record, plan_publish, write_records
 
 
@@ -41,14 +41,14 @@ def test_check_updates_reloads_what_was_published_again(project):
     bpy.context.scene.collection.children.link(linked)
     save_blend(sequence.workfile_path("layout", 1))
     bpy.ops.wm.open_mainfile(filepath=str(sequence.workfile_path("layout", 1)))
-    assert libraries.seen == {"assets/character/hero/model/publish/hero_model.blend": 1}
+    assert updates.seen == {"assets/character/hero/model/publish/hero_model.blend": 1}
 
     republish_behind_the_files_back(hero, "new_hat")
     bpy.ops.pipeline.check_updates()
 
     hero_now = next(c for c in bpy.data.collections if c.name == "hero" and c.library)
     assert "new_hat" in [obj.name for obj in hero_now.all_objects]
-    assert libraries.seen["assets/character/hero/model/publish/hero_model.blend"] == 2
+    assert updates.seen["assets/character/hero/model/publish/hero_model.blend"] == 2
     bpy.ops.pipeline.check_updates()  # Nothing new the second time.
 
 

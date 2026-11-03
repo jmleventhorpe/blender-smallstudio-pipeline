@@ -9,8 +9,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .context import file_context
-from .entities import Entity, Project
+from .entities import Entity
 from .errors import PipelineError
+from .project import Project
 from .publishing import Dependency, built_from
 
 

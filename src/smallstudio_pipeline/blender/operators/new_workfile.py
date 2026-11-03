@@ -4,7 +4,7 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty
 
 from ...core.errors import PipelineError
-from .. import browse
+from ..ui import browse
 from ..workfiles import start_workfile
 from .common import UnsavedChanges, has_project
 

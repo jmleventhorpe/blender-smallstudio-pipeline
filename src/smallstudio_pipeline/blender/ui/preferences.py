@@ -8,8 +8,8 @@ import bpy
 from bpy.props import CollectionProperty, IntProperty, StringProperty
 
 # The add-on's own module name: "smallstudio_pipeline", or "bl_ext.<repo>.smallstudio_pipeline"
-# when installed as an extension.
-ADDON_ID = __package__.rpartition(".")[0] if __package__ else "smallstudio_pipeline"
+# when installed as an extension. This module is <add-on>.blender.ui.preferences.
+ADDON_ID = __name__.removesuffix(".blender.ui.preferences")
 
 
 class PIPELINE_PG_project_root(bpy.types.PropertyGroup):
@@ -77,7 +77,7 @@ class PIPELINE_OT_use_project(bpy.types.Operator):
 
     def execute(self, context: bpy.types.Context) -> set[str]:
         get_preferences(context).active_project = self.index
-        from . import handlers, state  # Imported here: they import this module.
+        from .. import handlers, state  # Imported here: they import this module.
 
         state.refresh()
         handlers.after_open()

@@ -6,7 +6,7 @@ import bpy
 import pytest
 
 from smallstudio_pipeline.blender import state
-from smallstudio_pipeline.core.entities import Project
+from smallstudio_pipeline.core.project import Project
 
 
 @pytest.fixture

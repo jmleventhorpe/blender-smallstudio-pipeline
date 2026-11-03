@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import bpy
 
-from .. import libraries, state
+from .. import state, updates
 from .common import has_project
 
 
@@ -20,8 +20,8 @@ class PIPELINE_OT_check_updates(bpy.types.Operator):
     def execute(self, context: bpy.types.Context) -> set[str]:
         project = state.current.project
         assert project is not None  # Checked by poll.
-        changes = libraries.reload_changed(project)
-        stale = libraries.stale_builds(project, context.scene)
+        changes = updates.reload_changed(project)
+        stale = updates.stale_builds(project, context.scene)
         news = []
         if changes:
             news.append("Updated " + ", ".join(change.label for change in changes))

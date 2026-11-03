@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from smallstudio_pipeline.core.entities import Project
+from smallstudio_pipeline.core.project import Project
 
 
 @pytest.fixture

@@ -9,7 +9,8 @@ import bpy
 from bpy.app.handlers import persistent
 
 from ..core import inuse
-from . import libraries, results, state
+from . import libraries, state, updates
+from .ui import results
 
 # The workfile whose in-use marker this Blender holds.
 _claimed: Path | None = None
@@ -37,8 +38,8 @@ def after_open() -> None:
         return
     if libraries.register_asset_library(project):
         show_message(f"Added {project.root.name}'s assets to the Asset Browser.", icon="INFO")
-    libraries.remember_versions(project)
-    stale = libraries.stale_builds(project, bpy.context.scene)
+    updates.remember_versions(project)
+    stale = updates.stale_builds(project, bpy.context.scene)
     if stale and state.current.warning is None:
         newer = ", ".join(change.label for change in stale)
         state.current.warning = (

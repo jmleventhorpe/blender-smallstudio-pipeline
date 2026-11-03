@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from smallstudio_pipeline.core.context import file_context
-from smallstudio_pipeline.core.entities import Project
+from smallstudio_pipeline.core.project import Project
 
 
 def test_core_builds_a_project_in_blender(tmp_path: Path):

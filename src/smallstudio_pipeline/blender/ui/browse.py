@@ -10,8 +10,8 @@ from typing import Any
 
 import bpy
 
-from ..core.entities import Asset, Entity
-from . import state
+from ...core.entities import Asset, Entity
+from .. import state
 
 NONE = "NONE"
 Items = list[tuple[str, str, str]]
