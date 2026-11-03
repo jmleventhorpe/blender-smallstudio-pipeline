@@ -9,8 +9,10 @@ import bpy
 from ..core.config import Config
 from ..core.entities import Asset, Entity
 from ..core.errors import PipelineError
+from ..core.publishing import Dependency
 from ..core.workfiles import new_workfile
-from .identity import asset_identity, create_root_collection
+from . import libraries
+from .identity import asset_identity, create_root_collection, mark_built_from
 
 
 def start_workfile(entity: Entity, task: str) -> Path:
@@ -22,11 +24,25 @@ def start_workfile(entity: Entity, task: str) -> Path:
         bpy.ops.wm.read_homefile(use_empty=True)
     scene = bpy.context.scene
     apply_project_settings(scene, entity.project.config)
-    if isinstance(entity, Asset) and not any(map(asset_identity, bpy.data.collections)):
+    if isinstance(entity, Asset) and plan.built_from is not None:
+        bring_in_root(entity, plan.built_from, scene)
+    elif isinstance(entity, Asset) and not any(map(asset_identity, bpy.data.collections)):
         create_root_collection(entity, scene)
     plan.path.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=str(plan.path))
     return plan.path
+
+
+def bring_in_root(asset: Asset, publish: Dependency, scene: bpy.types.Scene) -> None:
+    """Append an asset's root collection from one of its publishes, e.g. the model for a rig."""
+    path = asset.project.root / publish.path
+    # clear_asset_data: the hero is marked as an asset, but this workfile's copy mustn't be.
+    found = libraries.load(path, "collections", [asset.name], link=False, clear_asset_data=True)
+    if asset.name not in found:
+        raise PipelineError(f"{path.name} has no collection called {asset.name}.")
+    root = found[asset.name]
+    scene.collection.children.link(root)
+    mark_built_from(root, publish)
 
 
 def apply_project_settings(scene: bpy.types.Scene, config: Config) -> None:

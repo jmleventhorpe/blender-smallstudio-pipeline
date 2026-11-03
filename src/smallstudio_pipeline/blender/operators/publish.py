@@ -7,7 +7,8 @@ import bpy
 from ...core.errors import PipelineError
 from ...core.publishing import new_record, plan_publish, publish_target, write_records
 from .. import results, state, workfiles
-from ..identity import asset_identity
+from ..identity import asset_identity, built_from
+from ..materials import sync_materials
 from ..publish import dependencies, pick_root, write_publish
 from ..validation import subject_for, validator_for
 from .common import has_project
@@ -42,8 +43,13 @@ class PIPELINE_OT_publish(bpy.types.Operator):
                     f"Publishing {target.asset.name} from inside another asset's file "
                     "isn't supported yet. Publish it from its own workfile."
                 )
+            # A rig takes its model's latest materials, by object name, every publish.
+            source = built_from(root)
+            synced = None
+            if source is not None and project.config.tasks[target.task].builds_on:
+                synced = sync_materials(root, project.root / source.path)
             # Save first, so the record's source workfile is what was published.
-            if workfiles.has_unsaved_changes():
+            if synced is not None or workfiles.has_unsaved_changes():
                 workfiles.save_changes()
 
             validator = validator_for(project)
@@ -66,6 +72,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
                 blender=bpy.app.version_string,
                 object_names=[obj.name for obj in root.all_objects],
                 dependencies=dependencies(root, plan),
+                built_from=source,
                 checks={result.check_id: result.status for result in report.results},
             )
             write_records(plan, record)
@@ -75,5 +82,6 @@ class PIPELINE_OT_publish(bpy.types.Operator):
 
         last.published = f"{plan.hero.stem} v{plan.version:03d}"
         results.store(last)
-        self.report({"INFO"}, f"Published {last.published}")
+        details = f" ({synced.summary})" if synced else ""
+        self.report({"INFO"}, f"Published {last.published}{details}")
         return {"FINISHED"}

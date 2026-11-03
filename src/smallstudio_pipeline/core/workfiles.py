@@ -11,12 +11,14 @@ from pathlib import Path
 from .context import file_context
 from .entities import Entity, Project
 from .errors import PipelineError
+from .publishing import Dependency, built_from
 
 
 @dataclass(frozen=True)
 class NewWorkfile:
     path: Path  # Where v001 is saved.
     starter: Path | None  # The .blend to start from, or None for an empty file.
+    built_from: Dependency | None  # A publish to bring in (rig starts from the model).
 
 
 def starter_file(project: Project, task: str) -> Path | None:
@@ -39,7 +41,11 @@ def new_workfile(entity: Entity, task: str) -> NewWorkfile:
     if versions:
         latest = entity.workfile_path(task, versions[-1]).name
         raise PipelineError(f"{entity.label} already has {task} workfiles ({latest}); open it.")
-    return NewWorkfile(entity.workfile_path(task, 1), starter_file(entity.project, task))
+    return NewWorkfile(
+        entity.workfile_path(task, 1),
+        starter_file(entity.project, task),
+        built_from(entity, task),  # Raises if the publish to start from doesn't exist yet.
+    )
 
 
 def version_up_path(project: Project, current: Path) -> Path:

@@ -55,11 +55,12 @@ def test_new_workfile_refuses_a_started_task(project):
 
 def test_unsaved_changes_are_saved_first(project, unsaved_changes):
     hero = project.create_asset("character", "hero")
+    project.create_sequence("010")
     first = hero.workfile_path("model", 1)
     save_blend(first)
     add_object("unsaved_work")
 
-    bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rig")
+    bpy.ops.pipeline.new_workfile(kind="sequence", entity="010_010", task="layout")
 
     bpy.ops.wm.open_mainfile(filepath=str(first))
     assert "unsaved_work" in bpy.data.objects
@@ -68,6 +69,6 @@ def test_unsaved_changes_are_saved_first(project, unsaved_changes):
 def test_unsaved_changes_in_an_untitled_file_need_a_choice(project, unsaved_changes):
     project.create_asset("character", "hero")
     with pytest.raises(RuntimeError, match="never been saved"):
-        bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rig")
-    bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="rig", unsaved="DISCARD")
-    assert bpy.data.filepath.endswith("hero_rig_v001.blend")
+        bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="model")
+    bpy.ops.pipeline.new_workfile(kind="character", entity="hero", task="model", unsaved="DISCARD")
+    assert bpy.data.filepath.endswith("hero_model_v001.blend")
