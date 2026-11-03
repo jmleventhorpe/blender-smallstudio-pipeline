@@ -1,0 +1,33 @@
+from __future__ import annotations
+
+import bpy
+
+from .. import libraries, state
+from .common import has_project
+
+
+class PIPELINE_OT_check_updates(bpy.types.Operator):
+    """Reload linked publishes that have been published again since this file opened"""
+
+    bl_idname = "pipeline.check_updates"
+    bl_label = "Check Updates"
+    bl_options = {"REGISTER"}
+
+    @classmethod
+    def poll(cls, context: bpy.types.Context) -> bool:
+        return has_project(cls)
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        project = state.current.project
+        assert project is not None  # Checked by poll.
+        changes = libraries.reload_changed(project)
+        stale = libraries.stale_builds(project, context.scene)
+        news = []
+        if changes:
+            news.append("Updated " + ", ".join(change.label for change in changes))
+        if stale:
+            news.append("Built from an older publish: " + ", ".join(c.label for c in stale))
+        self.report(
+            {"WARNING" if stale else "INFO"}, ". ".join(news) or "Everything is up to date."
+        )
+        return {"FINISHED"}

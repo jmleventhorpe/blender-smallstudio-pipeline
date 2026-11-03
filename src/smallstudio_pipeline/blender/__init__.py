@@ -31,3 +31,4 @@ def unregister() -> None:
 def _first_refresh() -> None:
     state.refresh()
     handlers.claim()
+    handlers.after_open()

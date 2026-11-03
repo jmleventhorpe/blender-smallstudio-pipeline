@@ -4,33 +4,12 @@ from pathlib import Path
 
 import bpy
 import pytest
-from conftest import add_cube, save_blend
+from conftest import add_cube, give_material, publish_model, save_blend
 
-from smallstudio_pipeline.blender import state
-from smallstudio_pipeline.blender.identity import INSTANCE_ID, built_from, create_root_collection
+from smallstudio_pipeline.blender.identity import INSTANCE_ID, built_from
 from smallstudio_pipeline.core.publishing import Dependency, hero_record
 
 MODEL_HERO = "assets/character/hero/model/publish/hero_model.blend"
-
-
-def give_material(obj, name, colour):
-    material = bpy.data.materials.get(name) or bpy.data.materials.new(name)
-    material.diffuse_color = colour
-    obj.data.materials.clear()
-    obj.data.materials.append(material)
-
-
-def publish_model(project, colour=(1, 0, 0, 1)):
-    """hero's model: a body with a 'skin' material, published."""
-    bpy.ops.wm.read_homefile(use_empty=True)
-    hero = project.asset("hero") if project.assets() else project.create_asset("character", "hero")
-    root = create_root_collection(hero, bpy.context.scene)
-    give_material(add_cube(root, "body"), "skin", colour)
-    version = hero.next_workfile_version("model")
-    save_blend(hero.workfile_path("model", version))
-    state.refresh()
-    bpy.ops.pipeline.publish()
-    return hero
 
 
 def test_a_rig_workfile_starts_from_the_latest_model(project):

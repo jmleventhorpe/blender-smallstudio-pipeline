@@ -9,7 +9,7 @@ import bpy
 from bpy.app.handlers import persistent
 
 from ..core import inuse
-from . import results, state
+from . import libraries, results, state
 
 # The workfile whose in-use marker this Blender holds.
 _claimed: Path | None = None
@@ -25,8 +25,25 @@ def on_load_post(*_args: object) -> None:
     results.clear()  # They were for the file just closed.
     state.refresh()
     claim()
+    after_open()
     if state.current.warning and state.current.context is not None:
-        show_warning(state.current.warning)  # Publishes and files someone else has open.
+        show_message(state.current.warning)  # Publishes, files in use, stale builds.
+
+
+def after_open() -> None:
+    """Library bookkeeping for the open file's project."""
+    project = state.current.project
+    if project is None:
+        return
+    if libraries.register_asset_library(project):
+        show_message(f"Added {project.root.name}'s assets to the Asset Browser.", icon="INFO")
+    libraries.remember_versions(project)
+    stale = libraries.stale_builds(project, bpy.context.scene)
+    if stale and state.current.warning is None:
+        newer = ", ".join(change.label for change in stale)
+        state.current.warning = (
+            f"Built from an older publish ({newer}). Carry changes over by hand."
+        )
 
 
 @persistent
@@ -60,8 +77,8 @@ def release() -> None:
         _claimed = None
 
 
-def show_warning(message: str) -> None:
-    """Pop up a warning once the UI is ready. Handlers can't report to the artist directly."""
+def show_message(message: str, icon: str = "ERROR") -> None:
+    """Pop up a message once the UI is ready. Handlers can't report to the artist directly."""
     if bpy.app.background:
         return
 
@@ -69,7 +86,7 @@ def show_warning(message: str) -> None:
         def draw(menu: bpy.types.UIPopupMenu, _context: bpy.types.Context) -> None:
             menu.layout.label(text=message)
 
-        bpy.context.window_manager.popup_menu(draw, title="Pipeline", icon="ERROR")
+        bpy.context.window_manager.popup_menu(draw, title="Pipeline", icon=icon)  # pyright: ignore[reportArgumentType]
 
     bpy.app.timers.register(popup, first_interval=0.1)
 

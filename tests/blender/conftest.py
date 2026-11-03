@@ -7,16 +7,22 @@ import pytest
 
 import smallstudio_pipeline
 from smallstudio_pipeline.blender import state
+from smallstudio_pipeline.blender.identity import create_root_collection
 from smallstudio_pipeline.core.entities import Project
 
 
 @pytest.fixture
 def registered():
     """The add-on registered for one test, starting from an empty file."""
+    asset_libraries = bpy.context.preferences.filepaths.asset_libraries
+    before = set(asset_libraries)
     smallstudio_pipeline.register()
     bpy.ops.wm.read_homefile(use_empty=True)
     yield
     smallstudio_pipeline.unregister()
+    # Opening a project's files registers its asset library; drop the test projects'.
+    for library in [lib for lib in asset_libraries if lib not in before]:
+        asset_libraries.remove(library)
 
 
 @pytest.fixture
@@ -72,3 +78,23 @@ def link_collection(path: Path, name: str) -> bpy.types.Collection:
     with library_load(path, link=True) as (_, data_to):
         data_to.collections = [name]
     return next(c for c in bpy.data.collections if c.name == name and c.library)
+
+
+def give_material(obj, name, colour):
+    material = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    material.diffuse_color = colour
+    obj.data.materials.clear()
+    obj.data.materials.append(material)
+
+
+def publish_model(project, colour=(1, 0, 0, 1)):
+    """hero's model: a body with a 'skin' material, published."""
+    bpy.ops.wm.read_homefile(use_empty=True)
+    hero = project.asset("hero") if project.assets() else project.create_asset("character", "hero")
+    root = create_root_collection(hero, bpy.context.scene)
+    give_material(add_cube(root, "body"), "skin", colour)
+    version = hero.next_workfile_version("model")
+    save_blend(hero.workfile_path("model", version))
+    state.refresh()
+    bpy.ops.pipeline.publish()
+    return hero

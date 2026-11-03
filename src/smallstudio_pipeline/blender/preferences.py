@@ -77,9 +77,10 @@ class PIPELINE_OT_use_project(bpy.types.Operator):
 
     def execute(self, context: bpy.types.Context) -> set[str]:
         get_preferences(context).active_project = self.index
-        from . import state  # Imported here: state imports this module.
+        from . import handlers, state  # Imported here: they import this module.
 
         state.refresh()
+        handlers.after_open()
         return {"FINISHED"}
 
 
