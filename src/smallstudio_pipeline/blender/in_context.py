@@ -20,6 +20,8 @@ from mathutils import Matrix
 from ..core.config import Config
 from ..core.entities import Asset, Project
 from ..core.errors import PipelineError
+from ..core.publishing import relative
+from ..core.updates import publish_version
 from . import libraries
 from .identity import asset_identity
 
@@ -169,7 +171,14 @@ def swap_for_link(root: bpy.types.Collection, asset: Asset, hero: Path) -> bpy.t
     bpy.data.batch_remove([d for d in data if d.users == 0])
     bpy.data.batch_remove([m for m in materials if m.users == 0])
 
+    # The old version is still loaded here (that's what was made editable), and linking
+    # again would just hand it back: reload it, so every instance shows the new publish.
+    path = relative(asset.project, hero)
+    library = libraries.linked_publishes(asset.project).get(path)
+    if library is not None:
+        library.reload()
     linked = libraries.load(hero, "collections", [asset.name], link=True)[asset.name]
+    libraries.seen[path] = publish_version(asset.project, path)
     empty = bpy.data.objects.new(name, None)
     home.objects.link(empty)
     empty.instance_type = "COLLECTION"

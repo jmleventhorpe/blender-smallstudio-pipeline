@@ -191,6 +191,8 @@ since it exercises the real Make Editable and Publish.
   where it was; the copy's meshes and materials are removed too, so editing again doesn't
   give .001 names. The set file is saved. An asset started from scratch in the set is
   linked where it was built.
+- Linking back must reload the asset's library first: the version made editable is still
+  loaded, and linking again hands that back, so the set kept showing the old crate.
 - Publish leaves Edit Mode first: edits made in Edit Mode only reach the mesh then.
 
 **Finding: `bpy.data.libraries.write` can't write scenes.** Writing any scene, even an

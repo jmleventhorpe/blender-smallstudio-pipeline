@@ -131,6 +131,9 @@ def test_edits_still_in_edit_mode_are_published(project, crate, placement):
 
     bpy.ops.pipeline.publish()  # Without leaving Edit Mode first.
 
+    # The set shows the edit straight away, not the version loaded before.
+    shown = bpy.data.objects["crate_place"].instance_collection.all_objects["crate_body"]
+    assert round(max(v.co.z for v in shown.data.vertices), 4) == 1.5
     bpy.ops.wm.read_homefile(use_empty=True)
     linked = link_collection(crate.hero_path("model"), "crate")
     top = max(v.co.z for v in linked.all_objects["crate_body"].data.vertices)
