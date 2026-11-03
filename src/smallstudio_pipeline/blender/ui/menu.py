@@ -10,6 +10,7 @@ import bpy
 
 from .. import state
 from ..assets import in_context
+from ..shots.layout import LAYOUT
 
 
 class PIPELINE_MT_main(bpy.types.Menu):
@@ -25,6 +26,7 @@ class PIPELINE_MT_main(bpy.types.Menu):
         layout.operator("pipeline.open", text="Open…", icon="FILEBROWSER")
         layout.operator("pipeline.new_workfile", text="New Workfile…", icon="FILE_NEW")
         layout.operator("pipeline.new_asset", text="New Asset…", icon="ADD")
+        layout.operator("pipeline.new_sequence", text="New Sequence…", icon="SEQUENCE")
         layout.separator()
         layout.operator("pipeline.version_up", icon="DUPLICATE")
         layout.operator("pipeline.publish", icon="EXPORT")
@@ -33,6 +35,11 @@ class PIPELINE_MT_main(bpy.types.Menu):
         if in_context.linked_asset(context.active_object) is not None:
             layout.separator()
             layout.operator("pipeline.make_editable", icon="LIBRARY_DATA_OVERRIDE")
+        file = state.current.context
+        if file is not None and file.task == LAYOUT and not file.is_publish:
+            layout.separator()
+            layout.operator("pipeline.add_shot", icon="ADD")
+            layout.operator("pipeline.omit_shot", icon="REMOVE")
 
 
 def draw_in_top_bar(self: bpy.types.Menu, context: bpy.types.Context) -> None:

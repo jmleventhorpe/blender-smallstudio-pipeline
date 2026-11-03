@@ -13,12 +13,13 @@ from pathlib import Path
 import bpy
 
 from ..core.config import Config
-from ..core.entities import Asset, Entity
+from ..core.entities import Asset, Entity, Sequence
 from ..core.errors import PipelineError
 from ..core.publishing import Dependency
 from ..core.workfiles import new_workfile
 from . import libraries
 from .identity import asset_identity, create_root_collection, mark_built_from
+from .shots import layout
 
 
 def start_workfile(entity: Entity, task: str) -> Path:
@@ -34,6 +35,8 @@ def start_workfile(entity: Entity, task: str) -> Path:
         bring_in_root(entity, plan.built_from, scene)
     elif isinstance(entity, Asset) and not any(map(asset_identity, bpy.data.collections)):
         create_root_collection(entity, scene)
+    elif isinstance(entity, Sequence) and task == layout.LAYOUT:
+        layout.start_cut(scene, entity)
     plan.path.parent.mkdir(parents=True, exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=str(plan.path))
     return plan.path

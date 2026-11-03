@@ -15,6 +15,8 @@ from ...core.entities import Asset, Entity
 from .. import state
 
 NONE = "NONE"
+NEW = "NEW"
+END = "END"
 Items = list[tuple[str, str, str]]
 
 # Blender garbles labels, or crashes, if the strings an items callback returns are
@@ -89,6 +91,27 @@ def reset_task(operator: Any, context: bpy.types.Context | None) -> None:
 def reset_version(operator: Any, context: bpy.types.Context | None) -> None:
     if hasattr(operator, "version"):
         operator.version = version_items(operator, context)[0][0]
+
+
+def episode_items(operator: Any, context: bpy.types.Context | None) -> Items:
+    """The project's episodes, then a new one."""
+    project = state.current.project
+    if project is None:
+        return _keep("episode", [])
+    items = [(code, f"Episode {code}", "") for code in project.episodes()]
+    new = project.next_episode()
+    return _keep("episode", [*items, (NEW, f"New episode ({new})", "Start the next episode")])
+
+
+def position_items(operator: Any, context: bpy.types.Context | None) -> Items:
+    """Where a new sequence goes: at the end of its episode, or after one of its sequences."""
+    project = state.current.project
+    if project is None:
+        return _keep("position", [])
+    episode = operator.episode if project.config.episodes else None
+    sequences = [] if episode == NEW else project.sequences(episode)
+    items = [(str(seq.code), f"After {seq.code}", "") for seq in sequences]
+    return _keep("position", [(END, "At the end", "After the last sequence"), *items])
 
 
 def preselect(operator: Any) -> None:

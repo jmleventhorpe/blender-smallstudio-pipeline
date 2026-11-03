@@ -13,6 +13,7 @@ import bpy
 from bpy.props import EnumProperty
 
 from .. import state, workfiles
+from ..shots import layout
 
 NO_PROJECT = (
     "No project. Open a file inside a project, or add one in "
@@ -24,6 +25,15 @@ def has_project(operator_class: Any) -> bool:
     """Poll check: greys the menu item out, with the reason as its tooltip."""
     if state.current.project is None:
         operator_class.poll_message_set(NO_PROJECT)
+        return False
+    return True
+
+
+def in_layout_workfile(operator_class: Any) -> bool:
+    """Poll check: only in a sequence's layout workfile."""
+    file = state.current.context
+    if file is None or file.task != layout.LAYOUT or file.is_publish:
+        operator_class.poll_message_set("Open a sequence's layout workfile.")
         return False
     return True
 
