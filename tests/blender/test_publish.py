@@ -81,7 +81,7 @@ def test_a_failing_check_blocks_the_publish_and_writes_nothing(project):
     assert hero.publish_versions("model") == []
     assert not hero.hero_path("model").exists()
     assert results.last is not None and results.last.published is None
-    failed = results.last.report.get("NoNumberEndings")
+    failed = results.last.checked[0].report.get("NoNumberEndings")
     assert failed is not None and failed.status == "failed"
 
 

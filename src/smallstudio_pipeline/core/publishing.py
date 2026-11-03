@@ -65,6 +65,12 @@ class PublishPlan:
     hero: Path  # The file other files link.
 
     @property
+    def label(self) -> str:
+        """e.g. "hero_model v004"."""
+        padding = self.entity.project.config.version_padding
+        return f"{self.hero.stem} v{self.version:0{padding}d}"
+
+    @property
     def record(self) -> Path:
         """Where the versioned file's record goes."""
         return record_path(self.path)

@@ -2,21 +2,11 @@
 
 import bpy
 import pytest
-from conftest import add_cube, link_collection, publish_model, save_blend
+from conftest import place, placed_at, publish_model, publish_prop
 
-from smallstudio_pipeline.blender.identity import INSTANCE_ID, create_root_collection
+from smallstudio_pipeline.blender.identity import INSTANCE_ID
 from smallstudio_pipeline.blender.shots import instances, layout
 from smallstudio_pipeline.core.metadata import CastEntry
-
-
-def publish_prop(project, name):
-    """A prop's model, published: one cube in its root."""
-    bpy.ops.wm.read_homefile(use_empty=True)
-    asset = project.create_asset("prop", name)
-    add_cube(create_root_collection(asset, bpy.context.scene), f"{name}_box")
-    save_blend(asset.workfile_path("model", 1))
-    bpy.ops.pipeline.publish()
-    return asset
 
 
 @pytest.fixture
@@ -27,27 +17,6 @@ def shot(project):
     bpy.ops.pipeline.new_sequence(episode="NEW", position="END")
     bpy.ops.pipeline.add_shot()
     return bpy.data.scenes["010_010_0010"]
-
-
-def place(project, scene, asset_name, location=(0.0, 0.0, 0.0)):
-    """Place a linked asset in a scene with an empty, as dragging it from the Asset Browser does."""
-    asset = project.asset(asset_name)
-    linked = link_collection(asset.hero_path("model"), asset_name)
-    empty = bpy.data.objects.new(asset_name, None)
-    empty.instance_type = "COLLECTION"
-    empty.instance_collection = linked
-    empty.location = location
-    scene.collection.objects.link(empty)
-    return empty
-
-
-def placed_at(obj):
-    """Where an object stands, from its own transform up its parents (spike T13)."""
-    matrix = obj.matrix_basis.copy()
-    while obj.parent is not None:
-        matrix = obj.parent.matrix_basis @ obj.matrix_parent_inverse @ matrix
-        obj = obj.parent
-    return tuple(round(value, 4) for value in matrix.translation)
 
 
 def test_instances_are_numbered_on_save_and_keep_their_ids(project, shot):

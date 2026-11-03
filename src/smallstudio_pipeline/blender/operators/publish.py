@@ -1,9 +1,11 @@
-"""Pipeline > Publish: check the asset holding the selection, then publish it.
+"""Pipeline > Publish: check what the open workfile makes, then publish it.
 
-In the asset's own workfile, a task that builds on another (a rig) first takes that
+In an asset's own workfile, a task that builds on another (a rig) first takes that
 publish's materials, and the file is saved. Inside another asset's file, the asset is
-moved into its own space, saved as its next workfile, published and linked back. Both
-check with publish-validator first; a blocked publish lists its problems in the sidebar.
+moved into its own space, saved as its next workfile, published and linked back. In a
+sequence's layout workfile, each shot is checked, the whole file is published, and the
+cut (frame ranges, cut points, casting) goes into each shot's metadata. Everything is
+checked with publish-validator first; a blocked publish lists its problems in the sidebar.
 """
 
 from __future__ import annotations
@@ -11,8 +13,13 @@ from __future__ import annotations
 from pathlib import Path
 
 import bpy
+from publish_validator import Subject, Validator
 
+from ...core.context import FileContext
+from ...core.entities import Sequence
 from ...core.errors import PipelineError
+from ...core.layout import apply_cut, check_cut
+from ...core.project import Project
 from ...core.publishing import (
     Dependency,
     PublishTarget,
@@ -26,6 +33,8 @@ from ..assets import in_context
 from ..assets.materials import sync_materials
 from ..assets.publishing import dependencies, pick_root, write_publish
 from ..identity import asset_identity, built_from
+from ..shots import layout
+from ..shots import publishing as shot_publishing
 from ..ui import results
 from ..validation import subject_for, validator_for
 from .common import has_project
@@ -57,14 +66,10 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         if context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
         try:
-            root = pick_root(context)
-            identity = asset_identity(root)
-            assert identity is not None  # pick_root only returns asset roots.
-            target = publish_target(project, file, identity[0])
-            if target.in_context:
-                published = self.publish_in_context(context, root, target, file.entity)
+            if file.entity_kind == "sequence" and file.task == layout.LAYOUT:
+                published = self.publish_layout(context, project.sequence(file.entity))
             else:
-                published = self.publish_in_own_workfile(context, root, target, file.entity)
+                published = self.publish_asset(context, project, file)
         except PipelineError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}
@@ -72,6 +77,16 @@ class PIPELINE_OT_publish(bpy.types.Operator):
             return {"CANCELLED"}  # Blocked by checks; the sidebar says why.
         self.report({"INFO"}, f"Published {published}")
         return {"FINISHED"}
+
+    def publish_asset(self, context: Context, project: Project, file: FileContext) -> str | None:
+        """Publish the asset holding the selection, from its own workfile or in context."""
+        root = pick_root(context)
+        identity = asset_identity(root)
+        assert identity is not None  # pick_root only returns asset roots.
+        target = publish_target(project, file, identity[0])
+        if target.in_context:
+            return self.publish_in_context(context, root, target, file.entity)
+        return self.publish_in_own_workfile(context, root, target, file.entity)
 
     def publish_in_own_workfile(
         self, context: Context, root: Collection, target: PublishTarget, file_entity: str
@@ -87,7 +102,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         if synced is not None or workfiles.has_unsaved_changes():
             workfiles.save_changes()
 
-        last = self.run_checks(context, root, target, file_entity)
+        last = self.check_asset(context, root, target, file_entity)
         if last is None:
             return None
         published = self.write_files(root, target, last, Path(bpy.data.filepath), source)
@@ -99,7 +114,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         """Publish an asset worked on inside another asset's file, then link it back in."""
         asset = target.asset
         with in_context.in_asset_space(root, context.view_layer):
-            last = self.run_checks(context, root, target, file_entity)
+            last = self.check_asset(context, root, target, file_entity)
             if last is None:
                 return None
             # The asset's own workfiles get this version too, so its history stays whole.
@@ -110,18 +125,55 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         workfiles.save_changes()  # This file now links the new publish.
         return f"{published}; it's linked here now"
 
-    def run_checks(
+    def publish_layout(self, context: Context, sequence: Sequence) -> str | None:
+        """Publish the sequence's layout: a copy of the whole file, and the cut into each shot."""
+        project = sequence.project
+        master = layout.master_scene()
+        layout.sync_ranges(master)  # Retiming in the cut becomes each shot's range.
+        check_cut(sequence, layout.cut(master, {}))
+        # Save first: saving numbers new instances, and the record's source is this file.
+        workfiles.save_changes()
+        cuts = layout.cut(master, shot_publishing.casting_by_shot(master))
+
+        subjects = shot_publishing.shot_subjects(master, project)
+        last = self.run_checks(context, validator_for(project), subjects)
+        if last is None:
+            return None
+        plan = plan_publish(sequence, layout.LAYOUT)
+        shot_publishing.write_layout(plan)
+        changes = apply_cut(sequence, cuts)
+        record = new_record(
+            plan,
+            source=Path(bpy.data.filepath),
+            blender=bpy.app.version_string,
+            object_names=[],
+            dependencies=shot_publishing.dependencies(project),
+            checks=last.statuses(),
+        )
+        write_records(plan, record)
+        last.published = plan.label
+        results.redraw()
+        return f"{plan.label} ({changes.summary})"
+
+    def check_asset(
         self, context: Context, root: Collection, target: PublishTarget, file_entity: str
     ) -> results.LastPublish | None:
-        """Run the checks. Returns None, with the results in the sidebar, if they block."""
-        validator = validator_for(target.asset.project)
+        """Check an asset. Returns None, with the results in the sidebar, if they block."""
         subject = subject_for(root, target, file_entity)
-        report = validator.run(subject)
-        last = results.LastPublish(report, subject, validator)
+        return self.run_checks(context, validator_for(target.asset.project), [("", subject)])
+
+    def run_checks(
+        self, context: Context, validator: Validator, subjects: list[tuple[str, Subject]]
+    ) -> results.LastPublish | None:
+        """Check each subject. Returns None, with the sidebar showing why, if any block."""
+        checked = [
+            results.Checked(label, validator.run(subject), subject) for label, subject in subjects
+        ]
+        last = results.LastPublish(checked, validator)
         results.store(last)
-        if not report.passed:
+        if not last.passed:
             results.show_sidebar(context)
-            summary = report.summary()
+            summary = last.summary()
             self.report({"ERROR"}, f"Publish blocked ({summary}). See Pipeline in the sidebar.")
             return None
         return last
@@ -144,10 +196,9 @@ class PIPELINE_OT_publish(bpy.types.Operator):
             object_names=[obj.name for obj in root.all_objects],
             dependencies=dependencies(root, plan),
             built_from=source_publish,
-            checks={result.check_id: result.status for result in last.report.results},
+            checks=last.statuses(),
         )
         write_records(plan, record)
-        padding = target.asset.project.config.version_padding
-        last.published = f"{plan.hero.stem} v{plan.version:0{padding}d}"
+        last.published = plan.label
         results.redraw()
         return last.published

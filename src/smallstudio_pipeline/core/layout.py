@@ -44,9 +44,11 @@ class CutChanges:
         return "; ".join(parts)
 
 
-def apply_cut(sequence: Sequence, cuts: list[ShotCut]) -> CutChanges:
-    """Write each shot's range, cut points and casting; mark shots with no strip omitted."""
-    shots = {str(shot.code): shot for shot in sequence.shots(include_omitted=True)}
+def check_cut(sequence: Sequence, cuts: list[ShotCut]) -> None:
+    """Raise PipelineError if the cut can't be published: no shots, or strips that don't fit."""
+    if not cuts:
+        raise PipelineError("The cut has no shots yet. Add one with Pipeline > Add Shot.")
+    shots = {str(shot.code) for shot in sequence.shots(include_omitted=True)}
     unknown = [cut.shot for cut in cuts if cut.shot not in shots]
     if unknown:
         raise PipelineError(
@@ -59,6 +61,11 @@ def apply_cut(sequence: Sequence, cuts: list[ShotCut]) -> CutChanges:
         ):
             raise PipelineError(f"Shot {cut.shot}'s frame range doesn't match its strip.")
 
+
+def apply_cut(sequence: Sequence, cuts: list[ShotCut]) -> CutChanges:
+    """Write each shot's range, cut points and casting; mark shots with no strip omitted."""
+    check_cut(sequence, cuts)
+    shots = {str(shot.code): shot for shot in sequence.shots(include_omitted=True)}
     changes = CutChanges()
     in_cut = {cut.shot for cut in cuts}
     for cut in cuts:

@@ -87,6 +87,38 @@ def give_material(obj, name, colour):
     obj.data.materials.append(material)
 
 
+def publish_prop(project, name):
+    """A prop's model, published: one cube in its root."""
+    bpy.ops.wm.read_homefile(use_empty=True)
+    asset = project.create_asset("prop", name)
+    add_cube(create_root_collection(asset, bpy.context.scene), f"{name}_box")
+    save_blend(asset.workfile_path("model", 1))
+    state.refresh()
+    bpy.ops.pipeline.publish()
+    return asset
+
+
+def place(project, scene, asset_name, location=(0.0, 0.0, 0.0)):
+    """Place a linked asset in a scene with an empty, as dragging it from the Asset Browser does."""
+    asset = project.asset(asset_name)
+    linked = link_collection(asset.hero_path("model"), asset_name)
+    empty = bpy.data.objects.new(asset_name, None)
+    empty.instance_type = "COLLECTION"
+    empty.instance_collection = linked
+    empty.location = location
+    scene.collection.objects.link(empty)
+    return empty
+
+
+def placed_at(obj):
+    """Where an object stands, from its own transform up its parents (spike T13)."""
+    matrix = obj.matrix_basis.copy()
+    while obj.parent is not None:
+        matrix = obj.parent.matrix_basis @ obj.matrix_parent_inverse @ matrix
+        obj = obj.parent
+    return tuple(round(value, 4) for value in matrix.translation)
+
+
 def publish_model(project, colour=(1, 0, 0, 1)):
     """hero's model: a body with a 'skin' material, published."""
     bpy.ops.wm.read_homefile(use_empty=True)

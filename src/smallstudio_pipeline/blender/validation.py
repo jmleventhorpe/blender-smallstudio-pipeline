@@ -55,6 +55,7 @@ def subject_for(root: bpy.types.Collection, target: PublishTarget, file_entity: 
         task=target.task,
         root=root,
         extras={
+            "entity_kind": "asset",
             "asset": asset.name,
             "asset_type": asset.asset_type,
             "identity": asset_identity(root),
