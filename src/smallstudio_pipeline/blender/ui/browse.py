@@ -11,12 +11,11 @@ from typing import Any
 
 import bpy
 
-from ...core.entities import Asset, Entity
+from ...core.entities import Asset, Entity, Sequence
 from .. import state
 
 NONE = "NONE"
 NEW = "NEW"
-END = "END"
 Items = list[tuple[str, str, str]]
 
 # Blender garbles labels, or crashes, if the strings an items callback returns are
@@ -41,8 +40,11 @@ def entity_items(operator: Any, context: bpy.types.Context | None) -> Items:
     project = state.current.project
     if project is None or operator.category == NONE:
         return _keep("entity", [])
-    names = [entity.name for entity in project.entities_in(operator.category)]
-    return _keep("entity", [(name, name, "") for name in names])
+    items = []
+    for entity in project.entities_in(operator.category):
+        title = entity.title if isinstance(entity, Sequence) else ""
+        items.append((entity.name, f"{entity.name}  {title}" if title else entity.name, title))
+    return _keep("entity", items)
 
 
 def task_items(operator: Any, context: bpy.types.Context | None) -> Items:
@@ -101,17 +103,6 @@ def episode_items(operator: Any, context: bpy.types.Context | None) -> Items:
     items = [(code, f"Episode {code}", "") for code in project.episodes()]
     new = project.next_episode()
     return _keep("episode", [*items, (NEW, f"New episode ({new})", "Start the next episode")])
-
-
-def position_items(operator: Any, context: bpy.types.Context | None) -> Items:
-    """Where a new sequence goes: at the end of its episode, or after one of its sequences."""
-    project = state.current.project
-    if project is None:
-        return _keep("position", [])
-    episode = operator.episode if project.config.episodes else None
-    sequences = [] if episode == NEW else project.sequences(episode)
-    items = [(str(seq.code), f"After {seq.code}", "") for seq in sequences]
-    return _keep("position", [(END, "At the end", "After the last sequence"), *items])
 
 
 def preselect(operator: Any) -> None:

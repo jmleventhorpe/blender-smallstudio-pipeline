@@ -31,6 +31,7 @@ def test_write_atomic_creates_folders_and_leaves_no_temp_file(tmp_path: Path):
     [
         AssetMetadata("hero", "character", ["model", "rig"]),
         SequenceMetadata("010_020"),
+        SequenceMetadata("010_030", title="Opening chase"),
         ShotMetadata(
             "010_020_0030",
             frame_start=1001,

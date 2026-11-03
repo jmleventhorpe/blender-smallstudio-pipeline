@@ -152,20 +152,20 @@ class Project:
         """The sequence with this code, or raise EntityNotFound."""
         return _pick({str(seq.code): seq for seq in self.sequences()}, code, "sequence")
 
-    def create_sequence(
-        self, episode: str | None = None, after: Sequence | None = None
-    ) -> Sequence:
-        """Create the next sequence in an episode, or one between `after` and the next."""
+    def create_sequence(self, episode: str | None = None, title: str = "") -> Sequence:
+        """Create the next sequence in an episode, numbered a step past the last.
+
+        A sequence's code only names it: the order sequences play in belongs to the
+        episode's edit, so reordering them never renumbers anything.
+        """
         if self.config.episodes and episode is None:
             raise PipelineError("This project uses episodes: choose the sequence's episode.")
         if not self.config.episodes and episode is not None:
             raise PipelineError("This project doesn't use episodes.")
-        if after is not None and after.code.episode != episode:
-            raise PipelineError(f"Sequence {after.code} isn't in episode {episode}.")
         existing = [int(seq.code.number) for seq in self.sequences(episode)]
-        step = self.config.code_step
-        number = next_number(existing, step, int(after.code.number) if after else None)
-        metadata = SequenceMetadata(str(SequenceCode(episode, f"{number:0{SEQUENCE_DIGITS}d}")))
+        number = next_number(existing, self.config.code_step)
+        code = SequenceCode(episode, f"{number:0{SEQUENCE_DIGITS}d}")
+        metadata = SequenceMetadata(str(code), title.strip())
         self.tracker.save_sequence(metadata)
         return Sequence(self, metadata)
 

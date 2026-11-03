@@ -122,13 +122,12 @@ def test_asset_paths_only_for_its_own_tasks(project):
 # Sequences and shots
 
 
-def test_sequences_number_in_steps_and_insert(project):
-    first = project.create_sequence("010")
-    second = project.create_sequence("010")
-    between = project.create_sequence("010", after=first)
-    assert [str(seq.code) for seq in project.sequences()] == ["010_010", "010_015", "010_020"]
-    assert second.code.number == "020"
-    assert between.code.number == "015"
+def test_sequences_number_in_steps_with_an_optional_title(project):
+    project.create_sequence("010")
+    second = project.create_sequence("010", title=" Opening chase ")
+    assert [str(seq.code) for seq in project.sequences()] == ["010_010", "010_020"]
+    assert project.sequence("010_020").title == second.title == "Opening chase"
+    assert project.sequence("010_010").title == ""
     project.create_sequence("020")
     assert project.episodes() == ["010", "020"]
     assert [str(seq.code) for seq in project.sequences("020")] == ["020_010"]

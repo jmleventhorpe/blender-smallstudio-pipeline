@@ -1,6 +1,6 @@
 """Entity metadata: one small JSON file per asset, sequence and shot.
 
-AssetMetadata (name, type, tasks), SequenceMetadata (code) and ShotMetadata (frame
+AssetMetadata (name, type, tasks), SequenceMetadata (code, title) and ShotMetadata (frame
 range, cut, casting, omitted) are plain dataclasses. read_metadata() checks a file field
 by field and says what's wrong; write_metadata() writes it atomically. Each file carries
 a schema number, so the format can change later without breaking existing projects.
@@ -41,11 +41,16 @@ class AssetMetadata:
 @dataclass
 class SequenceMetadata:
     code: str
+    title: str = ""  # What happens in it, e.g. "Opening chase"; optional.
     schema: int = SCHEMA
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SequenceMetadata:
-        return cls(code=get(data, "code", str), schema=_schema(data))
+        return cls(
+            code=get(data, "code", str),
+            title=get(data, "title", str, default=""),
+            schema=_schema(data),
+        )
 
 
 @dataclass

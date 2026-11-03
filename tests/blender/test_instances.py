@@ -14,7 +14,7 @@ def shot(project):
     """Sequence 010_010's layout file, open, with one shot; returns the shot's scene."""
     publish_model(project)
     publish_prop(project, "crate")
-    bpy.ops.pipeline.new_sequence(episode="NEW", position="END")
+    bpy.ops.pipeline.new_sequence(episode="NEW")
     bpy.ops.pipeline.add_shot()
     return bpy.data.scenes["010_010_0010"]
 

@@ -1,13 +1,13 @@
 """Pipeline > New Sequence: create a sequence and open its first layout workfile.
 
-The sequence is numbered at the end of its episode, or between two sequences; with
-"New episode" it starts the next episode. Its layout workfile opens with an empty cut.
+The sequence takes its episode's next number (or starts the next episode), with an
+optional title shown beside its code. Its layout workfile opens with an empty cut.
 """
 
 from __future__ import annotations
 
 import bpy
-from bpy.props import EnumProperty
+from bpy.props import EnumProperty, StringProperty
 
 from ...core.errors import PipelineError
 from .. import state
@@ -25,7 +25,7 @@ class PIPELINE_OT_new_sequence(UnsavedChanges, bpy.types.Operator):
     bl_options = {"REGISTER"}
 
     episode: EnumProperty(name="Episode", items=browse.episode_items)
-    position: EnumProperty(name="Place", items=browse.position_items)
+    title: StringProperty(name="Title", description="What happens in it, e.g. Opening chase")
 
     @classmethod
     def poll(cls, context: bpy.types.Context) -> bool:
@@ -38,7 +38,7 @@ class PIPELINE_OT_new_sequence(UnsavedChanges, bpy.types.Operator):
         project = state.current.project
         if project is not None and project.config.episodes:
             self.layout.prop(self, "episode")
-        self.layout.prop(self, "position")
+        self.layout.prop(self, "title")
         self.draw_unsaved(self.layout)
 
     def execute(self, context: bpy.types.Context) -> set[str]:
@@ -48,9 +48,8 @@ class PIPELINE_OT_new_sequence(UnsavedChanges, bpy.types.Operator):
             episode = None
             if project.config.episodes:
                 episode = project.next_episode() if self.episode == browse.NEW else self.episode
-            after = None if self.position == browse.END else project.sequence(self.position)
             self.handle_unsaved()
-            sequence = project.create_sequence(episode, after)
+            sequence = project.create_sequence(episode, self.title)
             # Opening a file frees this operator, so nothing below may touch self.
             start_workfile(sequence, LAYOUT)
         except PipelineError as error:

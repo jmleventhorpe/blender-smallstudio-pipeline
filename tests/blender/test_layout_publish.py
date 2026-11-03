@@ -18,7 +18,7 @@ def cut(project):
     """Sequence 010_010's layout file with two shots: hero in 0010, two crates in 0020."""
     publish_model(project)
     publish_prop(project, "crate")
-    bpy.ops.pipeline.new_sequence(episode="NEW", position="END")
+    bpy.ops.pipeline.new_sequence(episode="NEW")
     bpy.ops.pipeline.add_shot()
     layout.master_scene().frame_current = 1000
     bpy.ops.pipeline.add_shot()
@@ -103,7 +103,7 @@ def test_a_shot_without_a_camera_blocks(project, cut):
 
 
 def test_an_empty_cut_cant_be_published(project):
-    bpy.ops.pipeline.new_sequence(episode="NEW", position="END")
+    bpy.ops.pipeline.new_sequence(episode="NEW")
     with pytest.raises(RuntimeError, match="The cut has no shots yet"):
         bpy.ops.pipeline.publish()
     assert not project.sequence("010_010").hero_path("layout").exists()

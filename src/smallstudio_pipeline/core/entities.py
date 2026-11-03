@@ -201,6 +201,11 @@ class Sequence(Entity):
     def label(self) -> str:
         return f"sequence {self.code}"
 
+    @property
+    def title(self) -> str:
+        """What happens in it, e.g. "Opening chase", or "" if it has no title."""
+        return self.metadata.title
+
     def shots(self, include_omitted: bool = False) -> list[Shot]:
         """The sequence's shots, in order."""
         shots = self.project.shots(include_omitted)
