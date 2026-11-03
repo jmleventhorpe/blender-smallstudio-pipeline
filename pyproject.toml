@@ -44,8 +44,10 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 # Spikes and the Blender test runner set sys.path before importing.
 "spikes/*" = ["E402"]
 "tests/blender/run.py" = ["E402"]
-# Blender declares operator settings as class attributes: bl_options = {"REGISTER"}.
+# Blender declares operator settings as class attributes: bl_options = {"REGISTER"},
+# and publish-validator checks do the same: hosts = ["blender"].
 "src/smallstudio_pipeline/blender/**" = ["RUF012"]
+"src/smallstudio_pipeline/checks/**" = ["RUF012"]
 
 [tool.pyright]
 include = ["src", "tests", "scripts"]

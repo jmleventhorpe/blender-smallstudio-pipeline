@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import bmesh
 import bpy
 import pytest
 
@@ -36,6 +37,18 @@ def unsaved_changes(monkeypatch):
 
 def add_object(name: str) -> None:
     bpy.context.scene.collection.objects.link(bpy.data.objects.new(name, None))
+
+
+def add_cube(collection: bpy.types.Collection, name: str) -> bpy.types.Object:
+    """A cube mesh object in a collection, its data named after it."""
+    mesh = bpy.data.meshes.new(name)
+    cube = bmesh.new()
+    bmesh.ops.create_cube(cube, size=1.0)
+    cube.to_mesh(mesh)
+    cube.free()
+    obj = bpy.data.objects.new(name, mesh)
+    collection.objects.link(obj)
+    return obj
 
 
 def save_blend(path: Path) -> None:

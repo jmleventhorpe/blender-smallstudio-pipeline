@@ -1,0 +1,22 @@
+# publish-validator settings for this pipeline. A project can add its own
+# validation.toml beside pipeline.toml, and a checks/ folder of its own checks;
+# its settings win. Check names are class names.
+
+# These built-in checks expect an Empty asset root with geo/proxy groups, and every
+# object at the origin. Pipeline assets are collections without those groups, and sets
+# and kits place their pieces around the scene.
+[checks.GroupSetup]
+enabled = false
+
+[checks.GeoChildren]
+enabled = false
+
+[checks.ZeroTransforms]
+enabled = false
+
+[checks.AllowedObjectTypes]
+settings = { allowed = ["MESH", "EMPTY", "CURVE", "GREASEPENCIL"] }
+
+# Ngons are common in stylised models; flag them without blocking the publish.
+[checks.Ngons]
+severity = "warning"
