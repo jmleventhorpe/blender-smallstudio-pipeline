@@ -33,8 +33,8 @@ def on_load_post(*_args: object) -> None:
     state.refresh()
     claim()
     after_open()
-    if state.current.warning and state.current.context is not None:
-        show_message(state.current.warning)  # Publishes, files in use, stale builds.
+    if state.current.warnings and state.current.context is not None:
+        show_message(*state.current.warnings)  # Publishes, files in use, stale builds.
 
 
 def after_open() -> None:
@@ -46,11 +46,8 @@ def after_open() -> None:
         show_message(f"Added {project.root.name}'s assets to the Asset Browser.", icon="INFO")
     updates.remember_versions(project)
     stale = updates.stale_builds(project, bpy.context.scene)
-    if stale and state.current.warning is None:
-        newer = ", ".join(change.label for change in stale)
-        state.current.warning = (
-            f"Built from an older publish ({newer}). Carry changes over by hand."
-        )
+    if stale:
+        state.current.warnings.append(updates.stale_warning(stale))
 
 
 @persistent
@@ -74,7 +71,9 @@ def claim() -> None:
         _claimed = path
         return
     since = other.opened.astimezone().strftime("%H:%M on %d %b")
-    state.current.warning = f"{other.user} has this file open on {other.machine} (since {since})."
+    state.current.warnings.append(
+        f"{other.user} has this file open on {other.machine} (since {since})."
+    )
 
 
 def release() -> None:
@@ -84,14 +83,15 @@ def release() -> None:
         _claimed = None
 
 
-def show_message(message: str, icon: str = "ERROR") -> None:
+def show_message(*lines: str, icon: str = "ERROR") -> None:
     """Pop up a message once the UI is ready. Handlers can't report to the artist directly."""
     if bpy.app.background:
         return
 
     def popup() -> None:
         def draw(menu: bpy.types.UIPopupMenu, _context: bpy.types.Context) -> None:
-            menu.layout.label(text=message)
+            for line in lines:
+                menu.layout.label(text=line)
 
         bpy.context.window_manager.popup_menu(draw, title="Pipeline", icon=icon)  # pyright: ignore[reportArgumentType]
 

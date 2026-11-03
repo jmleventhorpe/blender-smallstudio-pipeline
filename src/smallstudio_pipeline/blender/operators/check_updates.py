@@ -30,7 +30,7 @@ class PIPELINE_OT_check_updates(bpy.types.Operator):
         if changes:
             news.append("Updated " + ", ".join(change.label for change in changes))
         if stale:
-            news.append("Built from an older publish: " + ", ".join(c.label for c in stale))
+            news.append(updates.stale_warning(stale))
         self.report(
             {"WARNING" if stale else "INFO"}, ". ".join(news) or "Everything is up to date."
         )

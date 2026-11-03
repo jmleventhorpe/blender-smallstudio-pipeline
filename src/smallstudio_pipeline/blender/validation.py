@@ -43,7 +43,12 @@ def subject_for(root: bpy.types.Collection, target: PublishTarget, file_entity: 
     record = hero_record(asset, target.task)
     previous = None
     if record is not None:
-        previous = {"version": record.version, "object_names": record.object_names}
+        padding = asset.project.config.version_padding
+        previous = {
+            "version": record.version,
+            "label": f"v{record.version:0{padding}d}",
+            "object_names": record.object_names,
+        }
     return Subject(
         name=asset.name,
         asset_type=asset.asset_type,

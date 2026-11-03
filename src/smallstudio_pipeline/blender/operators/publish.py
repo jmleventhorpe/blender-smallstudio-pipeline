@@ -145,6 +145,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
             checks={result.check_id: result.status for result in last.report.results},
         )
         write_records(plan, record)
-        last.published = f"{plan.hero.stem} v{plan.version:03d}"
+        padding = target.asset.project.config.version_padding
+        last.published = f"{plan.hero.stem} v{plan.version:0{padding}d}"
         results.redraw()
         return last.published

@@ -41,8 +41,11 @@ All notable changes to this project are listed here. The format follows
   - Assets can be edited (Make Editable) or started inside another asset's file and
     published from there; they're linked back in afterwards.
   - Each project's assets folder becomes an Asset Browser library. Check Updates reloads
-    linked publishes that were published again; files built from an older publish are
-    flagged.
+    linked publishes that were published again, including ones linked since the file
+    opened. Files built from an older publish are flagged, saying what changed and what
+    to bring across.
+  - The Pipeline menu lists every warning for the open file (a publish, someone else
+    has it open, built from an older publish), not just the first.
 
 ### Changed
 

@@ -14,6 +14,7 @@ from typing import Any
 
 import bpy
 
+from ..core.errors import PipelineError
 from ..core.project import Project
 from ..core.publishing import relative
 
@@ -34,6 +35,17 @@ def load(path: Path, kind: str, names: Iterable[str], link: bool, **options: Any
     # Blender fills the list in the order the names were given.
     loaded = zip(wanted, getattr(data_to, kind), strict=True)
     return {name: datablock for name, datablock in loaded if datablock is not None}
+
+
+def load_root(path: Path, asset: str, link: bool, **options: Any) -> bpy.types.Collection:
+    """Link or append an asset's root collection from one of its publishes."""
+    found = load(path, "collections", [asset], link=link, **options)
+    if asset not in found:
+        raise PipelineError(
+            f"{path.name} has no collection called {asset}, so it can't be loaded. "
+            "Publish the asset again from its workfile."
+        )
+    return found[asset]
 
 
 def linked_publishes(project: Project) -> dict[str, bpy.types.Library]:

@@ -26,8 +26,15 @@ def remember_versions(project: Project) -> None:
 
 def reload_changed(project: Project) -> list[Change]:
     """Reload linked publishes that have been published again since they were seen."""
-    changes = changed(project, seen)
     libraries = linked_publishes(project)
+    for path in [path for path in seen if path not in libraries]:
+        del seen[path]  # No longer linked.
+    for path in libraries.keys() - seen.keys():
+        # Linked since the file opened (from the Asset Browser, say). It may have been
+        # published again since it was linked, so reload it to be sure.
+        libraries[path].reload()
+        seen[path] = publish_version(project, path)
+    changes = changed(project, seen)
     for change in changes:
         libraries[change.path].reload()
         seen[change.path] = change.new
@@ -43,3 +50,12 @@ def stale_builds(project: Project, scene: bpy.types.Scene) -> list[Change]:
         if change is not None:
             found.append(change)
     return found
+
+
+def stale_warning(changes: list[Change]) -> str:
+    """What to tell the artist about roots built from an older publish."""
+    publishes = ", ".join(f"{change.name} ({change.versions})" for change in changes)
+    return (
+        f"Published again since this file was built from it: {publishes}. "
+        "Materials update when you publish; bring other changes across by hand."
+    )

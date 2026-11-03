@@ -18,20 +18,20 @@ def test_a_workfile(project):
     hero = project.create_asset("character", "hero")
     current = state.describe(str(hero.workfile_path("rig", 3)), None)
     assert current.label == "hero · rig · v003"
-    assert current.warning is None
+    assert current.warnings == []
 
 
 def test_a_publish_warns(project):
     hero = project.create_asset("character", "hero")
     current = state.describe(str(hero.hero_path("rig")), None)
     assert current.label == "hero · rig · published"
-    assert current.warning == state.PUBLISH
+    assert current.warnings == [state.PUBLISH]
 
 
 def test_an_unmanaged_file_in_the_project_warns(project):
     current = state.describe(str(project.root / "scratch.blend"), None)
     assert current.label == "show · not a pipeline file"
-    assert current.warning == state.UNMANAGED
+    assert current.warnings == [state.UNMANAGED]
 
 
 def test_an_unsaved_file_uses_the_active_project(project):
@@ -43,7 +43,7 @@ def test_a_broken_config_is_shown_not_raised(project):
     (project.root / "pipeline.toml").write_text("[project\n")
     current = state.describe(str(project.root / "scratch.blend"), None)
     assert current.label == "Project error"
-    assert current.warning is not None and "isn't valid TOML" in current.warning
+    assert len(current.warnings) == 1 and "isn't valid TOML" in current.warnings[0]
 
 
 def test_refresh_reads_the_open_file(project):

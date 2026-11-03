@@ -43,10 +43,7 @@ def bring_in_root(asset: Asset, publish: Dependency, scene: bpy.types.Scene) -> 
     """Append an asset's root collection from one of its publishes, e.g. the model for a rig."""
     path = asset.project.root / publish.path
     # clear_asset_data: the hero is marked as an asset, but this workfile's copy mustn't be.
-    found = libraries.load(path, "collections", [asset.name], link=False, clear_asset_data=True)
-    if asset.name not in found:
-        raise PipelineError(f"{path.name} has no collection called {asset.name}.")
-    root = found[asset.name]
+    root = libraries.load_root(path, asset.name, link=False, clear_asset_data=True)
     scene.collection.children.link(root)
     mark_built_from(root, publish)
 

@@ -21,11 +21,25 @@ class Change:
     path: str  # The publish, relative to the project root.
     old: int | None  # The version the file had, if known.
     new: int | None  # The version on disk now.
+    padding: int = 3
+
+    @property
+    def name(self) -> str:
+        """The publish's file name without its extension, e.g. "hero_rig"."""
+        return Path(self.path).stem
+
+    @property
+    def versions(self) -> str:
+        """e.g. "v003 → v004"."""
+        return f"{self._version(self.old)} → {self._version(self.new)}"
 
     @property
     def label(self) -> str:
         """e.g. "hero_rig v003 → v004"."""
-        return f"{Path(self.path).stem} {_version(self.old)} → {_version(self.new)}"
+        return f"{self.name} {self.versions}"
+
+    def _version(self, number: int | None) -> str:
+        return "unknown" if number is None else f"v{number:0{self.padding}d}"
 
 
 def publish_version(project: Project, path: str) -> int | None:
@@ -45,7 +59,7 @@ def changed(project: Project, seen: dict[str, int | None]) -> list[Change]:
     for path, old in sorted(seen.items()):
         new = publish_version(project, path)
         if new != old:
-            changes.append(Change(path, old, new))
+            changes.append(Change(path, old, new, project.config.version_padding))
     return changes
 
 
@@ -53,9 +67,5 @@ def stale_build(project: Project, built_from: Dependency) -> Change | None:
     """A Change if the publish something was built from has been published again since."""
     new = publish_version(project, built_from.path)
     if new is not None and built_from.version is not None and new > built_from.version:
-        return Change(built_from.path, built_from.version, new)
+        return Change(built_from.path, built_from.version, new, project.config.version_padding)
     return None
-
-
-def _version(number: int | None) -> str:
-    return "unknown" if number is None else f"v{number:03d}"

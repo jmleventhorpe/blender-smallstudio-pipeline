@@ -45,9 +45,7 @@ def test_someone_elses_mark_is_kept_and_warned_about(project):
 
     bpy.ops.wm.open_mainfile(filepath=str(path))
 
-    assert state.current.warning is not None and "sam has this file open on pc-02" in (
-        state.current.warning
-    )
+    assert any("sam has this file open on pc-02" in w for w in state.current.warnings)
     marker = read_marker(path)
     assert marker is not None and marker.machine == "pc-02"
 
@@ -58,7 +56,7 @@ def test_publishes_are_not_marked_and_warn(project):
     save_blend(publish)
     bpy.ops.wm.open_mainfile(filepath=str(publish))
     assert not marker_path(publish).exists()
-    assert state.current.warning == state.PUBLISH
+    assert state.current.warnings == [state.PUBLISH]
 
 
 def test_unregistering_releases_the_mark_and_removes_the_menu(project):

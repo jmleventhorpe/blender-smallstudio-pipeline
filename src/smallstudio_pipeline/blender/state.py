@@ -7,7 +7,7 @@ it; the load and save handlers call it, and the menu, top bar and operators only
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import bpy
@@ -17,13 +17,17 @@ from ..core.errors import PipelineError
 from ..core.project import Project
 from .ui.preferences import active_project_root
 
+UNMANAGED = "This file isn't a pipeline workfile. Use Pipeline > Open or New Workfile."
+PUBLISH = "This is a publish. Changes here won't reach shots; open the workfile instead."
+
 
 @dataclass
 class Current:
     project: Project | None = None
     context: FileContext | None = None
     label: str = "No project"
-    warning: str | None = None  # Shown in the warning colour and as a tooltip.
+    # Shown in the Pipeline menu, with the top bar's label in the warning colour.
+    warnings: list[str] = field(default_factory=list)
 
 
 current = Current()
@@ -43,7 +47,7 @@ def describe(filepath: str, fallback_root: Path | None) -> Current:
         if project is None and fallback_root is not None:
             project = Project(fallback_root)
     except PipelineError as error:  # A broken pipeline.toml shouldn't break the UI.
-        return Current(label="Project error", warning=str(error))
+        return Current(label="Project error", warnings=[str(error)])
 
     if project is None:
         return Current()
@@ -52,10 +56,6 @@ def describe(filepath: str, fallback_root: Path | None) -> Current:
         return Current(project, label=f"{name} · unsaved file")
     context = file_context(project, path)
     if context is None:
-        return Current(project, label=f"{name} · not a pipeline file", warning=UNMANAGED)
-    warning = PUBLISH if context.is_publish else None
-    return Current(project, context, context.label, warning)
-
-
-UNMANAGED = "This file isn't a pipeline workfile. Use Pipeline > Open or New Workfile."
-PUBLISH = "This is a publish. Changes here won't reach shots; open the workfile instead."
+        return Current(project, label=f"{name} · not a pipeline file", warnings=[UNMANAGED])
+    warnings = [PUBLISH] if context.is_publish else []
+    return Current(project, context, context.label, warnings)

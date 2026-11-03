@@ -17,8 +17,9 @@ class PIPELINE_MT_main(bpy.types.Menu):
 
     def draw(self, context: bpy.types.Context) -> None:
         layout = self.layout
-        if state.current.warning:
-            layout.label(text=state.current.warning, icon="ERROR")
+        for warning in state.current.warnings:
+            layout.label(text=warning, icon="ERROR")
+        if state.current.warnings:
             layout.separator()
         layout.operator("pipeline.open", text="Open…", icon="FILEBROWSER")
         layout.operator("pipeline.new_workfile", text="New Workfile…", icon="FILE_NEW")
@@ -37,8 +38,8 @@ def draw_in_top_bar(self: bpy.types.Menu, context: bpy.types.Context) -> None:
     """Added after the top bar's menus: the Pipeline menu, then the open file's label."""
     self.layout.menu(PIPELINE_MT_main.bl_idname)
     row = self.layout.row()
-    row.alert = state.current.warning is not None  # Draws in the warning colour.
-    row.label(text=state.current.label, icon="ERROR" if state.current.warning else "NONE")
+    row.alert = bool(state.current.warnings)  # Draws in the warning colour.
+    row.label(text=state.current.label, icon="ERROR" if state.current.warnings else "NONE")
 
 
 # The stubs say draw functions take (context); Blender calls them with (self, context).

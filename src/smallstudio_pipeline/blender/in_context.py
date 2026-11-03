@@ -55,7 +55,7 @@ def make_editable(empty: bpy.types.Object, project: Project) -> bpy.types.Collec
     # The versioned copy, not the hero: this file links the hero, and Blender won't
     # append cleanly from a file it already links.
     source = asset.publish_path(task, version)
-    root = libraries.load(source, "collections", [asset.name], link=False)[asset.name]
+    root = libraries.load_root(source, asset.name, link=False)
     for collection in empty.users_collection:
         collection.children.link(root)
 
@@ -179,7 +179,7 @@ def swap_for_link(root: bpy.types.Collection, asset: Asset, hero: Path) -> bpy.t
     library = libraries.linked_publishes(asset.project).get(path)
     if library is not None:
         library.reload()
-    linked = libraries.load(hero, "collections", [asset.name], link=True)[asset.name]
+    linked = libraries.load_root(hero, asset.name, link=True)
     updates.seen[path] = publish_version(asset.project, path)
     empty = bpy.data.objects.new(name, None)
     home.objects.link(empty)

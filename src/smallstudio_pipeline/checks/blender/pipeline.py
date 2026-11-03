@@ -8,7 +8,8 @@ the subject's extras:
     identity            (name, asset_type) from the root collection's properties, or None
     in_context          True when publishing from another asset's file
     file_entity         what the open file is for, e.g. "street"
-    previous            {"version": 3, "object_names": [...]} for the last publish, or None
+    previous            {"version": 3, "label": "v003", "object_names": [...]} for the last
+                        publish, or None
 """
 
 import re
@@ -111,4 +112,4 @@ class StableNames(Check):
             return
         names = {obj.name for obj in ctx.host.objects(ctx.root)}
         for name in sorted(set(previous["object_names"]) - names):
-            yield self.issue(f"{name} was in v{previous['version']:03d} but isn't now")
+            yield self.issue(f"{name} was in {previous['label']} but isn't now")
