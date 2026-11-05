@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from smallstudio_pipeline.core.context import file_context
-from smallstudio_pipeline.core.project import Project
+from smallstudio_pipeline.project.core.project import Project
+from smallstudio_pipeline.workfiles.core.context import file_context
 
 
 def test_core_builds_a_project_in_blender(tmp_path: Path):

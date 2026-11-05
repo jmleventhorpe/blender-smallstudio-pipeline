@@ -2,13 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from smallstudio_pipeline.core.errors import (
+from smallstudio_pipeline.common.errors import (
     EntityExists,
     EntityNotFound,
     NamingError,
     PipelineError,
 )
-from smallstudio_pipeline.core.project import Project
+from smallstudio_pipeline.project.core.project import Project
 
 
 def touch(path: Path) -> None:

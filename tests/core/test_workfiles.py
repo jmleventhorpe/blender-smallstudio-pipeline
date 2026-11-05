@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from smallstudio_pipeline.core.errors import ConfigError, PipelineError
-from smallstudio_pipeline.core.workfiles import new_workfile, version_up_path
+from smallstudio_pipeline.common.errors import ConfigError, PipelineError
+from smallstudio_pipeline.workfiles.core.workfiles import new_workfile, version_up_path
 
 
 def touch(path: Path) -> None:

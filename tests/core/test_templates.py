@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from smallstudio_pipeline.core.config import load_config
-from smallstudio_pipeline.core.errors import ConfigError, NamingError
-from smallstudio_pipeline.core.templates import build_templates
+from smallstudio_pipeline.common.errors import ConfigError, NamingError
+from smallstudio_pipeline.project.core.config import load_config
+from smallstudio_pipeline.project.core.templates import build_templates
 
 SAMPLE_VALUES = {
     "asset_type": "character",

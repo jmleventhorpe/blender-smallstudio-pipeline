@@ -6,10 +6,10 @@ import bpy
 import pytest
 
 import smallstudio_pipeline
-from smallstudio_pipeline.blender import state
-from smallstudio_pipeline.blender.identity import create_root_collection
-from smallstudio_pipeline.core.machine import ENV
-from smallstudio_pipeline.core.project import Project
+from smallstudio_pipeline.project.blender.identity import create_root_collection
+from smallstudio_pipeline.project.core.machine import ENV
+from smallstudio_pipeline.project.core.project import Project
+from smallstudio_pipeline.session import state
 
 
 @pytest.fixture(autouse=True)
@@ -46,7 +46,7 @@ def project(tmp_path: Path, registered, monkeypatch) -> Project:
 @pytest.fixture
 def unsaved_changes(monkeypatch):
     """Make the open file count as changed. Python edits don't set the flag in background."""
-    from smallstudio_pipeline.blender import workfiles
+    from smallstudio_pipeline.workfiles.blender import workfiles
 
     monkeypatch.setattr(workfiles, "has_unsaved_changes", lambda: True)
 

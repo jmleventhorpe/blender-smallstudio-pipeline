@@ -4,8 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from smallstudio_pipeline.core import inuse
-from smallstudio_pipeline.core.inuse import Marker, claim, marker_path, read_marker, release
+from smallstudio_pipeline.workfiles.core import inuse
+from smallstudio_pipeline.workfiles.core.inuse import (
+    Marker,
+    claim,
+    marker_path,
+    read_marker,
+    release,
+)
 
 
 @pytest.fixture

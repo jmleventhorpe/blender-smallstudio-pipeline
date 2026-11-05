@@ -6,8 +6,8 @@ import bpy
 import pytest
 from conftest import add_cube, give_material, publish_model, save_blend
 
-from smallstudio_pipeline.blender.identity import INSTANCE_ID, built_from
-from smallstudio_pipeline.core.publishing import Dependency, hero_record
+from smallstudio_pipeline.project.blender.identity import INSTANCE_ID, built_from
+from smallstudio_pipeline.publishing.core.publishing import Dependency, hero_record
 
 MODEL_HERO = "assets/character/hero/model/publish/hero_model.blend"
 

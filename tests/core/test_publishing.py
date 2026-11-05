@@ -3,11 +3,15 @@ from pathlib import Path
 
 import pytest
 
-from smallstudio_pipeline.core.catalogs import CATALOG_FILE, ensure_catalog, read_catalogs
-from smallstudio_pipeline.core.config import load_config
-from smallstudio_pipeline.core.context import file_context
-from smallstudio_pipeline.core.errors import ConfigError, EntityNotFound, PipelineError
-from smallstudio_pipeline.core.publishing import (
+from smallstudio_pipeline.common.errors import ConfigError, EntityNotFound, PipelineError
+from smallstudio_pipeline.loading.core.updates import Change, changed, stale_build
+from smallstudio_pipeline.project.core.config import load_config
+from smallstudio_pipeline.publishing.core.catalogs import (
+    CATALOG_FILE,
+    ensure_catalog,
+    read_catalogs,
+)
+from smallstudio_pipeline.publishing.core.publishing import (
     Dependency,
     built_from,
     hero_record,
@@ -17,7 +21,7 @@ from smallstudio_pipeline.core.publishing import (
     read_record,
     write_records,
 )
-from smallstudio_pipeline.core.updates import Change, changed, stale_build
+from smallstudio_pipeline.workfiles.core.context import file_context
 
 
 def touch(path: Path) -> None:

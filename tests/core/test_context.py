@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from smallstudio_pipeline.core.context import FileContext, file_context
+from smallstudio_pipeline.workfiles.core.context import FileContext, file_context
 
 
 def context_of(project, path: Path) -> FileContext:

@@ -83,7 +83,7 @@ its own checks in a `checks/` folder there (see
 
 ```python
 from pathlib import Path
-from smallstudio_pipeline.core.project import Project
+from smallstudio_pipeline.project.core.project import Project
 
 project = Project.create(Path("/mnt/show"))
 hero = project.create_asset("character", "hero")
@@ -99,14 +99,17 @@ shot.render_path("light", 1)
 
 | Path | What's there |
 | --- | --- |
-| `src/smallstudio_pipeline/core/` | The rules, with no Blender imports: settings, names and paths, projects and entities, and what workfiles, publishes and updates are. Tested in plain Python. |
-| `src/smallstudio_pipeline/defaults.toml` | Built-in settings: asset types, tasks, naming, path templates. A project's `pipeline.toml` overrides any of them. |
-| `src/smallstudio_pipeline/blender/` | Doing it in Blender: workfiles, libraries, updates, validation, load/save handlers. Tested in headless Blender. |
-| `src/smallstudio_pipeline/blender/assets/` | Asset work: publishing, rig materials, editing an asset inside a set. |
-| `src/smallstudio_pipeline/blender/operators/` | The Pipeline menu's actions, one per file. |
-| `src/smallstudio_pipeline/blender/ui/` | The menu and top bar, the results panel, preferences. |
-| `src/smallstudio_pipeline/checks/`, `validation.toml` | The pipeline's own publish checks and its publish-validator settings. |
+| `src/smallstudio_pipeline/project/` | Settings, names and paths, assets, sequences and shots, this machine's project list. `defaults.toml` holds the built-in settings a project's `pipeline.toml` overrides. |
+| `src/smallstudio_pipeline/workfiles/` | What a file is, new workfiles, Open and Version Up, in-use markers. |
+| `src/smallstudio_pipeline/loading/` | Linking publishes, Check Updates, instances and Override for Posing, Make Editable. |
+| `src/smallstudio_pipeline/publishing/` | Checks (with the pipeline's own in `checks/` and `validation.toml`), then writing asset and layout publishes. |
+| `src/smallstudio_pipeline/shots/` | The sequence layout file: the cut, Add Shot and Omit Shot. |
+| `src/smallstudio_pipeline/common/`, `session/`, `interface/` | Shared helpers; what's open and the load/save handlers; the Pipeline menu. |
 | `src/smallstudio_pipeline/wheels/` | publish-validator, bundled as a wheel. |
+
+In each job, `core/` holds the rules and never imports Blender (tested in plain Python),
+and `blender/` does the work in Blender, with the job's menu actions in `operators.py`
+(tested in headless Blender).
 | `tests/core/`, `tests/blender/` | The two test suites. |
 | `spikes/` | Scripts that tested the Blender behaviour the design relies on, with [results](spikes/RESULTS.md). |
 | `scripts/build_extension.py` | Builds and validates the extension zip. |

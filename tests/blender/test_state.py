@@ -5,9 +5,9 @@ from pathlib import Path
 import bpy
 import pytest
 
-from smallstudio_pipeline.blender import state
-from smallstudio_pipeline.core.machine import MachineSettings, ProjectFolder, save_settings
-from smallstudio_pipeline.core.project import Project
+from smallstudio_pipeline.project.core.machine import MachineSettings, ProjectFolder, save_settings
+from smallstudio_pipeline.project.core.project import Project
+from smallstudio_pipeline.session import state
 
 
 @pytest.fixture

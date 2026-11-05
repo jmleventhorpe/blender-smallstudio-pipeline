@@ -4,9 +4,10 @@ import bpy
 import pytest
 from conftest import place, placed_at, publish_model, publish_prop
 
-from smallstudio_pipeline.blender.identity import INSTANCE_ID
-from smallstudio_pipeline.blender.shots import instances, layout
-from smallstudio_pipeline.core.metadata import CastEntry
+from smallstudio_pipeline.loading.blender import instances
+from smallstudio_pipeline.project.blender.identity import INSTANCE_ID
+from smallstudio_pipeline.project.core.metadata import CastEntry
+from smallstudio_pipeline.shots.blender import layout
 
 
 @pytest.fixture

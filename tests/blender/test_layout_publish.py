@@ -7,10 +7,10 @@ import bpy
 import pytest
 from conftest import place, publish_model, publish_prop
 
-from smallstudio_pipeline.blender.identity import INSTANCE_ID
-from smallstudio_pipeline.blender.shots import layout
-from smallstudio_pipeline.blender.ui import results
-from smallstudio_pipeline.core.metadata import CastEntry
+from smallstudio_pipeline.project.blender.identity import INSTANCE_ID
+from smallstudio_pipeline.project.core.metadata import CastEntry
+from smallstudio_pipeline.publishing.blender import results
+from smallstudio_pipeline.shots.blender import layout
 
 
 @pytest.fixture

@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from smallstudio_pipeline.core.config import load_config
-from smallstudio_pipeline.core.errors import ConfigError
+from smallstudio_pipeline.common.errors import ConfigError
+from smallstudio_pipeline.project.core.config import load_config
 
 
 def write_project_config(root: Path, text: str) -> Path:

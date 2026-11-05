@@ -1,4 +1,4 @@
-from smallstudio_pipeline.core.casting import (
+from smallstudio_pipeline.loading.core.casting import (
     duplicate_ids,
     instance_id,
     instance_number,

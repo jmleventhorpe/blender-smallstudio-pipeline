@@ -7,9 +7,9 @@ import bpy
 from conftest import save_blend
 
 import smallstudio_pipeline
-from smallstudio_pipeline.blender import state
-from smallstudio_pipeline.blender.ui import menu
-from smallstudio_pipeline.core.inuse import marker_path, read_marker
+from smallstudio_pipeline.interface import menu
+from smallstudio_pipeline.session import state
+from smallstudio_pipeline.workfiles.core.inuse import marker_path, read_marker
 
 
 def test_saving_a_workfile_marks_it_in_use_and_versioning_up_moves_the_mark(project):

@@ -1,12 +1,7 @@
 import pytest
 
-from smallstudio_pipeline.core.errors import NamingError
-from smallstudio_pipeline.core.naming import (
-    SequenceCode,
-    ShotCode,
-    check_name,
-    next_number,
-)
+from smallstudio_pipeline.common.errors import NamingError
+from smallstudio_pipeline.project.core.naming import SequenceCode, ShotCode, check_name, next_number
 
 
 @pytest.mark.parametrize("name", ["hero", "hero_02", "street_lamp"])

@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from smallstudio_pipeline.core.config import load_config
-from smallstudio_pipeline.core.errors import MetadataError
-from smallstudio_pipeline.core.files import write_atomic
-from smallstudio_pipeline.core.metadata import (
+from smallstudio_pipeline.common.errors import MetadataError
+from smallstudio_pipeline.common.files import write_atomic
+from smallstudio_pipeline.project.core.config import load_config
+from smallstudio_pipeline.project.core.metadata import (
     AssetMetadata,
     CastEntry,
     SequenceMetadata,
@@ -14,8 +14,8 @@ from smallstudio_pipeline.core.metadata import (
     read_metadata,
     write_metadata,
 )
-from smallstudio_pipeline.core.templates import build_templates
-from smallstudio_pipeline.core.tracker import FilesystemTracker
+from smallstudio_pipeline.project.core.templates import build_templates
+from smallstudio_pipeline.project.core.tracker import FilesystemTracker
 
 
 def test_write_atomic_creates_folders_and_leaves_no_temp_file(tmp_path: Path):

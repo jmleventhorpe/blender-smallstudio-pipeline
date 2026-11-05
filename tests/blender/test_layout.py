@@ -6,8 +6,8 @@ from types import SimpleNamespace
 import bpy
 import pytest
 
-from smallstudio_pipeline.blender.shots import layout
-from smallstudio_pipeline.blender.ui import browse
+from smallstudio_pipeline.interface import browse
+from smallstudio_pipeline.shots.blender import layout
 
 
 @pytest.fixture

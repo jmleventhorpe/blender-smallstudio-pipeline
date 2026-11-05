@@ -5,9 +5,13 @@ import pytest
 from conftest import add_cube
 from publish_validator import FAILED, PASSED, SKIPPED, WARNING
 
-from smallstudio_pipeline.blender.identity import ASSET_TYPE, INSTANCE_ID, create_root_collection
-from smallstudio_pipeline.blender.validation import subject_for, validator_for
-from smallstudio_pipeline.core.publishing import PublishTarget
+from smallstudio_pipeline.project.blender.identity import (
+    ASSET_TYPE,
+    INSTANCE_ID,
+    create_root_collection,
+)
+from smallstudio_pipeline.publishing.blender.validation import subject_for, validator_for
+from smallstudio_pipeline.publishing.core.publishing import PublishTarget
 
 
 @pytest.fixture
@@ -74,8 +78,8 @@ def test_in_context_publishes_warn_but_pass(hero):
 
 
 def test_removed_objects_warn(hero, monkeypatch):
-    from smallstudio_pipeline.blender import validation
-    from smallstudio_pipeline.core.publishing import PublishRecord
+    from smallstudio_pipeline.publishing.blender import validation
+    from smallstudio_pipeline.publishing.core.publishing import PublishRecord
 
     previous = PublishRecord.__new__(PublishRecord)
     previous.version, previous.object_names = 3, ["body", "eyes"]

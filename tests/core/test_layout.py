@@ -1,8 +1,8 @@
 import pytest
 
-from smallstudio_pipeline.core.errors import PipelineError
-from smallstudio_pipeline.core.layout import ShotCut, apply_cut
-from smallstudio_pipeline.core.metadata import CastEntry
+from smallstudio_pipeline.common.errors import PipelineError
+from smallstudio_pipeline.project.core.metadata import CastEntry
+from smallstudio_pipeline.shots.core.layout import ShotCut, apply_cut
 
 
 @pytest.fixture

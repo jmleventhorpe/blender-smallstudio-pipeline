@@ -17,13 +17,13 @@ blender -b --factory-startup --python tests/blender/run.py
 
 Written to be read and extended by other TDs.
 
-- **Layers.** `core/` holds the rules and never imports Blender (`bpy`, `bmesh`,
+- **Jobs.** The code is split by job: project, workfiles, loading, publishing, shots.
+  In each, `core/` holds the rules and never imports Blender (`bpy`, `bmesh`,
   `mathutils`); a test and a ruff rule enforce it. `blender/` does the work in Blender,
-  usually in a module named after the core one it serves (`core/workfiles.py` decides,
-  `blender/workfiles.py` does). Work for one stage goes in that stage's folder
-  (`blender/assets/`, and `blender/shots/` from M4). Menu actions go in
-  `blender/operators/`, one per file; panels, menus and preferences in `blender/ui/`. See
-  [docs/architecture.md](docs/architecture.md).
+  often in a module named after the core one it serves (`workfiles/core/workfiles.py`
+  decides, `workfiles/blender/workfiles.py` does), and holds the job's menu actions in
+  `operators.py`. Shared helpers go in `common/`, load/save handlers in `session/`, the
+  menu in `interface/`. See [docs/architecture.md](docs/architecture.md).
 - **Structure.** Light OOP: entity classes with methods (`shot.workfile_path(task, version)`),
   plain records for data. No deep hierarchies or frameworks.
 - **Context.** Only operators read `bpy.context`. Helpers take the scene, collection or

@@ -1,0 +1,122 @@
+"""Loading's menu actions: Check Updates, Make Editable and Override for Posing.
+
+Pipeline > Check Updates: reload linked publishes that were published again, and say
+which, along with anything built from an older publish.
+
+Pipeline > Make Editable: swap the selected linked asset for a local copy to edit here.
+
+Publishing the copy links the asset back in; see loading/blender/editable.py.
+
+Pipeline > Override for Posing: make a linked asset in a shot posable, where it stands.
+
+Used in a sequence's or shot's workfile; see loading/blender/instances.py for how the
+override keeps its placement.
+"""
+
+from __future__ import annotations
+
+import bpy
+
+from ...common.errors import PipelineError
+from ...interface.common import has_project
+from ...project.blender.identity import linked_asset
+from ...session import state
+from . import editable, instances, updates
+
+
+class PIPELINE_OT_check_updates(bpy.types.Operator):
+    """Reload linked publishes that have been published again since this file opened"""
+
+    bl_idname = "pipeline.check_updates"
+    bl_label = "Check Updates"
+    bl_options = {"REGISTER"}
+
+    @classmethod
+    def poll(cls, context: bpy.types.Context) -> bool:
+        return has_project(cls)
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        project = state.current.project
+        assert project is not None  # Checked by poll.
+        changes = updates.reload_changed(project)
+        stale = updates.stale_builds(project, context.scene)
+        news = []
+        if changes:
+            news.append("Updated " + ", ".join(change.label for change in changes))
+        if stale:
+            news.append(updates.stale_warning(stale))
+        self.report(
+            {"WARNING" if stale else "INFO"}, ". ".join(news) or "Everything is up to date."
+        )
+        return {"FINISHED"}
+
+
+class PIPELINE_OT_make_editable(bpy.types.Operator):
+    """Swap the selected linked asset for a local copy to edit here. Publish it to link it again"""
+
+    bl_idname = "pipeline.make_editable"
+    bl_label = "Make Editable"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context: bpy.types.Context) -> bool:
+        if not has_project(cls):
+            return False
+        file = state.current.context
+        if file is None or file.entity_kind != "asset" or file.is_publish:
+            cls.poll_message_set("Make Editable works in an asset's workfile, such as a set's.")
+            return False
+        if linked_asset(context.active_object) is None:
+            cls.poll_message_set("Select a linked asset (the empty that places it).")
+            return False
+        return True
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        project = state.current.project
+        assert project is not None and context.active_object is not None  # Checked by poll.
+        try:
+            root = editable.make_editable(context.active_object, project, context.view_layer)
+        except PipelineError as error:
+            self.report({"ERROR"}, str(error))
+            return {"CANCELLED"}
+        self.report({"INFO"}, f"{root.name} is editable here. Publish it to link it again.")
+        return {"FINISHED"}
+
+
+class PIPELINE_OT_override_for_posing(bpy.types.Operator):
+    """Override the selected linked asset so it can be posed, keeping where it stands"""
+
+    bl_idname = "pipeline.override_for_posing"
+    bl_label = "Override for Posing"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context: bpy.types.Context) -> bool:
+        if not has_project(cls):
+            return False
+        file = state.current.context
+        if file is None or file.entity_kind == "asset" or file.is_publish:
+            cls.poll_message_set("Override for Posing works in a sequence's or shot's workfile.")
+            return False
+        if linked_asset(context.active_object) is None:
+            cls.poll_message_set("Select a linked asset (the empty that places it).")
+            return False
+        return True
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        empty = context.active_object
+        assert empty is not None  # Checked by poll.
+        try:
+            override = instances.override_for_posing(empty, context.scene, context.view_layer)
+        except PipelineError as error:
+            self.report({"ERROR"}, str(error))
+            return {"CANCELLED"}
+        self.report({"INFO"}, f"{override.name} can be posed now.")
+        return {"FINISHED"}
+
+
+CLASSES = (
+    PIPELINE_OT_check_updates,
+    PIPELINE_OT_make_editable,
+    PIPELINE_OT_override_for_posing,
+)

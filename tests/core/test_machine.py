@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from smallstudio_pipeline.core.machine import (
+from smallstudio_pipeline.project.core.machine import (
     ENV,
     MachineSettings,
     ProjectFolder,

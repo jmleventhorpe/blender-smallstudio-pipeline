@@ -6,7 +6,7 @@ import bpy
 import pytest
 from conftest import add_object, save_blend
 
-from smallstudio_pipeline.blender import state
+from smallstudio_pipeline.session import state
 
 
 @pytest.fixture

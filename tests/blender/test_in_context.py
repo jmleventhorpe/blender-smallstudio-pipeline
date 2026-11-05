@@ -12,9 +12,9 @@ import bpy
 import pytest
 from conftest import add_cube, link_collection, save_blend
 
-from smallstudio_pipeline.blender import state
-from smallstudio_pipeline.blender.identity import asset_identity, create_root_collection
-from smallstudio_pipeline.core.publishing import hero_record
+from smallstudio_pipeline.project.blender.identity import asset_identity, create_root_collection
+from smallstudio_pipeline.publishing.core.publishing import hero_record
+from smallstudio_pipeline.session import state
 
 
 def position(obj):

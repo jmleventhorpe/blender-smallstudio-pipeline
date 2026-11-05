@@ -8,10 +8,11 @@ import bpy
 import pytest
 from conftest import add_cube, link_collection, publish_model, save_blend
 
-from smallstudio_pipeline.blender import libraries, state, updates
-from smallstudio_pipeline.core.errors import PipelineError
-from smallstudio_pipeline.core.inuse import marker_path
-from smallstudio_pipeline.core.publishing import new_record, plan_publish, write_records
+from smallstudio_pipeline.common.errors import PipelineError
+from smallstudio_pipeline.loading.blender import libraries, updates
+from smallstudio_pipeline.publishing.core.publishing import new_record, plan_publish, write_records
+from smallstudio_pipeline.session import state
+from smallstudio_pipeline.workfiles.core.inuse import marker_path
 
 
 def test_the_projects_assets_become_an_asset_library_once(project):

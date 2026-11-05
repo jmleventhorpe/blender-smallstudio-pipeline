@@ -6,8 +6,8 @@ import bpy
 import pytest
 from conftest import add_object, save_blend
 
-from smallstudio_pipeline.blender import state
-from smallstudio_pipeline.blender.identity import INSTANCE_ID, asset_identity
+from smallstudio_pipeline.project.blender.identity import INSTANCE_ID, asset_identity
+from smallstudio_pipeline.session import state
 
 
 def test_new_asset_saves_its_first_workfile_with_a_root_collection(project):

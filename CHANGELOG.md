@@ -67,5 +67,8 @@ All notable changes to this project are listed here. The format follows
 ### Changed
 
 - Tasks have short names: model, rig, layout, light, anim.
+- The code is split by job (project, workfiles, loading, publishing, shots), each with
+  core/ for the rules and blender/ for the Blender work and menu actions, plus common/,
+  session/ and interface/. Each job registers its own classes.
 - Make Editable is only offered in asset workfiles; sequence and shot files get Override
   for Posing instead.

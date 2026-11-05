@@ -1,9 +1,10 @@
-"""The core must run in plain Python, so it can never import Blender modules."""
+"""Each job's core/ and common/ must run in plain Python, so they never import Blender."""
 
 import ast
 from pathlib import Path
 
-CORE = Path(__file__).parents[2] / "src" / "smallstudio_pipeline" / "core"
+PACKAGE = Path(__file__).parents[2] / "src" / "smallstudio_pipeline"
+NO_BLENDER = [PACKAGE / "common", *PACKAGE.glob("*/core")]
 BLENDER_MODULES = {"bpy", "bmesh", "mathutils", "bpy_extras", "gpu"}
 
 
@@ -20,8 +21,10 @@ def imported_modules(path: Path) -> set[str]:
 
 def test_core_modules_do_not_import_blender():
     offenders = {
-        path.name: sorted(imported_modules(path) & BLENDER_MODULES)
-        for path in CORE.rglob("*.py")
+        str(path.relative_to(PACKAGE)): sorted(imported_modules(path) & BLENDER_MODULES)
+        for folder in NO_BLENDER
+        for path in folder.rglob("*.py")
         if imported_modules(path) & BLENDER_MODULES
     }
+    assert len(NO_BLENDER) == 6, NO_BLENDER  # common and five jobs' core folders.
     assert not offenders, f"core imports Blender modules: {offenders}"
