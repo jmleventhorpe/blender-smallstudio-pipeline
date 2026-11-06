@@ -27,6 +27,7 @@ from ...shots.blender import layout
 from ...shots.core.layout import apply_cut, check_cut
 from ...workfiles.blender import workfiles
 from ..core.publishing import (
+    Placement,
     PublishTarget,
     builds_on_hero,
     new_record,
@@ -36,7 +37,7 @@ from ..core.publishing import (
 )
 from . import in_context, results, review
 from . import layout as layout_publish
-from .assets import dependencies, write_publish
+from .assets import dependencies, placements, write_publish
 from .materials import sync_materials
 from .validation import subject_for, validator_for
 
@@ -98,7 +99,8 @@ class PIPELINE_OT_publish(bpy.types.Operator):
             last = self.check_asset(context, root, target)
             if last is None:
                 return None
-            published = self.write_files(root, target, last, Path(bpy.data.filepath))
+            placed = placements(root, context.scene, context.view_layer)
+            published = self.write_files(root, target, last, Path(bpy.data.filepath), placed)
         if link_back_chosen(context):
             hero = target.asset.hero_path(target.task)
             in_context.swap_for_link(root, target.asset, hero, context.scene)
@@ -165,6 +167,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         target: PublishTarget,
         last: results.LastPublish,
         source: Path,
+        placed: list[Placement],
     ) -> str:
         """Write the publish and its records. Returns e.g. "hero_model v004"."""
         plan = plan_publish(target.asset, target.task)
@@ -175,6 +178,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
             blender=bpy.app.version_string,
             object_names=[obj.name for obj in root.all_objects],
             dependencies=dependencies(root, plan),
+            instances=placed,
             checks=last.statuses(),
         )
         write_records(plan, record)

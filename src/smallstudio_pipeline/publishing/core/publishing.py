@@ -2,8 +2,9 @@
 
 publish_target() says what publishing an asset node means: its asset and the node's task.
 plan_publish() gives the next version and where its files go; PublishRecord is what's
-written beside them. Each publish writes a versioned file and overwrites the hero file
-that other files link, each with a JSON record of the same name:
+written beside them, including the instances placed in it (a set's contents). Each
+publish writes a versioned file and overwrites the hero file that other files link, each
+with a JSON record of the same name:
 
     hero_rig_v004.blend   hero_rig_v004.json     this version, kept
     hero_rig.blend        hero_rig.json          always the latest
@@ -92,6 +93,17 @@ class Dependency:
     version: int | None  # Its version when it was used, if its record said.
 
 
+@dataclass(frozen=True)
+class Placement:
+    """An instance placed in a published asset (a crate in a set): what, which, where."""
+
+    asset: str
+    instance_id: str
+    location: tuple[float, float, float]
+    rotation: tuple[float, float, float]  # XYZ Euler, in radians.
+    scale: tuple[float, float, float]
+
+
 @dataclass
 class PublishRecord:
     entity: str  # "hero", or a sequence or shot code.
@@ -106,7 +118,7 @@ class PublishRecord:
     tool: str
     object_names: list[str] = field(default_factory=list)  # For the stable-names check.
     dependencies: list[Dependency] = field(default_factory=list)  # Linked publishes.
-    built_from: Dependency | None = None  # The publish a rig was built from.
+    instances: list[Placement] = field(default_factory=list)  # A set's contents, say.
     checks: dict[str, str] = field(default_factory=dict)  # Check name -> status.
     schema: int = SCHEMA
 
@@ -118,7 +130,6 @@ class PublishRecord:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> PublishRecord:
-        built_from = get(data, "built_from", dict, default=None)
         return cls(
             entity=get(data, "entity", str),
             # Records written before November 2026 call it "kind".
@@ -135,7 +146,7 @@ class PublishRecord:
             dependencies=[
                 _dependency(item) for item in get(data, "dependencies", list, default=[])
             ],
-            built_from=_dependency(built_from) if built_from else None,
+            instances=[_placement(item) for item in get(data, "instances", list, default=[])],
             checks=get(data, "checks", dict, default={}),
             schema=get(data, "schema", int, default=SCHEMA),
         )
@@ -147,7 +158,7 @@ def new_record(
     blender: str,
     object_names: list[str],
     dependencies: list[Dependency] | None = None,
-    built_from: Dependency | None = None,
+    instances: list[Placement] | None = None,
     checks: dict[str, str] | None = None,
 ) -> PublishRecord:
     """A record for a publish about to be written, with who, where and when filled in."""
@@ -165,7 +176,7 @@ def new_record(
         tool=tool_version(),
         object_names=sorted(object_names),
         dependencies=dependencies or [],
-        built_from=built_from,
+        instances=sorted(instances or [], key=lambda placed: placed.instance_id),
         checks=checks or {},
     )
 
@@ -216,3 +227,19 @@ def tool_version() -> str:
 
 def _dependency(data: Any) -> Dependency:
     return Dependency(get(data, "path", str), get(data, "version", int, default=None))
+
+
+def _placement(data: Any) -> Placement:
+    def triple(key: str) -> tuple[float, float, float]:
+        values = get(data, key, list)
+        if len(values) != 3 or not all(isinstance(v, int | float) for v in values):
+            raise ValueError(f"instances.{key} should be three numbers, not {values!r}")
+        return (float(values[0]), float(values[1]), float(values[2]))
+
+    return Placement(
+        get(data, "asset", str),
+        get(data, "instance_id", str),
+        triple("location"),
+        triple("rotation"),
+        triple("scale"),
+    )

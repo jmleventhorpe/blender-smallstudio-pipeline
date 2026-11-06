@@ -12,7 +12,7 @@ from smallstudio_pipeline.publishing.core.catalogs import (
     read_catalogs,
 )
 from smallstudio_pipeline.publishing.core.publishing import (
-    Dependency,
+    Placement,
     builds_on_hero,
     hero_record,
     new_record,
@@ -22,19 +22,21 @@ from smallstudio_pipeline.publishing.core.publishing import (
     write_records,
 )
 
+CRATE = Placement("crate", "crate_01", (5.0, 0.0, 0.0), (0.0, 0.0, 1.5708), (1.0, 1.0, 1.0))
+
 
 def touch(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.touch()
 
 
-def publish(entity, task, names=("body",), built=None):
+def publish(entity, task, names=("body",), placed=()):
     """Write a publish's files and records, as a Publish would (minus the .blend data)."""
     plan = plan_publish(entity, task)
     touch(plan.path)
     touch(plan.hero)
     source = entity.workfile_path(task, 1)
-    write_records(plan, new_record(plan, source, "5.2.2", list(names), built_from=built))
+    write_records(plan, new_record(plan, source, "5.2.2", list(names), instances=list(placed)))
     return plan
 
 
@@ -76,13 +78,13 @@ def test_records_round_trip_and_the_hero_record_is_the_latest(project):
     hero = project.create_asset("character", "hero")
     assert hero_record(hero, "rig") is None
     publish(hero, "rig", names=["body", "eyes"])
-    plan = publish(hero, "rig", names=["body"], built=Dependency("x.blend", 3))
+    plan = publish(hero, "rig", names=["body"], placed=[CRATE])
     record = hero_record(hero, "rig")
     assert record is not None
     assert record == read_record(plan.record)
     assert (record.version, record.object_names) == (2, ["body"])
     assert record.source == "assets/character/hero/rig/work/hero_rig_v001.blend"
-    assert record.built_from == Dependency("x.blend", 3)
+    assert record.instances == [CRATE]
     assert record.tool == "0.1.0"
 
 

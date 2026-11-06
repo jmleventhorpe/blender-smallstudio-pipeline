@@ -20,10 +20,12 @@ from mathutils import Euler, Vector
 
 from ...common.errors import PipelineError
 from ...common.files import replace_with_retry
+from ...loading.blender import instances
+from ...loading.blender.editable import world_matrix
 from ...loading.core.updates import publish_version
 from ...project.core.entities import Asset
 from ..core.catalogs import ensure_catalog
-from ..core.publishing import Dependency, PublishPlan, relative
+from ..core.publishing import Dependency, Placement, PublishPlan, relative
 
 THUMBNAIL_SIZE = 256
 
@@ -124,6 +126,37 @@ def render_thumbnail(collection: bpy.types.Collection, path: Path) -> None:
         bpy.data.scenes.remove(scene)
     if not path.exists():
         raise RuntimeError("The thumbnail render didn't write an image.")
+
+
+def placements(
+    root: bpy.types.Collection, scene: bpy.types.Scene, view_layer: bpy.types.ViewLayer
+) -> list[Placement]:
+    """The instances placed in a node (a set's crates and lamps): asset, ID and transform.
+
+    Each is where its empty stands (an overridden one's placing empty), in the space the
+    node is published in.
+    """
+    inside = set(root.all_objects)
+    found = []
+    for instance in instances.instances(scene):
+        holder = instance.holder
+        empty = (
+            instances.placing_empty(holder) if isinstance(holder, bpy.types.Collection) else holder
+        )
+        if empty is None or empty not in inside:
+            continue
+        location, rotation, scale = world_matrix(empty, view_layer).decompose()
+        euler = rotation.to_euler("XYZ")
+        found.append(
+            Placement(
+                instance.asset,
+                instance.instance_id,
+                (round(location.x, 6), round(location.y, 6), round(location.z, 6)),
+                (round(euler.x, 6), round(euler.y, 6), round(euler.z, 6)),
+                (round(scale.x, 6), round(scale.y, 6), round(scale.z, 6)),
+            )
+        )
+    return found
 
 
 def dependencies(root: bpy.types.Collection, plan: PublishPlan) -> list[Dependency]:
