@@ -1,10 +1,11 @@
 """The Publish panel: the node Publish would work on, what it becomes, and its checks.
 
-The node (publishing/blender/node.py) is shown straight away: the root collection, what it
+The node (project/blender/nodes.py) is shown straight away: the root collection, what it
 publishes and the version it becomes. Check adds the rest (publishing/blender/review.py):
 the facts that matter (the hero it replaces, materials, in context), and for a layout a row
 per shot with its frames, cut, cast and what changed since the last publish, the chosen
-shot first. Below, the last Check's or Publish's results, with Select and Fix. It shows
+shot first. With no node picked, or a loaded asset, it says why and greys out the
+buttons. Below, the last Check's or Publish's results, with Select and Fix. It shows
 in any pipeline workfile.
 """
 
@@ -16,7 +17,7 @@ import bpy
 
 from ...common.errors import PipelineError
 from ...interface.panels import both_sidebars, pair, wrapped
-from ...project.blender.nodes import current_node
+from ...project.blender.nodes import LoadedPicked, current_node
 from ...session import state
 from . import results, review
 
@@ -38,7 +39,13 @@ class PublishPanel:
             chosen = current_node(context)
             title, writes = review.describe(project, file, chosen)
         except PipelineError as error:
-            wrapped(layout, str(error), icon="INFO")
+            wrapped(
+                layout, str(error), icon="LINKED" if isinstance(error, LoadedPicked) else "INFO"
+            )
+            row = layout.row(align=True)
+            row.enabled = False
+            row.operator("pipeline.check_publish", icon="VIEWZOOM")
+            row.operator("pipeline.publish", icon="EXPORT")
             results.draw_results(layout)
             return
         box = layout.box()

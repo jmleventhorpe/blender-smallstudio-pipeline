@@ -61,12 +61,14 @@ draw headless.
 
 ## The node
 
-Publishing works on a node: a root collection (`publishing/blender/node.py`). An asset's
-root publishes that asset; a layout file's sequence root and every shot's root publish
-the sequence's layout. The node is the active collection in the Outliner when it's a
-root, else the root holding the selection, else the scene's only one. The Pipeline tab
-redraws as the selection, the active collection or the scene on show changes
-(`session/handlers.py`: the depsgraph handler and two message-bus subscriptions).
+Publishing works on a node (`project/blender/nodes.py`). An asset's node publishes that
+asset; a layout file's sequence node and every shot's node publish the sequence's layout.
+The node follows what you picked last: the collection you clicked in the Outliner, when
+it's a node, or the node holding the selection; failing both, the scene's only one. A
+loaded asset (linked, or overridden for posing) isn't a node, so picking one greys out
+Publish. Blender doesn't tell add-ons about Outliner clicks, so `session/handlers.py`
+looks at the clicked collection, the selection and the scene on show five times a second
+(`watch_picks`), notes which changed, and redraws the Pipeline tab.
 
 ## Registering
 

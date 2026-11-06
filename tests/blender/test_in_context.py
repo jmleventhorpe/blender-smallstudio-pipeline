@@ -191,7 +191,8 @@ def test_make_editable_needs_a_linked_asset(project, placement):
 
 def test_a_sets_publish_records_the_instances_it_holds(project, placement):
     street = project.asset("street")
-    bpy.ops.pipeline.publish()  # The set, holding the crate's empty.
+    bpy.ops.pipeline.activate_node(node="street")  # The crate is selected: it's loaded.
+    bpy.ops.pipeline.publish()
     record = hero_record(street, "model")
     assert record is not None
     (crate,) = record.instances

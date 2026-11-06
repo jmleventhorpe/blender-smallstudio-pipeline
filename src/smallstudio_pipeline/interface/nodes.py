@@ -191,6 +191,7 @@ class PIPELINE_OT_activate_node(bpy.types.Operator):
         if found is None:
             return {"CANCELLED"}
         nodes.make_active(context.scene, found.root)
+        nodes.picked = "collection"
         return {"FINISHED"}
 
 

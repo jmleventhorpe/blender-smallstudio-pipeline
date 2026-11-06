@@ -6,9 +6,12 @@ shot. Scenes carry nothing: a shot's scene is the one holding its node, and the 
 scene holding the sequence node. Only a file's own collections are nodes; a linked
 asset's root, or an override of one, is an instance (loading/blender/instances.py).
 
-The node Publish works on (current_node) is the active collection in the Outliner when
-it's a node (the one you clicked); else the node holding the selected objects (the
-innermost, for a prop inside its set); else the scene's only node.
+The node Publish works on (current_node) follows what you picked last (picked, kept by
+session/handlers.py's watcher): the collection you clicked in the Outliner, when it's a
+node, or the node holding the selected objects (the innermost, for a prop inside its set).
+Failing those, the other; failing both, the scene's only node. A loaded asset (linked, or
+overridden for posing) isn't a node: picking one is a LoadedPicked error, and the Publish
+panel greys out its buttons.
 """
 
 from __future__ import annotations
@@ -31,6 +34,14 @@ from .identity import (
     asset_identity,
     create_root_collection,
 )
+
+# What was picked last, "collection" (clicked in the Outliner) or "selection" (objects
+# selected): the one current_node follows.
+picked = "collection"
+
+
+class LoadedPicked(PipelineError):
+    """What's picked is loaded from another file's publish, so it publishes there."""
 
 
 @dataclass(frozen=True)
@@ -73,23 +84,45 @@ def node_holding(obj: bpy.types.Object | None, scene: bpy.types.Scene) -> Node |
 
 
 def find_node(
-    scene: bpy.types.Scene, view_layer: bpy.types.ViewLayer, selected: list[bpy.types.Object]
+    scene: bpy.types.Scene,
+    view_layer: bpy.types.ViewLayer,
+    selected: list[bpy.types.Object],
+    prefer: str = "collection",
 ) -> Node:
-    """The node to publish: the active node collection, else the selection's, else the only one."""
+    """The node to publish: the clicked node collection or the selection's, whichever prefer
+    says was picked last, else the other, else the scene's only node."""
     active = view_layer.active_layer_collection
-    node = node_of(active.collection if active else None)
-    if node is not None:
-        return node
+    clicked = active.collection if active else None
+    if prefer == "selection" and selected:
+        return _selection_node(scene, selected) or _clicked_node(clicked) or _only_node(scene)
+    return _clicked_node(clicked) or _selection_node(scene, selected) or _only_node(scene)
+
+
+def _clicked_node(clicked: bpy.types.Collection | None) -> Node | None:
+    if clicked is not None and (clicked.library or clicked.override_library):
+        raise LoadedPicked(
+            f"{clicked.name} is loaded from its asset's publish: publish it from its own file."
+        )
+    return node_of(clicked)
+
+
+def _selection_node(scene: bpy.types.Scene, selected: list[bpy.types.Object]) -> Node | None:
+    loaded = [obj for obj in selected if is_loaded(obj)]
+    if loaded:
+        raise LoadedPicked(
+            f"{loaded[0].name} is loaded from its asset's publish: publish it from its own file."
+        )
+    holding = {found for obj in selected if (found := node_holding(obj, scene))}
+    if len(holding) > 1:
+        names = ", ".join(sorted(n.root.name for n in holding))
+        raise PipelineError(
+            f"The selection is in several nodes ({names}). Click one in the Outliner."
+        )
+    return holding.pop() if holding else None
+
+
+def _only_node(scene: bpy.types.Scene) -> Node:
     nodes = nodes_in(scene)
-    if selected:
-        holding = {found for obj in selected if (found := node_holding(obj, scene))}
-        if len(holding) == 1:
-            return holding.pop()
-        if len(holding) > 1:
-            names = ", ".join(sorted(n.root.name for n in holding))
-            raise PipelineError(
-                f"The selection is in several nodes ({names}). Click one in the Outliner."
-            )
     if len(nodes) == 1:
         return nodes[0]
     if not nodes:
@@ -100,9 +133,19 @@ def find_node(
     raise PipelineError(f"This scene has several nodes ({names}). Click one in the Outliner.")
 
 
+def is_loaded(obj: bpy.types.Object) -> bool:
+    """Whether an object is part of a loaded asset: the empty placing a link, or linked or
+    overridden itself."""
+    if obj.library or obj.override_library:
+        return True
+    placed = obj.instance_collection if obj.instance_type == "COLLECTION" else None
+    return placed is not None and placed.library is not None
+
+
 def current_node(context: bpy.types.Context) -> Node:
     """The node for the context's scene, view layer and selection."""
-    return find_node(context.scene, context.view_layer, list(context.selected_objects or ()))
+    selected = list(context.selected_objects or ())
+    return find_node(context.scene, context.view_layer, selected, picked)
 
 
 def node_sequence(project: Project, node: Node) -> Sequence:
