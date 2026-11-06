@@ -70,13 +70,13 @@ def test_a_loaded_asset_isnt_published_here(project):
 
 def test_the_watcher_notes_what_was_picked_last(two_assets):
     from smallstudio_pipeline.project.blender import nodes
-    from smallstudio_pipeline.session.handlers import watch_picks
+    from smallstudio_pipeline.session.handlers import note_picks
 
     _, crate_box, _ = two_assets
-    watch_picks()
+    note_picks()
     crate_box.select_set(True)
-    watch_picks()
+    note_picks()
     assert nodes.picked == "selection"
     active(bpy.data.collections["barrel"])
-    watch_picks()
+    note_picks()
     assert nodes.picked == "collection"

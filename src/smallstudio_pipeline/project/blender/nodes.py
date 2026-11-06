@@ -7,7 +7,7 @@ scene holding the sequence node. Only a file's own collections are nodes; a link
 asset's root, or an override of one, is an instance (loading/blender/instances.py).
 
 The node Publish works on (current_node) follows what you picked last (picked, kept by
-session/handlers.py's watcher): the collection you clicked in the Outliner, when it's a
+session/handlers.py's note_picks): the collection you clicked in the Outliner, when it's a
 node, or the node holding the selected objects (the innermost, for a prop inside its set).
 Failing those, the other; failing both, the scene's only node. A loaded asset (linked, or
 overridden for posing) isn't a node: picking one is a LoadedPicked error, and the Publish

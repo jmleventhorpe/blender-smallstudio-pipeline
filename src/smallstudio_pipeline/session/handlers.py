@@ -5,8 +5,8 @@ register the project's asset library, note the versions of the publishes it link
 bring older files up to date with nodes. Before a save, new instances get their IDs and
 a cut's playblast output follows the version. After a save, including Save As and
 Version Up, the in-use marker moves to the new file. Warnings pop up once the UI is
-ready; the Pipeline tab redraws as the selection, the
-clicked collection or the scene on show changes (watch_picks).
+ready; the Pipeline tab redraws when the selection, the
+clicked collection or the scene on show changes (note_picks).
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ from __future__ import annotations
 import atexit
 import contextlib
 from pathlib import Path
+from typing import Any
 
 import bpy
 from bpy.app.handlers import persistent
@@ -156,8 +157,9 @@ def show_message(*lines: str, icon: str = "ERROR") -> None:
 
 @persistent
 def on_depsgraph_update(*_args: object) -> None:
-    """After a change (selecting included): redraw the Pipeline tab, which shows the node."""
-    redraw_sidebars()
+    """After a change (selecting included): note what's picked, and redraw the Pipeline
+    tab if it changed."""
+    note_picks()
 
 
 HANDLERS = (
@@ -167,19 +169,22 @@ HANDLERS = (
     (bpy.app.handlers.save_post, on_save_post),
     (bpy.app.handlers.depsgraph_update_post, on_depsgraph_update),
 )
-WATCH_EVERY = 0.2  # Seconds between looks at what's picked.
-# What was picked when last looked: per window, the scene, the clicked collection and the
+# Changes that don't update the depsgraph, but change what's picked: the scene on show
+# (Follow the cut switches it) and the collection clicked in the Outliner.
+# The stubs only allow a struct here; Blender also takes (type, "property") keys.
+WATCHED: tuple[Any, ...] = (
+    (bpy.types.Window, "scene"),
+    (bpy.types.ViewLayer, "active_layer_collection"),
+)
+_OWNER = object()  # Who the message bus subscriptions belong to.
+# What was picked when last noted: per window, the scene, the clicked collection and the
 # selection.
 _seen_picks: dict[int, tuple[str, str, frozenset[str]]] = {}
 
 
-def watch_picks() -> float:
-    """Note whether the clicked collection or the selection changed last, and redraw the
-    Pipeline tab if either did, or the scene on show.
-
-    Blender doesn't tell add-ons when a collection is clicked in the Outliner, so this
-    looks a few times a second; looking is cheap.
-    """
+def note_picks() -> None:
+    """Note whether the clicked collection or the selection changed last (nodes.picked),
+    and redraw the Pipeline tab if either did, or the scene on show."""
     window_manager = bpy.context.window_manager
     changed = False
     for window in window_manager.windows if window_manager else ():
@@ -191,30 +196,31 @@ def watch_picks() -> float:
             frozenset(obj.name for obj in view_layer.objects.selected),
         )
         before = _seen_picks.get(window.as_pointer())
-        if before is not None and before != now:
+        if before != now:
             changed = True
-            if before[0] == now[0] and before[1] != now[1]:
+            if before is not None and before[0] == now[0] and before[1] != now[1]:
                 nodes.picked = "collection"
-            elif before[0] == now[0] and before[2] != now[2]:
+            elif before is not None and before[0] == now[0] and before[2] != now[2]:
                 nodes.picked = "selection"
         _seen_picks[window.as_pointer()] = now
     if changed:
         redraw_sidebars()
-    return WATCH_EVERY
 
 
 def register() -> None:
     for handlers, function in HANDLERS:
         handlers.append(function)
-    bpy.app.timers.register(watch_picks, first_interval=WATCH_EVERY, persistent=True)
+    for watched in WATCHED:
+        bpy.msgbus.subscribe_rna(
+            key=watched, owner=_OWNER, args=(), notify=note_picks, options={"PERSISTENT"}
+        )
     atexit.register(release)  # Quitting Blender.
 
 
 def unregister() -> None:
     release()
     atexit.unregister(release)
-    if bpy.app.timers.is_registered(watch_picks):
-        bpy.app.timers.unregister(watch_picks)
+    bpy.msgbus.clear_by_owner(_OWNER)
     for handlers, function in HANDLERS:
         if function in handlers:
             handlers.remove(function)
