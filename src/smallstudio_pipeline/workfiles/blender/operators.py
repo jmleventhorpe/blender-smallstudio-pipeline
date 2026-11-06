@@ -59,7 +59,8 @@ class PIPELINE_OT_open(UnsavedChanges, bpy.types.Operator):
         return has_project(cls)
 
     def invoke(self, context: bpy.types.Context, event: bpy.types.Event) -> set[str]:
-        browse.preselect(self)
+        if not self.properties.is_property_set("entity"):  # The Workfiles panel sets it.
+            browse.preselect(self)
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context: bpy.types.Context) -> None:
@@ -102,7 +103,8 @@ class PIPELINE_OT_new_workfile(UnsavedChanges, bpy.types.Operator):
         return has_project(cls)
 
     def invoke(self, context: bpy.types.Context, event: bpy.types.Event) -> set[str]:
-        browse.preselect(self)
+        if not self.properties.is_property_set("entity"):  # The Workfiles panel sets it.
+            browse.preselect(self)
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context: bpy.types.Context) -> None:

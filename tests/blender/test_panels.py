@@ -25,6 +25,9 @@ class FakeLayout:
     def label(self, text="", **_):
         self.texts.append(text)
 
+    def prop(self, data, name, **_):
+        self.texts.append(f"<{name}: {getattr(data, name)}>")
+
     def operator(self, idname, text="", **_):
         self.texts.append(f"[{text or idname}]")
         return SimpleNamespace()
@@ -44,7 +47,9 @@ class FakeLayout:
 def draw(panel_class, scene=None):
     """What a panel shows, as one string."""
     fake = FakeLayout()
-    context = SimpleNamespace(scene=scene or bpy.context.scene)
+    context = SimpleNamespace(
+        scene=scene or bpy.context.scene, window_manager=bpy.context.window_manager
+    )
     panel_class.draw(SimpleNamespace(layout=fake), context)
     return " | ".join(fake.texts)
 
@@ -200,3 +205,26 @@ def test_a_check_that_would_block_says_so_and_writes_nothing(project, cut):
 
 def test_the_old_results_panel_is_gone(registered):
     assert not hasattr(bpy.types, "PIPELINE_PT_results")
+
+
+def test_workfiles_lists_a_tasks_versions_newest_first(project):
+    from conftest import save_blend
+
+    from smallstudio_pipeline.workfiles.blender.panels import WorkfilesPanel, listing
+
+    hero = project.create_asset("character", "hero")
+    save_blend(hero.workfile_path("model", 1))
+    save_blend(hero.workfile_path("model", 2))
+    choices = bpy.context.window_manager.pipeline_browse
+    choices.category = "character"
+    choices.entity = "hero"
+    choices.task = "model"
+    assert [(version, name) for version, name, _ in listing] == [
+        (2, "hero_model_v002.blend"),
+        (1, "hero_model_v001.blend"),
+    ]
+    shown = draw(WorkfilesPanel)
+    assert "hero_model_v002.blend" in shown and "[pipeline.open]" in shown
+
+    choices.task = "rig"
+    assert listing == [] and "No workfiles yet" in draw(WorkfilesPanel)
