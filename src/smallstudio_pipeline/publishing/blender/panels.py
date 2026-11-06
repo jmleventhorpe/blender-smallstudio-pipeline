@@ -45,6 +45,8 @@ class PublishPanel:
         pair(box, "Node", chosen.root.name)
         pair(box, "Publishes", title)
         pair(box, "As", writes)
+        if chosen.kind == "asset":
+            layout.prop(context.window_manager, "pipeline_link_back")
         row = layout.row(align=True)
         row.operator("pipeline.check_publish", icon="VIEWZOOM")
         row.operator("pipeline.publish", icon="EXPORT")

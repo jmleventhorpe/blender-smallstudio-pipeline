@@ -1,9 +1,6 @@
-"""Shots' menu actions: New Sequence, Add Shot and Omit Shot.
+"""Shots' menu actions: Add Shot, Omit Shot and Back to Cut.
 
-Pipeline > New Sequence: create a sequence and open its first layout workfile.
-
-The sequence takes its episode's next number (or starts the next episode), with an
-optional title shown beside its code. Its layout workfile opens with an empty cut.
+A sequence's cut comes from New Node (interface/nodes.py), which makes its node.
 
 Pipeline > Add Shot: add a shot to the cut, after the strip at the playhead.
 
@@ -19,59 +16,14 @@ Adding a strip for its scene again brings it back at the next layout publish.
 from __future__ import annotations
 
 import bpy
-from bpy.props import EnumProperty, StringProperty
 
 from ...common.errors import PipelineError
-from ...interface import browse
-from ...interface.common import UnsavedChanges, has_project, in_layout_workfile
+from ...interface.common import has_project, in_layout_workfile
 from ...project.blender import nodes
 from ...project.core.entities import Sequence
 from ...project.core.project import Project
 from ...session import state
-from ...workfiles.blender.workfiles import start_workfile
 from . import layout
-from .layout import LAYOUT
-
-
-class PIPELINE_OT_new_sequence(UnsavedChanges, bpy.types.Operator):
-    """Create a sequence and open its layout workfile"""
-
-    bl_idname = "pipeline.new_sequence"
-    bl_label = "New Sequence"
-    bl_options = {"REGISTER"}
-
-    episode: EnumProperty(name="Episode", items=browse.episode_items)
-    title: StringProperty(name="Title", description="What happens in it, e.g. Opening chase")
-
-    @classmethod
-    def poll(cls, context: bpy.types.Context) -> bool:
-        return has_project(cls)
-
-    def invoke(self, context: bpy.types.Context, event: bpy.types.Event) -> set[str]:
-        return context.window_manager.invoke_props_dialog(self)
-
-    def draw(self, context: bpy.types.Context) -> None:
-        project = state.current.project
-        if project is not None and project.config.episodes:
-            self.layout.prop(self, "episode")
-        self.layout.prop(self, "title")
-        self.draw_unsaved(self.layout)
-
-    def execute(self, context: bpy.types.Context) -> set[str]:
-        project = state.current.project
-        assert project is not None  # Checked by poll.
-        try:
-            episode = None
-            if project.config.episodes:
-                episode = project.next_episode() if self.episode == browse.NEW else self.episode
-            self.handle_unsaved()
-            sequence = project.create_sequence(episode, self.title)
-            # Opening a file frees this operator, so nothing below may touch self.
-            start_workfile(sequence, LAYOUT)
-        except PipelineError as error:
-            self.report({"ERROR"}, str(error))
-            return {"CANCELLED"}
-        return {"FINISHED"}
 
 
 def cut_sequence(project: Project, master: bpy.types.Scene) -> Sequence:
@@ -157,7 +109,6 @@ class PIPELINE_OT_omit_shot(bpy.types.Operator):
 
 
 CLASSES = (
-    PIPELINE_OT_new_sequence,
     PIPELINE_OT_add_shot,
     PIPELINE_OT_omit_shot,
 )

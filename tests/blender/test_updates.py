@@ -1,7 +1,5 @@
 """Runs inside Blender (see run.py): the asset library, Check Updates and stale builds."""
 
-import json
-from datetime import UTC, datetime
 from pathlib import Path
 
 import bpy
@@ -11,8 +9,6 @@ from conftest import add_cube, link_collection, publish_model, save_blend
 from smallstudio_pipeline.common.errors import PipelineError
 from smallstudio_pipeline.loading.blender import libraries, updates
 from smallstudio_pipeline.publishing.core.publishing import new_record, plan_publish, write_records
-from smallstudio_pipeline.session import state
-from smallstudio_pipeline.workfiles.core.inuse import marker_path
 
 
 def test_the_projects_assets_become_an_asset_library_once(project):
@@ -93,41 +89,6 @@ def test_check_updates_skips_publishes_no_longer_linked(project):
     republish_behind_the_files_back(hero, "new_hat")
     assert bpy.ops.pipeline.check_updates() == {"FINISHED"}
     assert updates.seen == {}
-
-
-def test_a_rig_built_from_an_older_model_is_flagged(project):
-    hero = publish_model(project)
-    bpy.ops.pipeline.new_workfile(category="character", entity="hero", task="rig")
-    rig = Path(bpy.data.filepath)
-    publish_model(project)  # Model v002.
-
-    bpy.ops.wm.open_mainfile(filepath=str(rig))
-    assert len(state.current.warnings) == 1
-    assert "hero_model (v001 → v002)" in state.current.warnings[0]
-    assert hero.latest_publish_version("model") == 2
-
-
-def test_a_stale_build_and_someone_else_having_the_file_are_both_warned_about(project):
-    publish_model(project)
-    bpy.ops.pipeline.new_workfile(category="character", entity="hero", task="rig")
-    rig = Path(bpy.data.filepath)
-    publish_model(project)  # Model v002; also closes the rig, releasing our mark.
-    opened = datetime.now(UTC).isoformat()
-    other = {"user": "sam", "machine": "pc-02", "pid": 4242, "opened": opened}
-    marker_path(rig).write_text(json.dumps(other))
-
-    bpy.ops.wm.open_mainfile(filepath=str(rig))
-
-    warnings = state.current.warnings
-    assert len(warnings) == 2
-    assert "sam has this file open" in warnings[0] and "hero_model" in warnings[1]
-
-
-def test_an_up_to_date_rig_isnt_flagged(project):
-    publish_model(project)
-    bpy.ops.pipeline.new_workfile(category="character", entity="hero", task="rig")
-    bpy.ops.wm.open_mainfile(filepath=bpy.data.filepath)
-    assert state.current.warnings == []
 
 
 def test_loading_a_root_the_publish_doesnt_have_says_so(project):

@@ -19,18 +19,16 @@ from publish_validator import Subject, Validator
 
 from ...common.errors import PipelineError
 from ...interface.common import has_project
-from ...project.blender.identity import asset_identity, built_from
-from ...project.blender.nodes import current_node, node_sequence
+from ...project.blender.nodes import Node, current_node, node_sequence
 from ...project.core.entities import Sequence
 from ...project.core.project import Project
 from ...session import state
 from ...shots.blender import layout
 from ...shots.core.layout import apply_cut, check_cut
 from ...workfiles.blender import workfiles
-from ...workfiles.core.context import FileContext
 from ..core.publishing import (
-    Dependency,
     PublishTarget,
+    builds_on_hero,
     new_record,
     plan_publish,
     publish_target,
@@ -71,7 +69,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         try:
             chosen = current_node(context)
             if chosen.kind == "asset":
-                published = self.publish_asset(context, project, file, chosen.root)
+                published = self.publish_asset(context, project, chosen)
             else:
                 published = self.publish_layout(context, node_sequence(project, chosen))
         except PipelineError as error:
@@ -83,53 +81,30 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         self.report({"INFO"}, f"Published {published}")
         return {"FINISHED"}
 
-    def publish_asset(
-        self, context: Context, project: Project, file: FileContext, root: Collection
-    ) -> str | None:
-        """Publish an asset's root, from its own workfile or in context."""
-        identity = asset_identity(root)
-        assert identity is not None  # An asset's node is its root.
-        target = publish_target(project, file, identity[0])
-        if target.in_context:
-            return self.publish_in_context(context, root, target, file.entity)
-        return self.publish_in_own_workfile(context, root, target, file.entity)
-
-    def publish_in_own_workfile(
-        self, context: Context, root: Collection, target: PublishTarget, file_entity: str
-    ) -> str | None:
-        """Publish an asset from its own workfile, saving the file first."""
-        project = target.asset.project
+    def publish_asset(self, context: Context, project: Project, chosen: Node) -> str | None:
+        """Publish an asset node as its task: in its own space, then linked back if asked."""
+        target = publish_target(project, chosen.name, chosen.task)
+        root = chosen.root
         # A rig takes its model's latest materials, by object name, every publish.
-        source = built_from(root)
-        synced = None
-        if source is not None and project.config.tasks[target.task].builds_on:
-            synced = sync_materials(root, project.root / source.path)
-        # Save first, so the record's source workfile is what was published.
-        if synced is not None or workfiles.has_unsaved_changes():
-            workfiles.save_changes()
-
-        last = self.check_asset(context, root, target, file_entity)
-        if last is None:
-            return None
-        published = self.write_files(root, target, last, Path(bpy.data.filepath), source)
-        return f"{published} ({synced.summary})" if synced else published
-
-    def publish_in_context(
-        self, context: Context, root: Collection, target: PublishTarget, file_entity: str
-    ) -> str | None:
-        """Publish an asset worked on inside another asset's file, then link it back in."""
-        asset = target.asset
-        with in_context.in_asset_space(root, context.view_layer):
-            last = self.check_asset(context, root, target, file_entity)
+        model = builds_on_hero(target.asset, target.task)
+        synced = sync_materials(root, model) if model is not None else None
+        # Save first, so the record's source is this file as published.
+        if not bpy.data.filepath:
+            raise PipelineError(
+                "Save this file first (Save To), so the publish can say where it came from."
+            )
+        workfiles.save_changes()
+        with in_context.in_asset_space(root, context.view_layer):  # Placed by Make Editable.
+            last = self.check_asset(context, root, target)
             if last is None:
                 return None
-            # The asset's own workfiles get this version too, so its history stays whole.
-            workfile = asset.workfile_path(target.task, asset.next_workfile_version(target.task))
-            in_context.save_asset_workfile(root, workfile, asset.project.config)
-            published = self.write_files(root, target, last, workfile, None)
-        in_context.swap_for_link(root, asset, asset.hero_path(target.task), context.scene)
-        workfiles.save_changes()  # This file now links the new publish.
-        return f"{published}; it's linked here now"
+            published = self.write_files(root, target, last, Path(bpy.data.filepath))
+        if link_back_chosen(context):
+            hero = target.asset.hero_path(target.task)
+            in_context.swap_for_link(root, target.asset, hero, context.scene)
+            workfiles.save_changes()  # This file now links the new publish.
+            published += "; linked back here"
+        return f"{published} ({synced.summary})" if synced else published
 
     def publish_layout(self, context: Context, sequence: Sequence) -> str | None:
         """Publish the sequence's layout: a copy of the whole file, and the cut into each shot."""
@@ -162,10 +137,10 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         return f"{plan.label} ({changes.summary})"
 
     def check_asset(
-        self, context: Context, root: Collection, target: PublishTarget, file_entity: str
+        self, context: Context, root: Collection, target: PublishTarget
     ) -> results.LastPublish | None:
         """Check an asset. Returns None, with the results in the sidebar, if they block."""
-        subject = subject_for(root, target, file_entity)
+        subject = subject_for(root, target)
         return self.run_checks(context, validator_for(target.asset.project), [("", subject)])
 
     def run_checks(
@@ -190,7 +165,6 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         target: PublishTarget,
         last: results.LastPublish,
         source: Path,
-        source_publish: Dependency | None,
     ) -> str:
         """Write the publish and its records. Returns e.g. "hero_model v004"."""
         plan = plan_publish(target.asset, target.task)
@@ -201,13 +175,17 @@ class PIPELINE_OT_publish(bpy.types.Operator):
             blender=bpy.app.version_string,
             object_names=[obj.name for obj in root.all_objects],
             dependencies=dependencies(root, plan),
-            built_from=source_publish,
             checks=last.statuses(),
         )
         write_records(plan, record)
         last.published = plan.label
         results.redraw()
         return last.published
+
+
+def link_back_chosen(context: Context) -> bool:
+    """Whether the Publish panel's Link Back box is ticked."""
+    return bool(getattr(context.window_manager, "pipeline_link_back", False))
 
 
 class PIPELINE_OT_check_publish(bpy.types.Operator):

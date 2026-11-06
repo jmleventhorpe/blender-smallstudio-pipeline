@@ -12,7 +12,7 @@ import bpy
 from mathutils import Matrix
 
 from ...common.errors import PipelineError
-from ...project.blender.identity import asset_identity, linked_asset
+from ...project.blender.identity import TASK, asset_identity, linked_asset
 from ...project.core.project import Project
 from . import libraries
 
@@ -38,6 +38,7 @@ def make_editable(
     # append cleanly from a file it already links.
     source = asset.publish_path(task, version)
     root = libraries.load_root(source, asset.name, link=False)
+    root[TASK] = root.get(TASK) or task  # A node for the task it was published as.
     for collection in empty.users_collection:
         collection.children.link(root)
 

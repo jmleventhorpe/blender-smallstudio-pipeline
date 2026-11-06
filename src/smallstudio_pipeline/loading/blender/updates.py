@@ -1,17 +1,14 @@
 """Keeping a file's links current: the Blender side of loading/core/updates.py.
 
 remember_versions() notes, when a file opens, the version of every publish it links;
-reload_changed() (Check Updates) reloads the ones published again since; stale_builds()
-finds roots built from an older publish, for the top bar's warning.
+reload_changed() (Check Updates) reloads the ones published again since; refresh_latest()
+and reload_one() serve the Loaded panel.
 """
 
 from __future__ import annotations
 
-import bpy
-
-from ...project.blender.identity import built_from
 from ...project.core.project import Project
-from ..core.updates import Change, changed, publish_version, stale_build
+from ..core.updates import Change, changed, publish_version
 from .libraries import linked_publishes
 
 # The publishes this file links, and their versions when it was opened (or last updated).
@@ -62,23 +59,3 @@ def reload_changed(project: Project) -> list[Change]:
     latest.clear()
     latest.update(seen)
     return changes
-
-
-def stale_builds(project: Project, scene: bpy.types.Scene) -> list[Change]:
-    """Asset roots built from a publish that has moved on since (a rig from an older model)."""
-    found = []
-    for root in scene.collection.children_recursive:
-        source = built_from(root)
-        change = stale_build(project, source) if source else None
-        if change is not None:
-            found.append(change)
-    return found
-
-
-def stale_warning(changes: list[Change]) -> str:
-    """What to tell the artist about roots built from an older publish."""
-    publishes = ", ".join(f"{change.name} ({change.versions})" for change in changes)
-    return (
-        f"Published again since this file was built from it: {publishes}. "
-        "Materials update when you publish; bring other changes across by hand."
-    )

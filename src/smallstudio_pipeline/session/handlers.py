@@ -2,10 +2,10 @@
 
 After a file loads: refresh the state, mark the file as in use (or warn whose it is),
 register the project's asset library, note the versions of the publishes it links, and
-flag anything built from an older publish. Before a save, new instances in shots get
-their IDs and a layout file's playblast output follows its version. After a save,
-including Save As and Version Up, the in-use marker moves to the new file. Warnings pop
-up once the UI is ready.
+bring older files up to date with nodes. Before a save, new instances get their IDs and
+a cut's playblast output follows the version. After a save, including Save As and
+Version Up, the in-use marker moves to the new file. Warnings pop up once the UI is
+ready; the Pipeline tab redraws as the selection or the scene on show changes.
 """
 
 from __future__ import annotations
@@ -48,7 +48,7 @@ def on_load_post(*_args: object) -> None:
     after_open()
     prepare_nodes()
     if state.current.warnings and state.current.context is not None:
-        show_message(*state.current.warnings)  # Publishes, files in use, stale builds.
+        show_message(*state.current.warnings)  # Publishes, files in use.
 
 
 def after_open() -> None:
@@ -59,9 +59,6 @@ def after_open() -> None:
     if libraries.register_asset_library(project):
         show_message(f"Added {project.root.name}'s assets to the Asset Browser.", icon="INFO")
     updates.remember_versions(project)
-    stale = updates.stale_builds(project, bpy.context.scene)
-    if stale:
-        state.current.warnings.append(updates.stale_warning(stale))
 
 
 def prepare_nodes() -> None:

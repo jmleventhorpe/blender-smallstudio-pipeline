@@ -14,13 +14,23 @@ innermost, for a prop inside its set); else the scene's only node.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import bpy
 
 from ...common.errors import PipelineError
-from ..core.entities import Sequence
+from ..core.entities import Asset, Sequence
 from ..core.project import Project
-from .identity import SEQUENCE, SHOT, TASK, asset_identity
+from .identity import (
+    ASSET,
+    ASSET_TYPE,
+    INSTANCE_ID,
+    SEQUENCE,
+    SHOT,
+    TASK,
+    asset_identity,
+    create_root_collection,
+)
 
 
 @dataclass(frozen=True)
@@ -130,17 +140,45 @@ def create_node(scene: bpy.types.Scene, name: str, key: str, value: str) -> bpy.
 
 
 def make_active(scene: bpy.types.Scene, collection: bpy.types.Collection) -> None:
-    """Make a collection at the top of a scene its active collection, in every view layer."""
+    """Make a collection the scene's active collection, in every view layer, so new things
+    (and assets dragged in) land in it."""
     for view_layer in scene.view_layers:
         if view_layer.layer_collection is None:  # A new scene's, until Blender updates it.
             view_layer.update()
-        found = (
-            view_layer.layer_collection.children.get(collection.name)
-            if view_layer.layer_collection
-            else None
-        )
+        found = _layer_of(view_layer.layer_collection, collection)
         if found is not None:
             view_layer.active_layer_collection = found
+
+
+def _layer_of(layer: Any, collection: bpy.types.Collection) -> Any:
+    if layer is None:
+        return None
+    if layer.collection == collection:
+        return layer
+    for child in layer.children:
+        found = _layer_of(child, collection)
+        if found is not None:
+            return found
+    return None
+
+
+def create_asset_node(
+    asset: Asset, task: str, scene: bpy.types.Scene, parent: bpy.types.Collection | None = None
+) -> bpy.types.Collection:
+    """A new, empty asset node for a task, inside parent (a set's node, say) or the scene."""
+    root = create_root_collection(asset, scene, task)
+    if parent is not None and parent != scene.collection:
+        parent.children.link(root)
+        scene.collection.children.unlink(root)
+    make_active(scene, root)
+    return root
+
+
+def unmake_node(collection: bpy.types.Collection) -> None:
+    """Make a node a plain collection again: its contents stay."""
+    for key in (ASSET, ASSET_TYPE, TASK, SEQUENCE, SHOT, INSTANCE_ID):
+        if key in collection:
+            del collection[key]
 
 
 def adopt_scene_identity() -> None:

@@ -1,8 +1,13 @@
-"""The choices in the Open and New Workfile dialogs: category -> entity -> task -> version.
+"""The choices in the pipeline's dialogs.
 
-A category is an asset type, "sequence" or "shot". Operators using these need `category`,
+Open, New Workfile and Save To browse category -> entity -> task (-> version for Open). A
+category is an asset type, "sequence" or "shot". Operators using these need `category`,
 `entity` and `task` enum properties (and `version` for Open), plus a hidden
 `existing_only` bool property: True to offer only tasks with workfiles.
+
+New Node chooses an asset (or a new one, with its type) and a task, or a sequence (or a
+new one, with its episode): node_asset_items, asset_type_items, node_task_items,
+node_sequence_items and episode_items.
 """
 
 from __future__ import annotations
@@ -93,6 +98,43 @@ def reset_task(operator: Any, context: bpy.types.Context | None) -> None:
 def reset_version(operator: Any, context: bpy.types.Context | None) -> None:
     if hasattr(operator, "version"):
         operator.version = version_items(operator, context)[0][0]
+
+
+def node_asset_items(operator: Any, context: bpy.types.Context | None) -> Items:
+    """A new asset, then the project's assets."""
+    project = state.current.project
+    assets = project.assets() if project else []
+    items = [(a.name, f"{a.name} ({a.asset_type})", "") for a in assets]
+    return _keep("node_asset", [(NEW, "New asset", "Make a new asset"), *items])
+
+
+def asset_type_items(operator: Any, context: bpy.types.Context | None) -> Items:
+    """The project's asset types."""
+    project = state.current.project
+    types = list(project.config.asset_types) if project else []
+    return _keep("asset_type", [(name, name.title(), "") for name in types])
+
+
+def node_task_items(operator: Any, context: bpy.types.Context | None) -> Items:
+    """The chosen asset's tasks, or a new asset's type's, required ones first."""
+    project = state.current.project
+    if project is None:
+        return _keep("node_task", [])
+    if operator.asset != NEW:
+        tasks = project.asset(operator.asset).settings.tasks
+    elif operator.asset_type in project.config.asset_types:
+        tasks = project.config.asset_types[operator.asset_type].tasks
+    else:
+        tasks = ()
+    return _keep("node_task", [(task, task.title(), "") for task in tasks])
+
+
+def node_sequence_items(operator: Any, context: bpy.types.Context | None) -> Items:
+    """A new sequence, then the project's sequences with their titles."""
+    project = state.current.project
+    sequences = project.sequences() if project else []
+    items = [(s.name, f"{s.name}  {s.title}" if s.title else s.name, s.title) for s in sequences]
+    return _keep("node_sequence", [(NEW, "New sequence", "Make a new sequence"), *items])
 
 
 def episode_items(operator: Any, context: bpy.types.Context | None) -> Items:

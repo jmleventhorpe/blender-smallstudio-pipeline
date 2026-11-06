@@ -6,6 +6,7 @@ import bpy
 import pytest
 
 import smallstudio_pipeline
+from smallstudio_pipeline.project.blender import nodes
 from smallstudio_pipeline.project.blender.identity import create_root_collection
 from smallstudio_pipeline.project.core.machine import ENV
 from smallstudio_pipeline.project.core.project import Project
@@ -127,6 +128,16 @@ def placed_at(obj):
         matrix = obj.parent.matrix_basis @ obj.matrix_parent_inverse @ matrix
         obj = obj.parent
     return tuple(round(value, 4) for value in matrix.translation)
+
+
+def make_cut(title=""):
+    """A new sequence's cut, as an artist makes one: New Node (a sequence) in an empty
+    file, then Save To its layout. Returns the sequence's code."""
+    bpy.ops.wm.read_homefile(use_empty=True)
+    bpy.ops.pipeline.new_node(kind="SEQUENCE", sequence="NEW", episode="NEW", title=title)
+    code = nodes.sequence_node(bpy.context.scene).name
+    bpy.ops.pipeline.save_to(category="sequence", entity=code, task="layout")
+    return code
 
 
 def publish_model(project, colour=(1, 0, 0, 1)):

@@ -1,25 +1,19 @@
-"""Workfiles' menu actions: Open, New Workfile, New Asset and Version Up.
+"""Workfiles' menu actions: Open, New Workfile, Save To and Version Up.
 
-Pipeline > Open: open a workfile by type, name, task and version (newest first).
-
-The choices come from interface/browse.py and start on the open file's own entity and task.
+Pipeline > Open: open a workfile by type, name, task and version (newest first). The
+choices come from interface/browse.py and start on the open file's own entity and task.
 Unsaved changes are asked about first; the load handler then warns if someone else has
 the file open.
 
-Pipeline > New Workfile: start a task's first workfile.
+Pipeline > New Workfile: start an empty file saved as a task's next workfile. Nothing is
+added to it: New Node makes the nodes that say what it's working on.
 
-workfiles/core/workfiles.py decides what it starts from; workfiles/blender/workfiles.py
-starts it.
+Pipeline > Save To: save the open file as any asset's, sequence's or shot's task's next
+workfile, so work started anywhere lands in the right place.
 
-Pipeline > New Asset: create an asset and open its first workfile.
-
-With "Build in This File", the asset starts in the open file instead (a prop inside its
-set, say); publishing it from there saves its first workfile and links it back.
-
-Pipeline > Version Up: save the open workfile as its task's next free version.
-
-The next free version may be beyond the current one + 1 if someone else saved since
-(workfiles/core/workfiles.py). The save handler moves the in-use marker to the new file.
+Pipeline > Version Up: save the open workfile as its task's next free version, which may
+be beyond the current one + 1 if someone else saved since (workfiles/core/workfiles.py).
+The save handler moves the in-use marker to the new file.
 """
 
 from __future__ import annotations
@@ -27,16 +21,15 @@ from __future__ import annotations
 from pathlib import Path
 
 import bpy
-from bpy.props import BoolProperty, EnumProperty, StringProperty
+from bpy.props import BoolProperty, EnumProperty
 
 from ...common.errors import PipelineError
 from ...interface import browse
-from ...interface.browse import Items, category_items
 from ...interface.common import UnsavedChanges, has_project
-from ...project.blender.identity import create_root_collection
+from ...project.core.entities import Entity
 from ...session import state
 from ..core.workfiles import version_up_path
-from .workfiles import start_workfile
+from .workfiles import new_workfile, save_to
 
 
 class PIPELINE_OT_open(UnsavedChanges, bpy.types.Operator):
@@ -83,20 +76,33 @@ class PIPELINE_OT_open(UnsavedChanges, bpy.types.Operator):
         return {"FINISHED"}
 
 
-class PIPELINE_OT_new_workfile(UnsavedChanges, bpy.types.Operator):
-    """Start a task's first workfile, from its starter file if it has one"""
-
-    bl_idname = "pipeline.new_workfile"
-    bl_label = "New Workfile"
-    bl_options = {"REGISTER"}
+class WorkfileChoice:
+    """The type, name and task a workfile is for, as the browse callbacks need them."""
 
     # A property, not a class attribute: the browse callbacks only see properties.
-    # Offer every task; the core refuses ones already started.
     existing_only: BoolProperty(default=False, options={"HIDDEN", "SKIP_SAVE"})
 
     category: EnumProperty(name="Type", items=browse.category_items, update=browse.reset_entity)
     entity: EnumProperty(name="Name", items=browse.entity_items, update=browse.reset_task)
     task: EnumProperty(name="Task", items=browse.task_items)
+
+    def draw_choice(self, layout: bpy.types.UILayout | None) -> None:
+        for name in ("category", "entity", "task"):
+            layout.prop(self, name)
+
+    def chosen(self) -> tuple[Entity, str]:
+        entity = browse.selected_entity(self)
+        if entity is None or self.task == browse.NONE:
+            raise PipelineError("Choose an asset, sequence or shot and a task.")
+        return entity, self.task
+
+
+class PIPELINE_OT_new_workfile(WorkfileChoice, UnsavedChanges, bpy.types.Operator):
+    """Start an empty file, saved as a task's next workfile"""
+
+    bl_idname = "pipeline.new_workfile"
+    bl_label = "New Workfile"
+    bl_options = {"REGISTER"}
 
     @classmethod
     def poll(cls, context: bpy.types.Context) -> bool:
@@ -108,77 +114,48 @@ class PIPELINE_OT_new_workfile(UnsavedChanges, bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context: bpy.types.Context) -> None:
-        for name in ("category", "entity", "task"):
-            self.layout.prop(self, name)
+        self.draw_choice(self.layout)
         self.draw_unsaved(self.layout)
 
     def execute(self, context: bpy.types.Context) -> set[str]:
         try:
-            entity = browse.selected_entity(self)
-            if entity is None or self.task == browse.NONE:
-                raise PipelineError("Choose what to start a workfile for.")
+            entity, task = self.chosen()
             self.handle_unsaved()
-            task = self.task
             # Opening a file frees this operator, so nothing below may touch self.
-            start_workfile(entity, task)
+            new_workfile(entity, task)
         except PipelineError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}
         return {"FINISHED"}
 
 
-def asset_type_items(operator: object, context: bpy.types.Context | None) -> Items:
-    # The categories minus sequence and shot are exactly the asset types.
-    """The project's asset types, for the Type menu."""
-    items = category_items(operator, context)
-    return [item for item in items if item[0] not in ("sequence", "shot")]
+class PIPELINE_OT_save_to(WorkfileChoice, bpy.types.Operator):
+    """Save this file as a task's next workfile: any asset's, sequence's or shot's"""
 
-
-class PIPELINE_OT_new_asset(UnsavedChanges, bpy.types.Operator):
-    """Create an asset and open its first workfile"""
-
-    bl_idname = "pipeline.new_asset"
-    bl_label = "New Asset"
+    bl_idname = "pipeline.save_to"
+    bl_label = "Save To"
     bl_options = {"REGISTER"}
-
-    asset_type: EnumProperty(name="Type", items=asset_type_items)
-    name: StringProperty(name="Name", description="Lowercase, e.g. street_lamp")
-    here: BoolProperty(
-        name="Build in This File",
-        description="Start the asset here, e.g. a prop inside its set; publishing it links it back",
-    )
 
     @classmethod
     def poll(cls, context: bpy.types.Context) -> bool:
         return has_project(cls)
 
     def invoke(self, context: bpy.types.Context, event: bpy.types.Event) -> set[str]:
+        if not self.properties.is_property_set("entity"):
+            browse.preselect(self)
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context: bpy.types.Context) -> None:
-        self.layout.prop(self, "asset_type")
-        self.layout.prop(self, "name")
-        if state.current.context is not None:  # Only inside a pipeline workfile.
-            self.layout.prop(self, "here")
-        if not self.here:
-            self.draw_unsaved(self.layout)
+        self.draw_choice(self.layout)
 
     def execute(self, context: bpy.types.Context) -> set[str]:
-        project = state.current.project
-        assert project is not None  # Checked by poll.
         try:
-            if self.here:
-                asset = project.create_asset(self.asset_type, self.name)
-                create_root_collection(asset, context.scene)
-                self.report({"INFO"}, f"{asset.name} started here. Publish it to link it back.")
-                return {"FINISHED"}
-            self.handle_unsaved()
-            asset = project.create_asset(self.asset_type, self.name)
-            # Opening a file frees this operator, so nothing below may touch self.
-            start_workfile(asset, asset.tasks[0])
+            entity, task = self.chosen()
+            path = save_to(entity, task)
         except PipelineError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}
+        self.report({"INFO"}, f"Saved {path.name}")
         return {"FINISHED"}
 
 
@@ -214,6 +191,6 @@ class PIPELINE_OT_version_up(bpy.types.Operator):
 CLASSES = (
     PIPELINE_OT_open,
     PIPELINE_OT_new_workfile,
-    PIPELINE_OT_new_asset,
+    PIPELINE_OT_save_to,
     PIPELINE_OT_version_up,
 )

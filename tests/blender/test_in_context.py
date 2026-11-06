@@ -1,7 +1,8 @@
 """Runs inside Blender (see run.py): working on assets inside other assets' files (spike T12).
 
 A crate is linked into a street set, placed at (5, 0, 0) and turned 90° about Z. Made
-editable and published from there, it must publish in its own space, not the set's.
+editable and published from there, it must publish in its own space, not the set's; with
+Link Back ticked, the set links the new publish where the copy stood.
 """
 
 import math
@@ -89,7 +90,12 @@ def test_make_editable_gives_a_plain_local_copy_in_the_same_place(project, place
     assert "crate_place" not in bpy.data.objects  # Just the collection while editing.
 
 
+def link_back(on=True):
+    bpy.context.window_manager.pipeline_link_back = on
+
+
 def test_publishing_in_place_publishes_in_the_assets_own_space(project, crate, placement):
+    link_back()
     bpy.ops.pipeline.make_editable()
     body = local_object("crate_body")
     body.location.z += 0.5  # Raised by half, so 1 up in the crate's own space.
@@ -106,18 +112,27 @@ def test_publishing_in_place_publishes_in_the_assets_own_space(project, crate, p
     again = bpy.data.objects["crate_place"]
     assert again.instance_type == "COLLECTION" and again.instance_collection.library
     assert position(again) == (5, 0, 0)
-    # The crate's history: a new workfile, and v002 from it.
-    assert crate.workfile_versions("model") == [1, 2]
+    # Just published: no extra workfile, and the record says it came from the set's file.
+    assert crate.workfile_versions("model") == [1]
     record = hero_record(crate, "model")
     assert record is not None and record.version == 2
-    assert record.source == "assets/prop/crate/model/work/crate_model_v002.blend"
+    assert record.source == "assets/set/street/model/work/street_model_v001.blend"
     # In the crate's own space: (5, 1, 2) in the set is (1, 0, 2) for the turned crate.
     positions = published_positions(crate.hero_path("model"), "crate")
     assert positions == {"crate_body": (0, 0, 1), "crate_lid": (1, 0, 2)}
-    assert published_positions(crate.workfile_path("model", 2), "crate") == positions
+
+
+def test_without_link_back_the_copy_stays_to_keep_editing(project, crate, placement):
+    link_back(False)
+    bpy.ops.pipeline.make_editable()
+    select_only(local_object("crate_body"))
+    bpy.ops.pipeline.publish()
+    assert hero_record(crate, "model").version == 2
+    assert local_copy().asset_data is None and "crate_place" not in bpy.data.objects
 
 
 def test_edits_still_in_edit_mode_are_published(project, crate, placement):
+    link_back()
     bpy.ops.pipeline.make_editable()
     body = local_object("crate_body")
     select_only(body)
@@ -141,6 +156,7 @@ def test_edits_still_in_edit_mode_are_published(project, crate, placement):
 
 
 def test_editing_again_keeps_the_names(project, crate, placement):
+    link_back()
     for _ in range(2):
         select_only(bpy.data.objects["crate_place"])
         bpy.ops.pipeline.make_editable()
@@ -151,8 +167,8 @@ def test_editing_again_keeps_the_names(project, crate, placement):
         bpy.ops.pipeline.publish()
 
 
-def test_an_asset_built_from_scratch_inside_a_set(project, placement):
-    bpy.ops.pipeline.new_asset(asset_type="prop", name="barrel", here=True)
+def test_an_asset_made_inside_a_set_publishes_from_there(project, placement):
+    bpy.ops.pipeline.new_node(kind="ASSET", asset="NEW", asset_type="prop", name="barrel")
     barrel = project.asset("barrel")
     root = bpy.data.collections["barrel"]
     cube = add_cube(root, "barrel_body")
@@ -161,7 +177,7 @@ def test_an_asset_built_from_scratch_inside_a_set(project, placement):
 
     bpy.ops.pipeline.publish()
 
-    assert barrel.workfile_versions("model") == [1]
+    assert barrel.workfile_versions("model") == []  # Publishing saves no workfile of its own.
     assert published_positions(barrel.hero_path("model"), "barrel") == {"barrel_body": (2, 0, 0)}
 
 

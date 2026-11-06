@@ -3,7 +3,7 @@
 import bpy
 import pytest
 from conftest import add_cube
-from publish_validator import FAILED, PASSED, SKIPPED, WARNING
+from publish_validator import FAILED, PASSED, SKIPPED
 
 from smallstudio_pipeline.project.blender.identity import (
     ASSET_TYPE,
@@ -23,9 +23,9 @@ def hero(project):
     return asset, root
 
 
-def run(hero, in_context=False, fix=False):
+def run(hero, fix=False):
     asset, root = hero
-    subject = subject_for(root, PublishTarget(asset, "model", in_context), "hero")
+    subject = subject_for(root, PublishTarget(asset, "model"))
     return validator_for(asset.project).run(subject, fix=fix)
 
 
@@ -69,12 +69,6 @@ def test_identity_and_instance_id_problems_and_their_fixes(hero):
     fixed = run(hero, fix=True)
     assert fixed.passed
     assert root.is_property_overridable_library(f'["{INSTANCE_ID}"]')
-
-
-def test_in_context_publishes_warn_but_pass(hero):
-    report = run(hero, in_context=True)
-    assert report.passed
-    assert statuses(report)["AssetRoot"] == WARNING
 
 
 def test_removed_objects_warn(hero, monkeypatch):

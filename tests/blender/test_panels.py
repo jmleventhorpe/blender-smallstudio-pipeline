@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import bpy
 import pytest
-from conftest import place, publish_model
+from conftest import make_cut, place, publish_model
 
 from smallstudio_pipeline.interface.panels import ContextPanel
 from smallstudio_pipeline.shots.blender import layout
@@ -63,7 +63,7 @@ def draw(panel_class, scene=None):
 @pytest.fixture
 def cut(project):
     publish_model(project)
-    bpy.ops.pipeline.new_sequence(episode="NEW")
+    make_cut()
     bpy.ops.pipeline.add_shot()
     layout.master_scene().frame_current = 1000
     bpy.ops.pipeline.add_shot()

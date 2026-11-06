@@ -1,26 +1,22 @@
-"""Publishing an asset worked on inside another asset's file, such as a prop in its set.
+"""Publishing an asset node in its own space, and linking the new publish back in.
 
-The copy comes from Make Editable (loading/blender/editable.py), or was started in this
-file. in_asset_space() moves it into the asset's own space for the publish,
-save_asset_workfile() saves it as the asset's next workfile, and swap_for_link() links
-the new publish back in where the copy was. Tested as spike T12.
+A copy made by Make Editable (loading/blender/editable.py) keeps where it stood.
+in_asset_space() moves it into the asset's own space while it's checked and written, and
+back after. swap_for_link() replaces it with a link to its new publish, where it stood:
+what Publish's Link Back option does. Tested as spike T12.
 """
 
 from __future__ import annotations
 
-import json
-import subprocess
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
 import bpy
 
-from ...common.errors import PipelineError
 from ...loading.blender import libraries, updates
 from ...loading.blender.editable import PLACEMENT_NAME, placement_of, top_objects, world_matrix
 from ...loading.core.updates import publish_version
-from ...project.core.config import Config
 from ...project.core.entities import Asset
 from ..core.publishing import relative
 
@@ -52,46 +48,6 @@ def in_asset_space(root: bpy.types.Collection, view_layer: bpy.types.ViewLayer) 
 
 
 # the root is written on its own and a fresh Blender builds the workfile around it.
-_BUILD_WORKFILE = """
-import json, sys
-import bpy
-args = json.loads(sys.argv[sys.argv.index("--") + 1])
-bpy.ops.wm.read_homefile(use_empty=True)
-with bpy.data.libraries.load(args["source"], link=False) as (_, data_to):
-    data_to.collections = [args["root"]]
-scene = bpy.context.scene
-scene.collection.children.link(data_to.collections[0])
-scene.render.fps, scene.render.fps_base = args["fps"], 1.0
-scene.render.resolution_x, scene.render.resolution_y = args["resolution"]
-scene.render.resolution_percentage = 100
-bpy.ops.wm.save_as_mainfile(filepath=args["path"])
-"""
-
-
-def save_asset_workfile(root: bpy.types.Collection, path: Path, config: Config) -> None:
-    """Save the root, in a scene of its own, as one of the asset's workfiles."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    # Beside the workfile, so relative paths inside it stay right.
-    temp = path.with_name(f".{path.stem}.root.blend")
-    bpy.data.libraries.write(str(temp), {root}, path_remap="RELATIVE_ALL")
-    args = {
-        "source": str(temp),
-        "root": root.name,
-        "path": str(path),
-        "fps": config.fps,
-        "resolution": list(config.resolution),
-    }
-    command = [bpy.app.binary_path, "-b", "--factory-startup", "--python-exit-code", "1"]
-    command += ["--python-expr", _BUILD_WORKFILE, "--", json.dumps(args)]
-    try:
-        subprocess.run(command, capture_output=True, text=True, check=True)
-    except subprocess.CalledProcessError as error:
-        details = (error.stderr or error.stdout).strip().splitlines()[-1:]
-        raise PipelineError(f"Couldn't save {path.name}: {' '.join(details)}") from None
-    finally:
-        temp.unlink(missing_ok=True)
-
-
 def swap_for_link(
     root: bpy.types.Collection, asset: Asset, hero: Path, scene: bpy.types.Scene
 ) -> bpy.types.Object:

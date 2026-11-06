@@ -1,4 +1,4 @@
-"""Runs inside Blender (see run.py): New Asset and New Workfile."""
+"""Runs inside Blender (see run.py): New Workfile, Save To, and New Node with its edits."""
 
 from pathlib import Path
 
@@ -6,51 +6,62 @@ import bpy
 import pytest
 from conftest import add_object, save_blend
 
-from smallstudio_pipeline.project.blender.identity import INSTANCE_ID, asset_identity
-from smallstudio_pipeline.session import state
+from smallstudio_pipeline.project.blender import nodes
+from smallstudio_pipeline.project.blender.identity import INSTANCE_ID, TASK
 
 
-def test_new_asset_saves_its_first_workfile_with_a_root_collection(project):
-    bpy.ops.pipeline.new_asset(asset_type="character", name="hero")
-
-    hero = project.asset("hero")
-    assert Path(bpy.data.filepath) == hero.workfile_path("model", 1)
-    root = bpy.data.collections["hero"]
-    assert asset_identity(root) == ("hero", "character")
-    assert root[INSTANCE_ID] == ""
-    assert root.is_property_overridable_library(f'["{INSTANCE_ID}"]')
-    assert bpy.context.scene.render.fps == 24
-    render = bpy.context.scene.render
-    assert (render.resolution_x, render.resolution_y) == (1920, 1080)
-
-
-def test_new_asset_reports_bad_names(project):
-    with pytest.raises(RuntimeError, match="isn't a valid name"):
-        bpy.ops.pipeline.new_asset(asset_type="prop", name="Street Lamp")
-    assert project.assets() == []
-
-
-def test_new_workfile_starts_from_the_starter_file(project):
-    add_object("from_the_starter")
-    save_blend(project.root / "starters/layout.blend")
-    (project.root / "pipeline.toml").write_text(
-        '[tasks.layout]\nstarter = "starters/layout.blend"\n'
-    )
-    state.refresh()  # Reload the changed config.
-    assert state.current.project is not None
-    sequence = state.current.project.create_sequence("010")
-
-    bpy.ops.pipeline.new_workfile(category="sequence", entity="010_010", task="layout")
-
-    assert Path(bpy.data.filepath) == sequence.workfile_path("layout", 1)
-    assert "from_the_starter" in bpy.data.objects
-
-
-def test_new_workfile_refuses_a_started_task(project):
+def test_new_workfile_only_saves_an_empty_file_in_the_right_place(project):
     hero = project.create_asset("character", "hero")
-    save_blend(hero.workfile_path("rig", 1))
-    with pytest.raises(RuntimeError, match="already has rig workfiles"):
-        bpy.ops.pipeline.new_workfile(category="character", entity="hero", task="rig")
+    save_blend(hero.workfile_path("model", 2))
+    bpy.ops.pipeline.new_workfile(category="character", entity="hero", task="model")
+    assert Path(bpy.data.filepath) == hero.workfile_path("model", 3)  # Its next free version.
+    assert not bpy.data.collections and not bpy.data.objects
+
+
+def test_save_to_saves_the_open_file_as_any_tasks_next_workfile(project):
+    hero = project.create_asset("character", "hero")
+    bpy.ops.wm.read_homefile(use_empty=True)
+    add_object("sketch")
+    bpy.ops.pipeline.save_to(category="character", entity="hero", task="rig")
+    assert Path(bpy.data.filepath) == hero.workfile_path("rig", 1)
+    assert "sketch" in bpy.data.objects
+
+
+def test_new_node_makes_a_new_asset_and_its_empty_node(project):
+    bpy.ops.wm.read_homefile(use_empty=True)
+    bpy.ops.pipeline.new_node(kind="ASSET", asset="NEW", asset_type="prop", name="crate")
+    crate = project.asset("crate")
+    (node,) = nodes.nodes_in(bpy.context.scene)
+    assert (node.kind, node.name, node.asset_type, node.task) == ("asset", "crate", "prop", "model")
+    assert node.root.is_property_overridable_library(f'["{INSTANCE_ID}"]')
+    assert not node.root.objects and crate.workfile_versions("model") == []
+    assert bpy.context.view_layer.active_layer_collection.collection == node.root
+
+
+def test_new_node_adds_an_optional_task_and_nests_in_the_active_node(project):
+    street = project.create_asset("set", "street")
+    project.create_asset("prop", "crate")
+    bpy.ops.wm.read_homefile(use_empty=True)
+    bpy.ops.pipeline.new_node(kind="ASSET", asset="street", task="model")
+    bpy.ops.pipeline.new_node(kind="ASSET", asset="crate", task="rig")  # Inside the street.
+    assert "rig" in project.asset("crate").tasks  # Props' rig task is optional.
+    crate = bpy.data.collections["crate"]
+    assert crate in bpy.data.collections[street.name].children[:] and crate[TASK] == "rig"
+
+
+def test_new_node_reports_bad_names(project):
+    with pytest.raises(RuntimeError, match="isn't a valid name"):
+        bpy.ops.pipeline.new_node(kind="ASSET", asset="NEW", asset_type="prop", name="Bad Name")
+
+
+def test_nodes_can_change_task_or_go_back_to_plain_collections(project):
+    project.create_asset("character", "hero")
+    bpy.ops.wm.read_homefile(use_empty=True)
+    bpy.ops.pipeline.new_node(kind="ASSET", asset="hero", task="model")
+    bpy.ops.pipeline.edit_node(node="hero", asset="hero", asset_type="character", task="rig")
+    assert bpy.data.collections["hero"][TASK] == "rig"
+    bpy.ops.pipeline.remove_node(node="hero")
+    assert nodes.nodes_in(bpy.context.scene) == [] and "hero" in bpy.data.collections
 
 
 def test_unsaved_changes_are_saved_first(project, unsaved_changes):

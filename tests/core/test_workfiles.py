@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from smallstudio_pipeline.common.errors import ConfigError, PipelineError
-from smallstudio_pipeline.workfiles.core.workfiles import new_workfile, version_up_path
+from smallstudio_pipeline.workfiles.core.workfiles import next_workfile_path, version_up_path
 
 
 def touch(path: Path) -> None:
@@ -11,36 +11,16 @@ def touch(path: Path) -> None:
     path.touch()
 
 
-def test_new_workfile_starts_at_v001_with_no_starter(project):
+def test_new_workfiles_go_to_the_tasks_next_free_version(project):
     hero = project.create_asset("character", "hero")
-    plan = new_workfile(hero, "model")
-    assert plan.path == hero.workfile_path("model", 1)
-    assert plan.starter is None
+    assert next_workfile_path(hero, "model") == hero.workfile_path("model", 1)
+    touch(hero.workfile_path("model", 3))
+    assert next_workfile_path(hero, "model") == hero.workfile_path("model", 4)
 
 
-def test_new_workfile_uses_the_tasks_starter_file(make_project):
-    project = make_project('[tasks.layout]\nstarter = "starters/layout.blend"\n')
-    touch(project.root / "starters/layout.blend")
-    plan = new_workfile(project.create_sequence("010"), "layout")
-    assert plan.starter == project.root / "starters/layout.blend"
-
-
-def test_a_missing_starter_file_is_reported(make_project):
-    project = make_project('[tasks.layout]\nstarter = "starters/layout.blend"\n')
-    with pytest.raises(PipelineError, match=r"layout starter file .* doesn't exist"):
-        new_workfile(project.create_sequence("010"), "layout")
-
-
-def test_new_workfile_refuses_when_the_task_has_workfiles(project):
-    hero = project.create_asset("character", "hero")
-    touch(hero.workfile_path("rig", 3))
-    with pytest.raises(PipelineError, match=r"hero_rig_v003\.blend"):
-        new_workfile(hero, "rig")
-
-
-def test_new_workfile_only_for_the_entitys_tasks(project):
+def test_workfiles_only_for_the_entitys_tasks(project):
     with pytest.raises(PipelineError, match="has no anim task"):
-        new_workfile(project.create_sequence("010"), "anim")
+        next_workfile_path(project.create_sequence("010"), "anim")
 
 
 def test_version_up_goes_to_the_next_free_version(project):

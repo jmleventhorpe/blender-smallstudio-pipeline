@@ -1,9 +1,8 @@
-"""What's out of date: publishes published again since a file saw them, and older builds.
+"""What's out of date: publishes published again since a file saw them.
 
 Every publish's record carries its version, so this needs no Blender. changed() compares
-a file's linked publishes with the versions seen when it opened; stale_build() compares a
-root's built_from with that publish now. The Blender side, loading/blender/updates.py, reloads
-libraries and flags files.
+a file's linked publishes with the versions seen when it opened (or last looked). The
+Blender side, loading/blender/updates.py, reloads libraries.
 """
 
 from __future__ import annotations
@@ -13,7 +12,7 @@ from pathlib import Path
 
 from ...common.errors import MetadataError
 from ...project.core.project import Project
-from ...publishing.core.publishing import Dependency, read_record, record_path
+from ...publishing.core.publishing import read_record, record_path
 
 
 @dataclass(frozen=True)
@@ -61,11 +60,3 @@ def changed(project: Project, seen: dict[str, int | None]) -> list[Change]:
         if new != old:
             changes.append(Change(path, old, new, project.config.version_padding))
     return changes
-
-
-def stale_build(project: Project, built_from: Dependency) -> Change | None:
-    """A Change if the publish something was built from has been published again since."""
-    new = publish_version(project, built_from.path)
-    if new is not None and built_from.version is not None and new > built_from.version:
-        return Change(built_from.path, built_from.version, new, project.config.version_padding)
-    return None

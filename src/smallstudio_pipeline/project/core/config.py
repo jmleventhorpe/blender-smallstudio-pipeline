@@ -3,7 +3,7 @@
 load_config() merges the two, table by table, and checks every setting on load, so a
 mistake in pipeline.toml is reported once with the file and setting named. The result is
 a Config of plain dataclasses: a Task says which entity it belongs to, whether it
-publishes, where it renders and what it starts from; an AssetType lists its tasks, which
+publishes, where it renders and which task it builds on; an AssetType lists its tasks, which
 are optional and which task's publish shots link. Everything else reads settings here.
 """
 
@@ -34,8 +34,7 @@ class Task:
     entity: str  # What its workfiles belong to: "asset", "sequence" or "shot".
     publishes: bool
     renders: str | None  # Where its renders go: "sequence", "shot", or None.
-    starter: str | None = None  # A .blend new workfiles start from, relative to the project.
-    builds_on: str | None = None  # A task whose latest publish new workfiles start from.
+    builds_on: str | None = None  # A task whose latest publish this one takes materials from.
 
 
 @dataclass(frozen=True)
@@ -156,9 +155,8 @@ def _task(name: str, table: Any) -> Task:
     if renders not in (None, "sequence", "shot"):
         raise ValueError(f"{where}.renders should be 'sequence' or 'shot', not '{renders}'")
     publishes = get(table, "publishes", bool, where, default=False)
-    starter = get(table, "starter", str, where, default=None)
     builds_on = get(table, "builds_on", str, where, default=None)
-    return Task(name, entity, publishes, renders, starter, builds_on)
+    return Task(name, entity, publishes, renders, builds_on)
 
 
 def _check_builds_on(task: Task, tasks: dict[str, Task]) -> None:

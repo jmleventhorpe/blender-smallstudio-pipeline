@@ -7,8 +7,6 @@ the subject's extras. An asset publish has one subject, its root collection:
     entity_kind         "asset"
     asset, asset_type   the asset being published, from the project
     identity            (name, asset_type) from the root collection's properties, or None
-    in_context          True when publishing from another asset's file
-    file_entity         what the open file is for, e.g. "street"
     previous            {"version": 3, "label": "v003", "object_names": [...]} for the last
                         publish, or None
 
@@ -76,10 +74,6 @@ class AssetRoot(AssetCheck):
             )
         if root.name != asset:
             yield self.issue(f"The root collection is called {root.name}, not {asset}", root)
-        if extras["in_context"]:
-            yield self.issue(
-                f"Publishing {asset} from {extras['file_entity']}'s file", root, severity=WARNING
-            )
 
     def fix(self, ctx, issues):
         ctx.root.name = ctx.subject.extras["asset"]

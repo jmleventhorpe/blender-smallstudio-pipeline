@@ -37,7 +37,7 @@ def validator_for(project: Project) -> Validator:
     return Validator(BlenderHost(), config=config, check_paths=folders)
 
 
-def subject_for(root: bpy.types.Collection, target: PublishTarget, file_entity: str) -> Subject:
+def subject_for(root: bpy.types.Collection, target: PublishTarget) -> Subject:
     """What the checks validate, with the pipeline facts they need in extras."""
     asset = target.asset
     record = hero_record(asset, target.task)
@@ -59,8 +59,6 @@ def subject_for(root: bpy.types.Collection, target: PublishTarget, file_entity: 
             "asset": asset.name,
             "asset_type": asset.asset_type,
             "identity": asset_identity(root),
-            "in_context": target.in_context,
-            "file_entity": file_entity,
             "previous": previous,
         },
     )

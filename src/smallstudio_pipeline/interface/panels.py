@@ -23,7 +23,7 @@ from ..shots.blender.layout import shot_number
 
 TAB = "Pipeline"
 SPACES = {"VIEW_3D": "view3d", "SEQUENCE_EDITOR": "sequencer"}
-ORDER = {"context": 0, "shot": 1, "loaded": 2, "publish": 3, "workfiles": 4}
+ORDER = {"context": 0, "nodes": 1, "shot": 2, "loaded": 3, "publish": 4, "workfiles": 5}
 DASH = "\N{EN DASH}"  # Between the ends of a range of frames.
 WRAP = 46  # Characters per line for messages: sidebar labels don't wrap themselves.
 
@@ -101,7 +101,7 @@ class ContextPanel:
             return
         row = layout.row(align=True)
         row.operator("pipeline.open", text="Open…", icon="FILEBROWSER")
-        row.operator("pipeline.new_workfile", text="New…", icon="FILE_NEW")
+        row.operator("pipeline.save_to", text="Save To…", icon="FILE_TICK")
         row.operator("pipeline.version_up", text="Version Up", icon="DUPLICATE")
 
 

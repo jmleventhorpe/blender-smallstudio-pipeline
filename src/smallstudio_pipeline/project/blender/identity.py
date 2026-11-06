@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import bpy
 
-from ...publishing.core.publishing import Dependency
 from ..core.entities import Asset
 
 ASSET = "pipeline_asset"
@@ -21,9 +20,6 @@ TASK = "pipeline_task"
 SEQUENCE = "pipeline_sequence"
 SHOT = "pipeline_shot"
 INSTANCE_ID = "instance_id"
-# The publish a workfile's root was brought in from (a rig's model), and its version.
-BUILT_FROM = "pipeline_built_from"
-BUILT_FROM_VERSION = "pipeline_built_from_version"
 
 
 def create_root_collection(
@@ -40,20 +36,6 @@ def create_root_collection(
     collection[INSTANCE_ID] = ""
     collection.property_overridable_library_set(f'["{INSTANCE_ID}"]', True)
     return collection
-
-
-def mark_built_from(collection: bpy.types.Collection, dependency: Dependency) -> None:
-    """Note on a root which publish it was brought in from, and its version."""
-    collection[BUILT_FROM] = dependency.path
-    collection[BUILT_FROM_VERSION] = dependency.version or 0
-
-
-def built_from(collection: bpy.types.Collection) -> Dependency | None:
-    """The publish this root was brought in from, if any."""
-    path = collection.get(BUILT_FROM)
-    if not isinstance(path, str):
-        return None
-    return Dependency(path, collection.get(BUILT_FROM_VERSION) or None)
 
 
 def linked_asset(obj: bpy.types.Object | None) -> bpy.types.Collection | None:

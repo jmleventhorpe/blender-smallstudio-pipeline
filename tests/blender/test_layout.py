@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import bpy
 import pytest
+from conftest import make_cut
 
 from smallstudio_pipeline.interface import browse
 from smallstudio_pipeline.project.blender import nodes
@@ -15,7 +16,7 @@ from smallstudio_pipeline.shots.blender import layout
 @pytest.fixture
 def sequence(project):
     """Sequence 010_010's layout v001, open, from New Sequence."""
-    assert bpy.ops.pipeline.new_sequence(episode="NEW") == {"FINISHED"}
+    make_cut()
     return project.sequence("010_010")
 
 
@@ -30,16 +31,19 @@ def add_shot_at(frame):
     assert bpy.ops.pipeline.add_shot() == {"FINISHED"}
 
 
-def test_new_sequence_opens_its_layout_with_an_empty_cut(project, sequence):
+def test_a_sequence_node_makes_the_scene_its_cut(project, sequence):
     assert Path(bpy.data.filepath) == sequence.workfile_path("layout", 1)
     master = layout.master_scene()
     node = nodes.sequence_node(master)
     assert master.name == "010_010" and node is not None and node.name == "010_010"
     assert not master.keys()  # Scenes carry nothing; the node does.
     assert cut() == []
-    bpy.ops.pipeline.new_sequence(episode="010", title="Opening chase")
-    assert [str(seq.code) for seq in project.sequences()] == ["010_010", "010_020"]
-    assert project.sequence("010_020").title == "Opening chase"
+    assert master.render.fps == 24 and master.render.resolution_x == 1920
+    with pytest.raises(RuntimeError, match="already holds a sequence's cut"):
+        bpy.ops.pipeline.new_node(kind="SEQUENCE", sequence="NEW", episode="010")
+    make_cut(title="Opening chase")  # Another file, another sequence.
+    assert [str(seq.code) for seq in project.sequences()] == ["010_010", "020_010"]
+    assert project.sequence("020_010").title == "Opening chase"
 
 
 def test_added_shots_get_a_scene_a_camera_and_the_shot_start(project, sequence):
@@ -134,7 +138,7 @@ def test_the_playblast_goes_to_the_layout_render_folder_for_each_version(project
 
 
 def test_sequence_titles_show_beside_their_codes_in_the_dialogs(project, sequence):
-    bpy.ops.pipeline.new_sequence(episode="010", title="Opening chase")
+    project.create_sequence("010", title="Opening chase")
     choices = browse.entity_items(SimpleNamespace(category="sequence"), bpy.context)
     assert [(code, label) for code, label, _ in choices] == [
         ("010_010", "010_010"),

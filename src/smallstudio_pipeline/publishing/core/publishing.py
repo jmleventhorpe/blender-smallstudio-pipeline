@@ -1,10 +1,9 @@
 """What a publish is and what it records. Assets are written by publishing/blender/assets.py.
 
-publish_target() decides what publishing a root means: which asset and task, and whether
-it's in context (a prop published from inside its set). plan_publish() gives the next
-version and where its files go; PublishRecord is what's written beside them; built_from()
-is the publish a task starts from. Each publish writes a versioned file and overwrites
-the hero file that other files link, each with a JSON record of the same name:
+publish_target() says what publishing an asset node means: its asset and the node's task.
+plan_publish() gives the next version and where its files go; PublishRecord is what's
+written beside them. Each publish writes a versioned file and overwrites the hero file
+that other files link, each with a JSON record of the same name:
 
     hero_rig_v004.blend   hero_rig_v004.json     this version, kept
     hero_rig.blend        hero_rig.json          always the latest
@@ -25,7 +24,6 @@ from ...common.files import write_atomic
 from ...common.reading import get, get_names
 from ...project.core.entities import Asset, Entity
 from ...project.core.project import Project
-from ...workfiles.core.context import PUBLISH_IS_READ_ONLY, FileContext
 from ...workfiles.core.inuse import current_user
 
 SCHEMA = 1
@@ -36,24 +34,18 @@ _MANIFEST = Path(__file__).resolve().parents[2] / "blender_manifest.toml"  # The
 class PublishTarget:
     asset: Asset
     task: str
-    in_context: bool  # The root isn't in its own asset's workfile, e.g. a prop in a set.
 
 
-def publish_target(project: Project, file: FileContext | None, asset_name: str) -> PublishTarget:
-    """Work out what publishing an asset's root from the open file means.
-
-    In the asset's own workfile, it publishes that file's task. Anywhere else (a prop
-    built inside a set, say) it publishes the asset's first task, which is how sets
-    and their props are built.
-    """
-    if file is None:
-        raise PipelineError("Save this file as a pipeline workfile before publishing from it.")
-    if file.is_publish:
-        raise PipelineError(PUBLISH_IS_READ_ONLY)
+def publish_target(project: Project, asset_name: str, task: str) -> PublishTarget:
+    """What publishing an asset node means: its asset, for the node's task."""
     asset = project.asset(asset_name)
-    if file.entity_kind == "asset" and file.entity == asset.name:
-        return PublishTarget(asset, file.task, in_context=False)
-    return PublishTarget(asset, asset.tasks[0], in_context=True)
+    if not task:
+        raise PipelineError(f"{asset.name}'s node has no task: set one in the Nodes panel.")
+    if not asset.has_task(task):
+        raise PipelineError(f"{asset.name} has no {task} task.")
+    if not project.config.tasks[task].publishes:
+        raise PipelineError(f"{task} doesn't publish.")
+    return PublishTarget(asset, task)
 
 
 @dataclass(frozen=True)
@@ -202,18 +194,13 @@ def hero_record(entity: Entity, task: str) -> PublishRecord | None:
     return read_record(path) if path.exists() else None
 
 
-def built_from(entity: Entity, task: str) -> Dependency | None:
-    """The publish a task starts from (its config's builds_on), if it has one."""
-    upstream = entity.project.config.tasks[task].builds_on
-    if upstream is None or not entity.has_task(upstream):
+def builds_on_hero(asset: Asset, task: str) -> Path | None:
+    """The hero file of the task this one builds on (a rig's model), if it's published."""
+    upstream = asset.project.config.tasks[task].builds_on
+    if upstream is None or not asset.has_task(upstream):
         return None
-    record = hero_record(entity, upstream)
-    if record is None:
-        raise PipelineError(
-            f"{entity.label} has no {upstream} publish yet, and {task} starts from it. "
-            f"Publish the {upstream} first."
-        )
-    return Dependency(relative(entity.project, entity.hero_path(upstream)), record.version)
+    hero = asset.hero_path(upstream)
+    return hero if hero.exists() else None
 
 
 def relative(project: Project, path: Path) -> str:

@@ -1,7 +1,7 @@
 """Loading's menu actions: Check Updates, Make Editable and Override for Posing.
 
 Pipeline > Check Updates: reload linked publishes that were published again, and say
-which, along with anything built from an older publish.
+which.
 
 Pipeline > Make Editable: swap the selected linked asset for a local copy to edit here.
 
@@ -43,15 +43,10 @@ class PIPELINE_OT_check_updates(bpy.types.Operator):
         project = state.current.project
         assert project is not None  # Checked by poll.
         changes = updates.reload_changed(project)
-        stale = updates.stale_builds(project, context.scene)
-        news = []
         if changes:
-            news.append("Updated " + ", ".join(change.label for change in changes))
-        if stale:
-            news.append(updates.stale_warning(stale))
-        self.report(
-            {"WARNING" if stale else "INFO"}, ". ".join(news) or "Everything is up to date."
-        )
+            self.report({"INFO"}, "Updated " + ", ".join(change.label for change in changes))
+        else:
+            self.report({"INFO"}, "Everything is up to date.")
         return {"FINISHED"}
 
 

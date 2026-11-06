@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from smallstudio_pipeline.common.errors import ConfigError, EntityNotFound, PipelineError
-from smallstudio_pipeline.loading.core.updates import Change, changed, stale_build
+from smallstudio_pipeline.loading.core.updates import Change, changed
 from smallstudio_pipeline.project.core.config import load_config
 from smallstudio_pipeline.publishing.core.catalogs import (
     CATALOG_FILE,
@@ -13,7 +13,7 @@ from smallstudio_pipeline.publishing.core.catalogs import (
 )
 from smallstudio_pipeline.publishing.core.publishing import (
     Dependency,
-    built_from,
+    builds_on_hero,
     hero_record,
     new_record,
     plan_publish,
@@ -21,7 +21,6 @@ from smallstudio_pipeline.publishing.core.publishing import (
     read_record,
     write_records,
 )
-from smallstudio_pipeline.workfiles.core.context import file_context
 
 
 def touch(path: Path) -> None:
@@ -42,29 +41,21 @@ def publish(entity, task, names=("body",), built=None):
 # Targets
 
 
-def test_publishing_in_the_assets_own_workfile(project):
+def test_a_node_publishes_as_its_task(project):
     hero = project.create_asset("character", "hero")
-    target = publish_target(project, file_context(project, hero.workfile_path("rig", 3)), "hero")
-    assert (target.asset, target.task, target.in_context) == (hero, "rig", False)
+    target = publish_target(project, "hero", "rig")
+    assert (target.asset, target.task) == (hero, "rig")
 
 
-def test_publishing_a_prop_built_inside_a_set(project):
-    street = project.create_asset("set", "street")
-    crate = project.create_asset("prop", "crate", tasks=["rig"])
-    in_set = file_context(project, street.workfile_path("model", 2))
-    target = publish_target(project, in_set, "crate")
-    assert (target.asset, target.task, target.in_context) == (crate, "model", True)
-
-
-def test_publish_targets_refuse_publishes_unmanaged_files_and_unknown_assets(project):
-    hero = project.create_asset("character", "hero")
-    with pytest.raises(PipelineError, match="read-only"):
-        publish_target(project, file_context(project, hero.hero_path("rig")), "hero")
-    with pytest.raises(PipelineError, match="Save this file as a pipeline workfile"):
-        publish_target(project, None, "hero")
-    work = file_context(project, hero.workfile_path("rig", 1))
+def test_publish_targets_refuse_missing_tasks_and_unknown_assets(project):
+    project.create_asset("character", "hero")
+    project.create_asset("prop", "crate")  # No rig: it's optional for props.
+    with pytest.raises(PipelineError, match="has no task: set one in the Nodes panel"):
+        publish_target(project, "hero", "")
+    with pytest.raises(PipelineError, match="crate has no rig task"):
+        publish_target(project, "crate", "rig")
     with pytest.raises(EntityNotFound, match="Did you mean 'hero'"):
-        publish_target(project, work, "heroo")
+        publish_target(project, "heroo", "model")
 
 
 # Plans and records
@@ -104,16 +95,12 @@ def test_records_from_before_the_entity_kind_rename_still_read(project):
     assert read_record(plan.record).entity_kind == "asset"
 
 
-def test_a_rig_is_built_from_the_latest_model(project):
+def test_a_rig_takes_materials_from_its_models_hero_once_published(project):
     hero = project.create_asset("character", "hero")
-    with pytest.raises(PipelineError, match="no model publish yet"):
-        built_from(hero, "rig")
+    assert builds_on_hero(hero, "rig") is None
     publish(hero, "model")
-    publish(hero, "model")
-    assert built_from(hero, "rig") == Dependency(
-        "assets/character/hero/model/publish/hero_model.blend", 2
-    )
-    assert built_from(hero, "model") is None  # model builds on nothing.
+    assert builds_on_hero(hero, "rig") == hero.hero_path("model")
+    assert builds_on_hero(hero, "model") is None  # model builds on nothing.
 
 
 def test_builds_on_must_name_a_publishing_task_of_the_same_entity(make_project):
@@ -124,7 +111,7 @@ def test_builds_on_must_name_a_publishing_task_of_the_same_entity(make_project):
 # Updates
 
 
-def test_changed_publishes_and_stale_builds(project):
+def test_changed_publishes(project):
     hero = project.create_asset("character", "hero")
     publish(hero, "model")
     hero_model = "assets/character/hero/model/publish/hero_model.blend"
@@ -134,8 +121,6 @@ def test_changed_publishes_and_stale_builds(project):
     publish(hero, "model")
     assert changed(project, seen) == [Change(hero_model, 1, 2)]
     assert changed(project, seen)[0].label == "hero_model v001 → v002"
-    assert stale_build(project, Dependency(hero_model, 1)) == Change(hero_model, 1, 2)
-    assert stale_build(project, Dependency(hero_model, 2)) is None
 
 
 def test_update_labels_follow_the_projects_version_padding(make_project):

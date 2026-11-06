@@ -2,7 +2,7 @@
 
 import bpy
 import pytest
-from conftest import place, placed_at, publish_model, publish_prop
+from conftest import make_cut, place, placed_at, publish_model, publish_prop
 
 from smallstudio_pipeline.common.errors import PipelineError
 from smallstudio_pipeline.loading.blender import instances
@@ -16,7 +16,7 @@ def shot(project):
     """Sequence 010_010's layout file, open, with one shot; returns the shot's scene."""
     publish_model(project)
     publish_prop(project, "crate")
-    bpy.ops.pipeline.new_sequence(episode="NEW")
+    make_cut()
     bpy.ops.pipeline.add_shot()
     return bpy.data.scenes["010_010_0010"]
 

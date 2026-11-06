@@ -15,20 +15,19 @@ it would omit.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 
 import bpy
 
 from ...interface.panels import DASH
 from ...loading.blender import instances
-from ...project.blender.identity import asset_identity, built_from
+from ...loading.blender.editable import placement_of
 from ...project.blender.nodes import Node, current_node, node_sequence
 from ...project.core.entities import Sequence
 from ...project.core.project import Project
 from ...shots.blender import layout
 from ...shots.core.layout import changes_since
 from ...workfiles.core.context import FileContext
-from ..core.publishing import plan_publish, publish_target
+from ..core.publishing import builds_on_hero, hero_record, plan_publish, publish_target
 from . import in_context, results
 from . import layout as layout_publish
 from .validation import subject_for, validator_for
@@ -71,10 +70,9 @@ def describe(project: Project, file: FileContext, chosen: Node) -> tuple[str, st
     key = f"{chosen.kind}:{chosen.root.name}"
     if key not in _described:
         if chosen.kind == "asset":
-            target = publish_target(project, file, chosen.name)
+            target = publish_target(project, chosen.name, chosen.task)
             plan = plan_publish(target.asset, target.task)
             title = f"{target.asset.name} · {target.task}"
-            title += " (in context)" if target.in_context else ""
         else:
             sequence = node_sequence(project, chosen)
             plan = plan_publish(sequence, layout.LAYOUT)
@@ -88,15 +86,14 @@ def review(context: bpy.types.Context, project: Project, file: FileContext) -> r
     global current
     chosen = current_node(context)
     if chosen.kind == "asset":
-        current, subjects = _asset(context, project, file, chosen.root)
+        current, subjects = _asset(project, chosen)
     else:
         sequence = node_sequence(project, chosen)
         shot = node_shot(chosen)
         current, subjects = _layout(project, sequence, shot)
     validator = validator_for(project)
-    root = subjects[0][1].root if len(subjects) == 1 else None
-    if root is not None and current.title.endswith("(in context)"):
-        with in_context.in_asset_space(root, context.view_layer):  # Checked as it would be.
+    if chosen.kind == "asset":
+        with in_context.in_asset_space(chosen.root, context.view_layer):  # As it would publish.
             checked = [results.Checked(label, validator.run(s), s) for label, s in subjects]
     else:
         checked = [results.Checked(label, validator.run(s), s) for label, s in subjects]
@@ -110,15 +107,12 @@ def node_shot(chosen: Node) -> str:
     return layout.shot_number(chosen.name) if chosen.kind == "shot" else ""
 
 
-def _asset(
-    context: bpy.types.Context, project: Project, file: FileContext, root: bpy.types.Collection
-) -> tuple[Preview, list]:
-    identity = asset_identity(root)
-    assert identity is not None  # An asset's node is its root.
-    target = publish_target(project, file, identity[0])
+def _asset(project: Project, chosen: Node) -> tuple[Preview, list]:
+    root = chosen.root
+    target = publish_target(project, chosen.name, chosen.task)
     asset, task = target.asset, target.task
     plan = plan_publish(asset, task)
-    title = f"{asset.name} · {task}" + (" (in context)" if target.in_context else "")
+    title = f"{asset.name} · {task}"
     preview = Preview(title, plan.label)
     latest = asset.latest_publish_version(task)
     padding = project.config.version_padding
@@ -128,14 +122,14 @@ def _asset(
         preview.facts.append(f"Replaces {plan.hero.name} (v{latest:0{padding}d})")
     count = len(root.all_objects)
     preview.facts.append(f"Root {root.name}: {count} object{'s' if count != 1 else ''}")
-    source = built_from(root)
-    if source is not None and project.config.tasks[task].builds_on:
-        version = f" v{source.version:0{padding}d}" if source.version else ""
-        preview.facts.append(f"Materials from {Path(source.path).stem}{version}")
-    if target.in_context:
-        preview.facts.append(f"From {file.entity}'s file: saved as {asset.name}'s next workfile")
-        preview.facts.append("and linked back here afterwards")
-    return preview, [("", subject_for(root, target, file.entity))]
+    model = builds_on_hero(asset, task)
+    if model is not None:
+        upstream = hero_record(asset, project.config.tasks[task].builds_on or "")
+        version = f" v{upstream.version:0{padding}d}" if upstream else ""
+        preview.facts.append(f"Materials from {model.stem}{version}")
+    if placement_of(root) is not None:
+        preview.facts.append("Made editable here: published in its own space")
+    return preview, [("", subject_for(root, target))]
 
 
 def _layout(project: Project, sequence: Sequence, shot: str) -> tuple[Preview, list]:

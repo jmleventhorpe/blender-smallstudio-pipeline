@@ -21,10 +21,7 @@ version_padding = 3
 code_step = 10
 
 # Tasks: which entity their workfiles belong to, whether they publish, and where their
-# renders go (an entity, or leave it out for no renders). A project can give a task a
-# starter file for new workfiles, relative to the project root:
-#   [tasks.light]
-#   starter = "starters/light.blend"
+# renders go (an entity, or leave it out for no renders).
 [tasks.model]
 entity = "asset"
 publishes = true
@@ -32,7 +29,7 @@ publishes = true
 [tasks.rig]
 entity = "asset"
 publishes = true
-builds_on = "model" # Rigging starts from the latest model publish.
+builds_on = "model" # A rig takes its model's latest materials on every publish.
 
 [tasks.layout]
 entity = "sequence"

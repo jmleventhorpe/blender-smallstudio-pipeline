@@ -1,44 +1,40 @@
-"""Runs inside Blender (see run.py): rigs start from the model and keep its materials."""
+"""Runs inside Blender (see run.py): a rig node takes its model's latest materials."""
 
 from pathlib import Path
 
 import bpy
-import pytest
 from conftest import add_cube, give_material, publish_model, save_blend
 
-from smallstudio_pipeline.project.blender.identity import INSTANCE_ID, built_from
-from smallstudio_pipeline.publishing.core.publishing import Dependency, hero_record
-
-MODEL_HERO = "assets/character/hero/model/publish/hero_model.blend"
+from smallstudio_pipeline.project.blender.identity import TASK, create_root_collection
+from smallstudio_pipeline.publishing.core.publishing import hero_record
 
 
-def test_a_rig_workfile_starts_from_the_latest_model(project):
-    hero = publish_model(project)
-    bpy.ops.pipeline.new_workfile(category="character", entity="hero", task="rig")
+def rig_workfile(hero):
+    """hero's rig workfile: a rig node holding a body (as the model's) and a rig-only part."""
+    bpy.ops.wm.read_homefile(use_empty=True)
+    root = create_root_collection(hero, bpy.context.scene, "rig")
+    give_material(add_cube(root, "body"), "skin", (0.5, 0.5, 0.5, 1))
+    give_material(add_cube(root, "rig_only"), "plastic", (0, 0, 1, 1))
+    save_blend(hero.workfile_path("rig", 1))
+    return root
 
-    assert Path(bpy.data.filepath) == hero.workfile_path("rig", 1)
+
+def test_a_rig_node_is_made_empty_for_its_task(project):
+    hero = project.create_asset("character", "hero")
+    bpy.ops.wm.read_homefile(use_empty=True)
+    bpy.ops.pipeline.new_node(kind="ASSET", asset="hero", task="rig")
     root = bpy.data.collections["hero"]
-    assert root.library is None and "body" in root.objects  # Appended, not linked.
-    assert root.asset_data is None  # The workfile's copy isn't an asset.
-    assert root.is_property_overridable_library(f'["{INSTANCE_ID}"]')
-    assert built_from(root) == Dependency(MODEL_HERO, 1)
-
-
-def test_a_rig_needs_a_model_publish(project):
-    project.create_asset("character", "hero")
-    with pytest.raises(RuntimeError, match="no model publish yet"):
-        bpy.ops.pipeline.new_workfile(category="character", entity="hero", task="rig")
+    assert root[TASK] == "rig" and not root.all_objects
+    assert hero.workfile_versions("rig") == []  # Making a node saves nothing.
 
 
 def test_rig_publishes_take_the_models_latest_materials(project):
     hero = publish_model(project, colour=(1, 0, 0, 1))
-    bpy.ops.pipeline.new_workfile(category="character", entity="hero", task="rig")
-    rig_workfile = Path(bpy.data.filepath)
-    give_material(add_cube(bpy.data.collections["hero"], "rig_only"), "plastic", (0, 0, 1, 1))
-    save_blend(rig_workfile)
+    rig_workfile(hero)
+    path = Path(bpy.data.filepath)
 
     publish_model(project, colour=(0, 1, 0, 1))  # The model's skin turns green: v002.
-    bpy.ops.wm.open_mainfile(filepath=str(rig_workfile))
+    bpy.ops.wm.open_mainfile(filepath=str(path))
     bpy.ops.pipeline.publish()
     bpy.ops.pipeline.publish()  # Twice, to be sure copies don't pile up.
 
@@ -47,4 +43,13 @@ def test_rig_publishes_take_the_models_latest_materials(project):
     assert list(colour[:]) == [0, 1, 0, 1]  # pyright: ignore[reportIndexIssue]
     assert sorted(m.name for m in bpy.data.materials) == ["plastic", "skin"]
     record = hero_record(hero, "rig")
-    assert record is not None and record.built_from == Dependency(MODEL_HERO, 1)
+    assert (
+        record is not None and record.source == "assets/character/hero/rig/work/hero_rig_v001.blend"
+    )
+
+
+def test_a_rig_publishes_without_a_model_publish(project):
+    hero = project.create_asset("character", "hero")
+    rig_workfile(hero)
+    assert bpy.ops.pipeline.publish() == {"FINISHED"}
+    assert hero.latest_publish_version("rig") == 1
