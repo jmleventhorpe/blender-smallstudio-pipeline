@@ -150,3 +150,57 @@ CLASSES = (
     PIPELINE_OT_add_shot,
     PIPELINE_OT_omit_shot,
 )
+
+
+class PIPELINE_OT_go_to_shot(bpy.types.Operator):
+    """Show the selected shot's scene"""
+
+    bl_idname = "pipeline.go_to_shot"
+    bl_label = "Go to Shot"
+    bl_options = {"REGISTER"}
+
+    @classmethod
+    def poll(cls, context: bpy.types.Context) -> bool:
+        if selected_shot_strip() is None:
+            cls.poll_message_set("Select a shot's strip in the cut.")
+            return False
+        return True
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        strip = selected_shot_strip()
+        assert strip is not None and strip.scene is not None  # Checked by poll.
+        return show_scene(self, context, strip.scene)
+
+
+class PIPELINE_OT_back_to_cut(bpy.types.Operator):
+    """Show the cut: the sequence's master scene"""
+
+    bl_idname = "pipeline.back_to_cut"
+    bl_label = "Back to Cut"
+    bl_options = {"REGISTER"}
+
+    @classmethod
+    def poll(cls, context: bpy.types.Context) -> bool:
+        return in_layout_workfile(cls)
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        try:
+            master = layout.master_scene()
+        except PipelineError as error:
+            self.report({"ERROR"}, str(error))
+            return {"CANCELLED"}
+        return show_scene(self, context, master)
+
+
+def show_scene(
+    operator: bpy.types.Operator, context: bpy.types.Context, scene: bpy.types.Scene
+) -> set[str]:
+    """Put a scene on show in the window."""
+    if context.window is None:
+        operator.report({"ERROR"}, "There's no window to show the scene in.")
+        return {"CANCELLED"}
+    context.window.scene = scene
+    return {"FINISHED"}
+
+
+CLASSES = (*CLASSES, PIPELINE_OT_go_to_shot, PIPELINE_OT_back_to_cut)
