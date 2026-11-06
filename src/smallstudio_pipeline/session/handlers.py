@@ -19,7 +19,7 @@ from bpy.app.handlers import persistent
 
 from ..common.errors import PipelineError
 from ..loading.blender import instances, libraries, updates
-from ..publishing.blender import results
+from ..publishing.blender import results, review
 from ..shots.blender import layout
 from ..workfiles.core import inuse
 from ..workfiles.core.context import file_context
@@ -39,6 +39,7 @@ def on_load_pre(*_args: object) -> None:
 def on_load_post(*_args: object) -> None:
     """After a file opens: work out what it is, mark it in use, and warn if need be."""
     results.clear()  # They were for the file just closed.
+    review.clear()
     state.refresh()
     claim()
     after_open()

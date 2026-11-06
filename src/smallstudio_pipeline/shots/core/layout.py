@@ -5,7 +5,8 @@ Publishing layout reads each strip as a ShotCut, and apply_cut() writes them int
 shots' metadata, which later stages read: the frame range the shot's scene covers, where
 the shot sits in the cut (for Assemble Edit to trim the layout playblast), and the
 instances standing in it. Shots with no strip are marked omitted, and a strip for an
-omitted shot brings it back.
+omitted shot brings it back. changes_since() says, before publishing, what that would
+change in each shot.
 """
 
 from __future__ import annotations
@@ -42,6 +43,44 @@ class CutChanges:
         if self.restored:
             parts.append(f"restored {', '.join(self.restored)}")
         return "; ".join(parts)
+
+
+def changes_since(sequence: Sequence, cuts: list[ShotCut]) -> tuple[dict[str, str], list[str]]:
+    """What publishing this cut would change in each shot, and which shots it would omit.
+
+    Each shot in the cut gets "new" (never published), "restored" (omitted before),
+    "retimed" (its length changed), "moved" (same length, elsewhere in the cut),
+    "cast changed", several of those joined with ", ", or "" for no change.
+    """
+    shots = {str(shot.code): shot for shot in sequence.shots(include_omitted=True)}
+    found = {}
+    for cut in cuts:
+        shot = shots.get(cut.shot)
+        if shot is None:
+            found[cut.shot] = "new"
+            continue
+        data, notes = shot.metadata, []
+        if shot.omitted:
+            notes.append("restored")
+        elif data.frame_start is None or data.frame_end is None:
+            notes.append("new")
+        else:
+            if data.frame_end - data.frame_start != cut.frame_end - cut.frame_start:
+                notes.append("retimed")
+            elif (data.cut_in, data.cut_out) != (cut.cut_in, cut.cut_out):
+                notes.append("moved")
+            if sorted(map(_cast_key, data.casting)) != sorted(map(_cast_key, cut.casting)):
+                notes.append("cast changed")
+        found[cut.shot] = ", ".join(notes)
+    in_cut = {cut.shot for cut in cuts}
+    omitted = sorted(
+        code for code, shot in shots.items() if code not in in_cut and not shot.omitted
+    )
+    return found, omitted
+
+
+def _cast_key(entry: CastEntry) -> tuple[str, str]:
+    return entry.asset, entry.instance_id
 
 
 def check_cut(sequence: Sequence, cuts: list[ShotCut]) -> None:

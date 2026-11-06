@@ -35,7 +35,7 @@ from ..core.publishing import (
     publish_target,
     write_records,
 )
-from . import in_context, results
+from . import in_context, results, review
 from . import layout as layout_publish
 from .assets import dependencies, pick_root, write_publish
 from .materials import sync_materials
@@ -77,6 +77,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
             return {"CANCELLED"}
         if published is None:
             return {"CANCELLED"}  # Blocked by checks; the sidebar says why.
+        review.clear()  # What it would write has been written; Check again for the next.
         self.report({"INFO"}, f"Published {published}")
         return {"FINISHED"}
 
@@ -206,4 +207,34 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         return last.published
 
 
-CLASSES = (PIPELINE_OT_publish,)
+class PIPELINE_OT_check_publish(bpy.types.Operator):
+    """See what Publish would write, and run its checks. Nothing is written"""
+
+    bl_idname = "pipeline.check_publish"
+    bl_label = "Check"
+    bl_options = {"REGISTER"}
+
+    @classmethod
+    def poll(cls, context: Context) -> bool:
+        return PIPELINE_OT_publish.poll(context)
+
+    def execute(self, context: Context) -> set[str]:
+        project, file = state.current.project, state.current.context
+        assert project is not None and file is not None  # Checked by poll.
+        if context.mode != "OBJECT":  # Edit Mode changes only reach the mesh outside it.
+            bpy.ops.object.mode_set(mode="OBJECT")
+        try:
+            last = review.review(context, project, file)
+        except PipelineError as error:
+            review.clear()
+            self.report({"ERROR"}, str(error))
+            return {"CANCELLED"}
+        results.show_sidebar(context)
+        if last.passed:
+            self.report({"INFO"}, f"Checks pass ({last.summary()}).")
+        else:
+            self.report({"WARNING"}, f"Publish would be blocked ({last.summary()}).")
+        return {"FINISHED"}
+
+
+CLASSES = (PIPELINE_OT_publish, PIPELINE_OT_check_publish)

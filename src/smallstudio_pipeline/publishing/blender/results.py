@@ -1,10 +1,9 @@
-"""The last publish's check results, in the 3D viewport's sidebar (Pipeline tab).
+"""The last Check's or Publish's results, drawn in the Publish panel.
 
-results.last holds what the last publish checked and the validator that did it: one
-report for an asset, or one per shot for a layout publish. The panel lists failed,
-warning and fixed checks with their issues, under each shot's code when there are
-several; Select picks an issue's objects (showing that shot's scene), and Fix runs a
-check's fix and checks again.
+results.last holds what was checked and the validator that did it: one report for an
+asset, or one per shot for a layout. draw_results() lists failed, warning and fixed
+checks with their issues, under each shot's code when there are several; Select picks an
+issue's objects (showing that shot's scene), and Fix runs a check's fix and checks again.
 """
 
 from __future__ import annotations
@@ -35,6 +34,7 @@ class LastPublish:
     checked: list[Checked]
     validator: Validator  # Kept to select issues and run fixes.
     published: str | None = None  # e.g. "hero_rig v004", or None if it was blocked.
+    checked_only: bool = False  # True for Check, which runs the checks and publishes nothing.
 
     @property
     def passed(self) -> bool:
@@ -74,10 +74,10 @@ def clear() -> None:
 
 
 def redraw() -> None:
-    """Redraw every 3D viewport, so the sidebar shows the latest results."""
+    """Redraw every 3D viewport and sequencer, so their sidebars show the latest results."""
     for window in bpy.context.window_manager.windows:
         for area in window.screen.areas:
-            if area.type == "VIEW_3D":
+            if area.type in ("VIEW_3D", "SEQUENCE_EDITOR"):
                 area.tag_redraw()
 
 
@@ -88,35 +88,28 @@ def show_sidebar(context: bpy.types.Context) -> None:
             area.spaces.active.show_region_ui = True
 
 
-class PIPELINE_PT_results(bpy.types.Panel):
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "Pipeline"
-    bl_label = "Publish"
+def draw_results(layout: bpy.types.UILayout) -> None:
+    """The last Check's or Publish's outcome, then each check that didn't simply pass."""
+    if last is None:
+        return
+    if last.published:
+        layout.label(text=f"Published {last.published}", icon="CHECKMARK")
+    elif last.checked_only and last.passed:
+        layout.label(text=f"Checks pass: {last.summary()}", icon="CHECKMARK")
+    else:
+        row = layout.row()
+        row.alert = True
+        verb = "Would be blocked" if last.checked_only else "Blocked"
+        row.label(text=f"{verb}: {last.summary()}", icon="ERROR")
+    for error in last.checked[0].report.load_errors:  # The same for every part.
+        layout.label(text=f"Couldn't load {error.source}: {error.short_message}", icon="ERROR")
 
-    @classmethod
-    def poll(cls, context: bpy.types.Context) -> bool:
-        return last is not None
-
-    def draw(self, context: bpy.types.Context) -> None:
-        assert last is not None  # Checked by poll.
-        layout = self.layout
-        if last.published:
-            layout.label(text=f"Published {last.published}", icon="CHECKMARK")
-        else:
-            row = layout.row()
-            row.alert = True
-            row.label(text=f"Blocked: {last.summary()}", icon="ERROR")
-        for error in last.checked[0].report.load_errors:  # The same for every part.
-            layout.label(text=f"Couldn't load {error.source}: {error.short_message}", icon="ERROR")
-
-        for part_index, part in enumerate(last.checked):
-            shown = [result for result in part.report.results if result.status in SHOWN]
-            if shown and part.label:
-                layout.label(text=part.label, icon="SCENE_DATA")
-            for result in shown:
-                draw_result(layout.box(), result, part_index)
-        layout.operator("pipeline.publish", text="Publish Again", icon="EXPORT")
+    for part_index, part in enumerate(last.checked):
+        shown = [result for result in part.report.results if result.status in SHOWN]
+        if shown and part.label:
+            layout.label(text=part.label, icon="SCENE_DATA")
+        for result in shown:
+            draw_result(layout.box(), result, part_index)
 
 
 def draw_result(box: bpy.types.UILayout, result, part: int) -> None:
@@ -189,4 +182,4 @@ def part_of(index: int) -> Checked | None:
     return last.checked[index]
 
 
-CLASSES = (PIPELINE_PT_results, PIPELINE_OT_select_issue, PIPELINE_OT_fix_check)
+CLASSES = (PIPELINE_OT_select_issue, PIPELINE_OT_fix_check)

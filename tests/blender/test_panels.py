@@ -37,6 +37,9 @@ class FakeLayout:
     def split(self, **_):
         return self
 
+    def grid_flow(self, **_):
+        return self
+
 
 def draw(panel_class, scene=None):
     """What a panel shows, as one string."""
@@ -58,7 +61,7 @@ def cut(project):
 
 
 def test_the_panels_are_in_both_sidebars(registered):
-    for name in ("context", "shot"):
+    for name in ("context", "shot", "loaded", "publish"):
         for suffix in ("view3d", "sequencer"):
             assert hasattr(bpy.types, f"PIPELINE_PT_{name}_{suffix}")
 
@@ -134,3 +137,66 @@ def test_loaded_buttons_select_override_and_link_back(project, cut):
         override = next(c for c in bpy.data.collections if c.override_library)
         assert bpy.ops.pipeline.back_to_link(holder=override.name) == {"FINISHED"}
     assert empty.instance_collection is not None and empty["instance_id"] == "hero_01"
+
+
+def test_check_shows_what_an_asset_publish_would_write(project):
+    from smallstudio_pipeline.publishing.blender import review
+    from smallstudio_pipeline.publishing.blender.panels import PublishPanel
+
+    publish_model(project)  # hero_model v001, from workfile v001, which stays open.
+    assert "Published hero_model v001" in draw(PublishPanel)  # Until Check is pressed.
+    assert bpy.ops.pipeline.check_publish() == {"FINISHED"}
+    preview = review.current
+    assert preview is not None and (preview.title, preview.writes) == (
+        "hero · model",
+        "hero_model v002",
+    )
+    assert "Replaces hero_model.blend (v001)" in preview.facts
+    assert "Root hero: 1 object" in preview.facts
+    shown = draw(PublishPanel)
+    assert "hero_model v002" in shown and "Checks pass" in shown
+
+    bpy.ops.pipeline.publish()
+    assert review.current is None  # Written: Check again for the next.
+    assert "Published hero_model v002" in draw(PublishPanel)
+
+
+def test_check_lists_each_shot_and_what_changed(project, cut):
+    from smallstudio_pipeline.publishing.blender import review
+    from smallstudio_pipeline.publishing.blender.panels import PublishPanel
+
+    bpy.ops.pipeline.check_publish()
+    preview = review.current
+    assert preview is not None and preview.writes == "010_010_layout v001"
+    assert [(s.shot, s.cast, s.change) for s in preview.shots] == [
+        ("0010", 1, "new"),
+        ("0020", 0, "new"),
+    ]
+    bpy.ops.pipeline.publish()
+
+    master = layout.master_scene()
+    first, second = layout.shot_strips(master)
+    second.right_handle_offset = 8  # Shorten 0020.
+    master.sequence_editor.strips.remove(first)  # And drop 0010 by hand.
+    bpy.ops.pipeline.check_publish()
+    preview = review.current
+    assert preview is not None and preview.writes == "010_010_layout v002"
+    assert [(s.shot, s.change) for s in preview.shots] == [("0020", "retimed")]
+    assert preview.omitted == ["0010"]
+    shown = draw(PublishPanel)
+    assert "0010 will be omitted" in shown and "retimed" in shown
+
+
+def test_a_check_that_would_block_says_so_and_writes_nothing(project, cut):
+    from smallstudio_pipeline.publishing.blender import results
+    from smallstudio_pipeline.publishing.blender.panels import PublishPanel
+
+    bpy.data.scenes["010_010_0010"].camera = None
+    bpy.ops.pipeline.check_publish()
+    assert results.last is not None and results.last.checked_only and not results.last.passed
+    assert "Would be blocked: 010_010_0010" in draw(PublishPanel)
+    assert not project.sequence("010_010").hero_path("layout").exists()
+
+
+def test_the_old_results_panel_is_gone(registered):
+    assert not hasattr(bpy.types, "PIPELINE_PT_results")

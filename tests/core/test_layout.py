@@ -2,7 +2,7 @@ import pytest
 
 from smallstudio_pipeline.common.errors import PipelineError
 from smallstudio_pipeline.project.core.metadata import CastEntry
-from smallstudio_pipeline.shots.core.layout import ShotCut, apply_cut
+from smallstudio_pipeline.shots.core.layout import ShotCut, apply_cut, changes_since
 
 
 @pytest.fixture
@@ -56,3 +56,26 @@ def test_strips_for_unknown_shots_are_refused(sequence):
 def test_a_range_that_doesnt_match_its_strip_is_refused(sequence):
     with pytest.raises(PipelineError, match="0010's frame range doesn't match"):
         apply_cut(sequence, [ShotCut("010_010_0010", 101, 148, 1, 24)])
+
+
+def test_changes_since_the_last_publish(project, sequence):
+    hero = CastEntry("hero", "hero_01")
+    first = [cut("010_010_0010", 101, 48, 1, (hero,)), cut("010_010_0020", 101, 24, 49)]
+    changes, omitted = changes_since(sequence, first)
+    assert changes == {"010_010_0010": "new", "010_010_0020": "new"}
+    assert omitted == ["010_010_0030"]
+    apply_cut(sequence, first)
+
+    again = [
+        cut("010_010_0010", 101, 60, 1),  # Longer, and hero's gone.
+        cut("010_010_0020", 101, 24, 61),  # Same length, later in the cut.
+        cut("010_010_0030", 101, 24, 85),  # Back from omitted.
+    ]
+    changes, omitted = changes_since(sequence, again)
+    assert changes == {
+        "010_010_0010": "retimed, cast changed",
+        "010_010_0020": "moved",
+        "010_010_0030": "restored",
+    }
+    assert omitted == []
+    assert changes_since(sequence, first)[0]["010_010_0020"] == ""
