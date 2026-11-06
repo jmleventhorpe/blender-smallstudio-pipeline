@@ -19,6 +19,7 @@ from ...publishing.core.publishing import relative
 from ...session import state
 from ...workfiles.core.context import file_context
 from . import instances, updates
+from .operators import in_shot
 
 
 def version_text(number: int | None, padding: int) -> str:
@@ -44,8 +45,6 @@ class LoadedPanel:
         layout, project = self.layout, state.current.project
         assert project is not None  # Checked by poll.
         padding = project.config.version_padding
-        file = state.current.context
-        in_shot_file = file is not None and file.entity_kind != "asset" and not file.is_publish
         out_of_date = unknown = 0
         for instance in instances.instances(context.scene):
             library = instance.library
@@ -70,10 +69,11 @@ class LoadedPanel:
                 status.label(text="", icon="CHECKMARK")
             select = row.operator("pipeline.select_instance", text="", icon="RESTRICT_SELECT_OFF")
             select.holder = instance.holder.name
-            if in_shot_file and instance.overridden:
+            posable = in_shot(instance, context.scene)
+            if instance.overridden:
                 back = row.operator("pipeline.back_to_link", text="", icon="LINKED")
                 back.holder = instance.holder.name
-            elif in_shot_file:
+            elif posable:
                 pose = row.operator("pipeline.override_for_posing", text="", icon="ARMATURE_DATA")
                 pose.holder = instance.holder.name
         if out_of_date:

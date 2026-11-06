@@ -22,6 +22,7 @@ import bpy
 from ...interface.panels import DASH
 from ...loading.blender import instances
 from ...project.blender.identity import asset_identity, built_from
+from ...project.blender.nodes import Node, current_node, node_sequence
 from ...project.core.entities import Sequence
 from ...project.core.project import Project
 from ...shots.blender import layout
@@ -30,7 +31,6 @@ from ...workfiles.core.context import FileContext
 from ..core.publishing import plan_publish, publish_target
 from . import in_context, results
 from . import layout as layout_publish
-from .node import Node, current_node, layout_sequence
 from .validation import subject_for, validator_for
 
 
@@ -76,7 +76,7 @@ def describe(project: Project, file: FileContext, chosen: Node) -> tuple[str, st
             title = f"{target.asset.name} · {target.task}"
             title += " (in context)" if target.in_context else ""
         else:
-            sequence = layout_sequence(project, file, chosen)
+            sequence = node_sequence(project, chosen)
             plan = plan_publish(sequence, layout.LAYOUT)
             title = f"{sequence.name} · {layout.LAYOUT}"
         _described[key] = (title, plan.label)
@@ -90,7 +90,7 @@ def review(context: bpy.types.Context, project: Project, file: FileContext) -> r
     if chosen.kind == "asset":
         current, subjects = _asset(context, project, file, chosen.root)
     else:
-        sequence = layout_sequence(project, file, chosen)
+        sequence = node_sequence(project, chosen)
         shot = node_shot(chosen)
         current, subjects = _layout(project, sequence, shot)
     validator = validator_for(project)
@@ -141,8 +141,7 @@ def _asset(
 def _layout(project: Project, sequence: Sequence, shot: str) -> tuple[Preview, list]:
     master = layout.master_scene()
     for scene in bpy.data.scenes:  # As saving before a publish would, so IDs are checked.
-        if layout.SHOT in scene:
-            instances.number_instances(scene)
+        instances.number_instances(scene)
     cuts = layout.cut(master, layout_publish.casting_by_shot(master))
     changes, omitted = changes_since(sequence, cuts)
     plan = plan_publish(sequence, layout.LAYOUT)

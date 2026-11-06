@@ -21,6 +21,7 @@ from bpy.app.handlers import persistent
 from ..common.errors import PipelineError
 from ..interface.panels import redraw_sidebars
 from ..loading.blender import instances, libraries, updates
+from ..project.blender import nodes
 from ..publishing.blender import results, review
 from ..shots.blender import layout
 from ..workfiles.core import inuse
@@ -45,7 +46,7 @@ def on_load_post(*_args: object) -> None:
     state.refresh()
     claim()
     after_open()
-    prepare_layout_file()
+    prepare_nodes()
     if state.current.warnings and state.current.context is not None:
         show_message(*state.current.warnings)  # Publishes, files in use, stale builds.
 
@@ -63,37 +64,38 @@ def after_open() -> None:
         state.current.warnings.append(updates.stale_warning(stale))
 
 
-def prepare_layout_file() -> None:
-    """In a layout workfile: show the cut in the sequencer, and give every shot a root and
-    its markers (files from before shot roots get them now)."""
+def prepare_nodes() -> None:
+    """Bring an opened file up to date with nodes, and show its cut if it has one.
+
+    Files from before nodes carried everything get their scenes' identity moved onto
+    nodes, and asset nodes without a task get the workfile's. Then a file holding a
+    sequence's node shows its cut in the sequencer, with a marker per shot.
+    """
     project, file = state.current.project, state.current.context
-    if project is None or file is None or file.task != layout.LAYOUT:
+    nodes.adopt_scene_identity()
+    if file is not None and file.entity_kind == "asset":
+        nodes.give_tasks(file.entity, file.task)
+    if project is None or not layout.has_cut():
         return
-    if file.entity_kind != "sequence":
-        return
-    with contextlib.suppress(PipelineError):  # No master scene: nothing to prepare.
+    with contextlib.suppress(PipelineError):  # A sequence that isn't in this project.
         master = layout.master_scene()
-        layout.ensure_sequence_root(master)
         layout.show_cut_in_sequencer(master)
-        for scene in bpy.data.scenes:
-            if layout.SHOT in scene:
-                layout.ensure_shot_root(scene)
-        layout.sync_markers(master, project.sequence(file.entity))
+        sequence_node = nodes.sequence_node(master)
+        assert sequence_node is not None  # master_scene holds it.
+        layout.sync_markers(master, project.sequence(sequence_node.name))
 
 
 @persistent
 def on_save_pre(path: object = "", *_args: object) -> None:
-    """Before a save (or a publish's copy, spike T13): number new instances in each shot,
-    and point a layout workfile's playblast output at the version being saved and its
-    markers at the cut."""
+    """Before a save (or a publish's copy, spike T13): number new instances in every scene,
+    and point a cut's playblast output at the version being saved and its markers at the cut."""
     for scene in bpy.data.scenes:
-        if layout.SHOT in scene:
-            instances.number_instances(scene)
+        instances.number_instances(scene)
     project = state.current.project
     if project is None or not isinstance(path, str) or not path:
         return
     file = file_context(project, Path(path))  # Save As and Version Up save somewhere new.
-    if file and file.task == layout.LAYOUT and file.entity_kind == "sequence" and file.version:
+    if file and file.version and layout.has_cut():
         try:
             master = layout.master_scene()
         except PipelineError:

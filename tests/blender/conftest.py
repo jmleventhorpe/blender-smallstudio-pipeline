@@ -115,7 +115,8 @@ def place(project, scene, asset_name, location=(0.0, 0.0, 0.0)):
     empty.instance_type = "COLLECTION"
     empty.instance_collection = linked
     empty.location = location
-    scene.collection.objects.link(empty)
+    # Into the active collection, as dragging does: a shot's node, in a shot's scene.
+    scene.view_layers[0].active_layer_collection.collection.objects.link(empty)
     return empty
 
 

@@ -24,6 +24,9 @@ from bpy.props import EnumProperty, StringProperty
 from ...common.errors import PipelineError
 from ...interface import browse
 from ...interface.common import UnsavedChanges, has_project, in_layout_workfile
+from ...project.blender import nodes
+from ...project.core.entities import Sequence
+from ...project.core.project import Project
 from ...session import state
 from ...workfiles.blender.workfiles import start_workfile
 from . import layout
@@ -71,6 +74,13 @@ class PIPELINE_OT_new_sequence(UnsavedChanges, bpy.types.Operator):
         return {"FINISHED"}
 
 
+def cut_sequence(project: Project, master: bpy.types.Scene) -> Sequence:
+    """The sequence whose cut a master scene holds, from its node."""
+    node = nodes.sequence_node(master)
+    assert node is not None  # master_scene holds one.
+    return project.sequence(node.name)
+
+
 class PIPELINE_OT_add_shot(bpy.types.Operator):
     """Add a shot after the one at the playhead in the cut, with its own scene and camera"""
 
@@ -83,11 +93,11 @@ class PIPELINE_OT_add_shot(bpy.types.Operator):
         return has_project(cls) and in_layout_workfile(cls)
 
     def execute(self, context: bpy.types.Context) -> set[str]:
-        project, file = state.current.project, state.current.context
-        assert project is not None and file is not None  # Checked by poll.
+        project = state.current.project
+        assert project is not None  # Checked by poll.
         try:
             master = layout.master_scene()
-            shot = layout.add_shot(project.sequence(file.entity), master, master.frame_current)
+            shot = layout.add_shot(cut_sequence(project, master), master, master.frame_current)
         except PipelineError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}
@@ -134,10 +144,11 @@ class PIPELINE_OT_omit_shot(bpy.types.Operator):
         return True
 
     def execute(self, context: bpy.types.Context) -> set[str]:
-        project, file, strip = state.current.project, state.current.context, selected_shot_strip()
-        assert project is not None and file is not None and strip is not None  # Checked by poll.
+        project, strip = state.current.project, selected_shot_strip()
+        assert project is not None and strip is not None  # Checked by poll.
         try:
-            shot = layout.omit_shot(strip, project.sequence(file.entity), layout.master_scene())
+            master = layout.master_scene()
+            shot = layout.omit_shot(strip, cut_sequence(project, master), master)
         except PipelineError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}

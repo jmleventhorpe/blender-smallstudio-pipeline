@@ -17,8 +17,9 @@ from typing import Any
 
 import bpy
 
+from ..project.blender import nodes
 from ..session import state
-from ..shots.blender.layout import SEQUENCE, SHOT, shot_number
+from ..shots.blender.layout import shot_number
 
 TAB = "Pipeline"
 SPACES = {"VIEW_3D": "view3d", "SEQUENCE_EDITOR": "sequencer"}
@@ -88,10 +89,10 @@ class ContextPanel:
             pair(layout, "File", f"{file.entity} · {file.task}")
             version = "published" if file.version is None else f"v{file.version:0{file.padding}d}"
             pair(layout, "Version", f"{version} publish" if file.is_publish else version)
-        scene = context.scene
-        if scene is not None and SHOT in scene:
-            pair(layout, "On show", f"shot {shot_number(str(scene[SHOT]))}")
-        elif scene is not None and SEQUENCE in scene:
+        shot = nodes.shot_node(context.scene)
+        if shot is not None:
+            pair(layout, "On show", f"shot {shot_number(shot.name)}")
+        elif nodes.sequence_node(context.scene) is not None:
             pair(layout, "On show", "the cut")
         for warning in current.warnings:
             wrapped(layout.box(), warning, icon="ERROR", alert=True)

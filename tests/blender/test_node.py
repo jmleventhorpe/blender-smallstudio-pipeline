@@ -1,4 +1,4 @@
-"""Runs inside Blender (see run.py): which root collection (node) Publish works on."""
+"""Runs inside Blender (see run.py): which node Publish works on."""
 
 import bpy
 import pytest
@@ -6,7 +6,7 @@ from conftest import add_cube
 
 from smallstudio_pipeline.common.errors import PipelineError
 from smallstudio_pipeline.project.blender.identity import create_root_collection
-from smallstudio_pipeline.publishing.blender.node import find_node
+from smallstudio_pipeline.project.blender.nodes import find_node
 
 
 @pytest.fixture
@@ -23,25 +23,25 @@ def active(collection):
     view_layer.active_layer_collection = view_layer.layer_collection.children[collection.name]
 
 
-def test_the_active_root_collection_wins(two_assets):
+def test_the_active_node_wins(two_assets):
     scene, crate_box, _ = two_assets
     active(bpy.data.collections["barrel"])
     node = find_node(scene, bpy.context.view_layer, [crate_box])
     assert (node.kind, node.name) == ("asset", "barrel")
 
 
-def test_else_the_root_holding_the_selection(two_assets):
+def test_else_the_node_holding_the_selection(two_assets):
     scene, crate_box, _ = two_assets
     node = find_node(scene, bpy.context.view_layer, [crate_box])
     assert (node.kind, node.name) == ("asset", "crate")
 
 
-def test_else_the_only_root_or_a_message(two_assets):
+def test_else_the_only_node_or_a_message(two_assets):
     scene, _, barrel_box = two_assets
-    with pytest.raises(PipelineError, match=r"several roots \(.*\)\. Click one in the Outliner"):
+    with pytest.raises(PipelineError, match=r"several nodes \(.*\)\. Click one in the Outliner"):
         find_node(scene, bpy.context.view_layer, [])
     bpy.data.collections.remove(bpy.data.collections["crate"])
     assert find_node(scene, bpy.context.view_layer, []).name == "barrel"
     bpy.data.collections.remove(bpy.data.collections["barrel"])
-    with pytest.raises(PipelineError, match="no root collection"):
+    with pytest.raises(PipelineError, match="it has no node"):
         find_node(scene, bpy.context.view_layer, [barrel_box])

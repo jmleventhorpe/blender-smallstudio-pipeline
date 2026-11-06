@@ -11,9 +11,10 @@ from __future__ import annotations
 import bpy
 
 from ..loading.blender import instances
+from ..project.blender import nodes
 from ..project.blender.identity import linked_asset
 from ..session import state
-from ..shots.blender.layout import LAYOUT, SEQUENCE, SHOT, shot_number
+from ..shots.blender.layout import has_cut, shot_number
 
 
 class PIPELINE_MT_main(bpy.types.Menu):
@@ -39,16 +40,17 @@ class PIPELINE_MT_main(bpy.types.Menu):
         if file is None or file.is_publish:
             return
         selected_link = linked_asset(context.active_object) is not None
-        if file.entity_kind == "asset" and selected_link:
+        holder = nodes.node_holding(context.active_object, context.scene)
+        if selected_link and holder is not None and holder.kind == "asset":
             layout.separator()
             layout.operator("pipeline.make_editable", icon="LIBRARY_DATA_OVERRIDE")
-        if file.entity_kind != "asset" and selected_link:
+        if selected_link and holder is not None and holder.kind == "shot":
             layout.separator()
             layout.operator("pipeline.override_for_posing", icon="LIBRARY_DATA_OVERRIDE")
-        elif file.entity_kind != "asset" and posed_instance(context):
+        elif posed_instance(context):
             layout.separator()
             layout.operator("pipeline.back_to_link", icon="LINKED")
-        if file.task == LAYOUT:
+        if has_cut():
             layout.separator()
             layout.operator("pipeline.add_shot", icon="ADD")
             layout.operator("pipeline.omit_shot", icon="REMOVE")
@@ -71,9 +73,10 @@ def draw_in_top_bar(self: bpy.types.Menu, context: bpy.types.Context) -> None:
 
 def scene_label(scene: bpy.types.Scene | None) -> str:
     """What the label adds for the scene on show: " · shot 0015", " · cut", or nothing."""
-    if scene is not None and SHOT in scene:
-        return f" · shot {shot_number(str(scene[SHOT]))}"
-    if scene is not None and SEQUENCE in scene:
+    shot = nodes.shot_node(scene)
+    if shot is not None:
+        return f" · shot {shot_number(shot.name)}"
+    if nodes.sequence_node(scene) is not None:
         return " · cut"
     return ""
 

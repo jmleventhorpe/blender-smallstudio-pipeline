@@ -20,6 +20,7 @@ from publish_validator import Subject, Validator
 from ...common.errors import PipelineError
 from ...interface.common import has_project
 from ...project.blender.identity import asset_identity, built_from
+from ...project.blender.nodes import current_node, node_sequence
 from ...project.core.entities import Sequence
 from ...project.core.project import Project
 from ...session import state
@@ -39,7 +40,6 @@ from . import in_context, results, review
 from . import layout as layout_publish
 from .assets import dependencies, write_publish
 from .materials import sync_materials
-from .node import current_node, layout_sequence
 from .validation import subject_for, validator_for
 
 Collection = bpy.types.Collection
@@ -73,7 +73,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
             if chosen.kind == "asset":
                 published = self.publish_asset(context, project, file, chosen.root)
             else:
-                published = self.publish_layout(context, layout_sequence(project, file, chosen))
+                published = self.publish_layout(context, node_sequence(project, chosen))
         except PipelineError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}

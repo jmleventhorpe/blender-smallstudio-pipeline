@@ -7,6 +7,8 @@ import bpy
 import pytest
 
 from smallstudio_pipeline.interface import browse
+from smallstudio_pipeline.project.blender import nodes
+from smallstudio_pipeline.project.blender.identity import SEQUENCE, SHOT
 from smallstudio_pipeline.shots.blender import layout
 
 
@@ -31,7 +33,9 @@ def add_shot_at(frame):
 def test_new_sequence_opens_its_layout_with_an_empty_cut(project, sequence):
     assert Path(bpy.data.filepath) == sequence.workfile_path("layout", 1)
     master = layout.master_scene()
-    assert master.name == "010_010" and master[layout.SEQUENCE] == "010_010"
+    node = nodes.sequence_node(master)
+    assert master.name == "010_010" and node is not None and node.name == "010_010"
+    assert not master.keys()  # Scenes carry nothing; the node does.
     assert cut() == []
     bpy.ops.pipeline.new_sequence(episode="010", title="Opening chase")
     assert [str(seq.code) for seq in project.sequences()] == ["010_010", "010_020"]
@@ -138,27 +142,32 @@ def test_sequence_titles_show_beside_their_codes_in_the_dialogs(project, sequenc
     ]
 
 
-def test_each_shot_has_a_root_holding_its_camera_as_the_active_collection(sequence):
+def test_each_shot_has_a_node_holding_its_camera_as_the_active_collection(sequence):
     add_shot_at(1)
     scene = bpy.data.scenes["010_010_0010"]
-    root = layout.shot_root(scene)
-    assert root is not None and root.name == "010_010_0010" and root[layout.SHOT] == "010_010_0010"
-    assert scene.camera.name in root.objects
-    assert scene.view_layers[0].active_layer_collection.collection == root
+    node = nodes.shot_node(scene)
+    assert node is not None and (node.root.name, node.name) == ("010_010_0010", "010_010_0010")
+    assert scene.camera.name in node.root.objects and not scene.keys()
+    assert scene.view_layers[0].active_layer_collection.collection == node.root
 
 
-def test_shot_scenes_from_before_roots_get_one_with_their_objects(sequence):
+def test_files_from_before_nodes_get_their_scenes_identity_moved_onto_nodes(sequence):
     add_shot_at(1)
-    scene = bpy.data.scenes["010_010_0010"]
-    root = layout.shot_root(scene)
-    scene.collection.children.unlink(root)  # As files saved before shot roots were.
-    for obj in list(root.objects):
-        scene.collection.objects.link(obj)
-    bpy.data.collections.remove(root)
+    master, scene = layout.master_scene(), bpy.data.scenes["010_010_0010"]
+    for each in (master, scene):  # As files saved before nodes carried everything.
+        node = nodes.sequence_node(each) or nodes.shot_node(each)
+        each.collection.children.unlink(node.root)
+        for obj in list(node.root.objects):
+            each.collection.objects.link(obj)
+        bpy.data.collections.remove(node.root)
+    master[SEQUENCE], scene[SHOT] = "010_010", "010_010_0010"
 
-    made = layout.ensure_shot_root(scene)
-    assert made.name == "010_010_0010" and scene.camera.name in made.objects
-    assert not scene.collection.objects
+    nodes.adopt_scene_identity()
+
+    shot = nodes.shot_node(scene)
+    assert shot is not None and scene.camera.name in shot.root.objects
+    assert not scene.collection.objects and not scene.keys() and not master.keys()
+    assert nodes.sequence_node(master) is not None
 
 
 def markers(scene):

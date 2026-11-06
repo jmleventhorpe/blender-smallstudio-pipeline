@@ -31,10 +31,9 @@ def has_project(operator_class: Any) -> bool:
 
 
 def in_layout_workfile(operator_class: Any) -> bool:
-    """Poll check: only in a sequence's layout workfile."""
-    file = state.current.context
-    if file is None or file.task != layout.LAYOUT or file.is_publish:
-        operator_class.poll_message_set("Open a sequence's layout workfile.")
+    """Poll check: only in a file holding a sequence's node, and so its cut."""
+    if not layout.has_cut():
+        operator_class.poll_message_set("This file has no sequence node. Make one with New Node.")
         return False
     return True
 

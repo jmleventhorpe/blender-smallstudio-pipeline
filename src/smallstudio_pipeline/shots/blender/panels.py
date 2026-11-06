@@ -15,6 +15,7 @@ import bpy
 from ...common.errors import PipelineError
 from ...interface.panels import DASH, both_sidebars, pair, wrapped
 from ...loading.blender import instances
+from ...project.blender import nodes
 from ...session import state
 from . import layout
 
@@ -22,7 +23,7 @@ from . import layout
 def shot_on_show(scene: bpy.types.Scene | None) -> tuple[bpy.types.Scene, Any] | None:
     """The shot scene on show and its strip in the cut (None if it has none), or None in
     the cut itself."""
-    if scene is None or layout.SHOT not in scene:
+    if scene is None or nodes.shot_node(scene) is None:
         return None
     try:
         strips = layout.shot_strips(layout.master_scene())
@@ -38,8 +39,7 @@ class ShotPanel:
 
     @classmethod
     def poll(cls, context: bpy.types.Context) -> bool:
-        file = state.current.context
-        return file is not None and file.task == layout.LAYOUT and not file.is_publish
+        return state.current.project is not None and layout.has_cut()
 
     def draw(self: Any, context: bpy.types.Context) -> None:
         box = self.layout
@@ -53,7 +53,9 @@ class ShotPanel:
             )
         else:
             scene, strip = found
-            pair(box, "Shot", str(scene[layout.SHOT]))
+            shot = nodes.shot_node(scene)
+            assert shot is not None  # shot_on_show only finds shot scenes.
+            pair(box, "Shot", shot.name)
             length = scene.frame_end - scene.frame_start + 1
             pair(box, "Frames", f"{scene.frame_start}{DASH}{scene.frame_end}  ({length})")
             if strip is not None:

@@ -22,6 +22,7 @@ from bpy.props import StringProperty
 
 from ...common.errors import PipelineError
 from ...interface.common import has_project
+from ...project.blender import nodes
 from ...project.blender.identity import linked_asset
 from ...session import state
 from . import editable, instances, updates
@@ -65,12 +66,12 @@ class PIPELINE_OT_make_editable(bpy.types.Operator):
     def poll(cls, context: bpy.types.Context) -> bool:
         if not has_project(cls):
             return False
-        file = state.current.context
-        if file is None or file.entity_kind != "asset" or file.is_publish:
-            cls.poll_message_set("Make Editable works in an asset's workfile, such as a set's.")
-            return False
         if linked_asset(context.active_object) is None:
             cls.poll_message_set("Select a linked asset (the empty that places it).")
+            return False
+        holder = nodes.node_holding(context.active_object, context.scene)
+        if holder is None or holder.kind != "asset":
+            cls.poll_message_set("Make Editable works on a linked asset inside an asset's node.")
             return False
         return True
 
@@ -86,15 +87,12 @@ class PIPELINE_OT_make_editable(bpy.types.Operator):
         return {"FINISHED"}
 
 
-def in_shot_workfile(operator_class: Any) -> bool:
-    """Poll check: only in a sequence's or shot's workfile."""
-    if not has_project(operator_class):
-        return False
-    file = state.current.context
-    if file is None or file.entity_kind == "asset" or file.is_publish:
-        operator_class.poll_message_set("This works in a sequence's or shot's workfile.")
-        return False
-    return True
+def in_shot(instance: instances.Instance, scene: bpy.types.Scene) -> bool:
+    """Whether an instance stands in a shot's node: where posing happens."""
+    holder = instance.holder
+    placed = instances.placing_empty(holder) if isinstance(holder, bpy.types.Collection) else holder
+    node = nodes.node_holding(placed, scene)
+    return node is not None and node.kind == "shot"
 
 
 def chosen_instance(operator: Any, context: bpy.types.Context) -> instances.Instance | None:
@@ -118,12 +116,15 @@ class PIPELINE_OT_override_for_posing(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context: bpy.types.Context) -> bool:
-        return in_shot_workfile(cls)
+        return has_project(cls)
 
     def execute(self, context: bpy.types.Context) -> set[str]:
         instance = chosen_instance(self, context)
         if instance is None or instance.overridden:
             self.report({"ERROR"}, "Select a linked asset (the empty that places it).")
+            return {"CANCELLED"}
+        if not in_shot(instance, context.scene):
+            self.report({"ERROR"}, "Override for Posing works on an asset inside a shot's node.")
             return {"CANCELLED"}
         assert isinstance(instance.holder, bpy.types.Object)  # Not overridden: an empty.
         try:
@@ -148,7 +149,7 @@ class PIPELINE_OT_back_to_link(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context: bpy.types.Context) -> bool:
-        return in_shot_workfile(cls)
+        return has_project(cls)
 
     def invoke(self, context: bpy.types.Context, event: bpy.types.Event) -> set[str]:
         return context.window_manager.invoke_confirm(

@@ -40,10 +40,10 @@ def test_instances_are_numbered_on_save_and_keep_their_ids(project, shot):
     ]
 
 
-def test_only_shot_scenes_are_numbered(project, shot):
-    empty = place(project, layout.master_scene(), "crate")
+def test_instances_in_every_scene_are_numbered(project, shot):
+    empty = place(project, layout.master_scene(), "crate")  # A set dressed with crates, say.
     bpy.ops.wm.save_mainfile()
-    assert INSTANCE_ID not in empty
+    assert empty[INSTANCE_ID] == "crate_01"
 
 
 def test_override_for_posing_keeps_the_asset_where_it_stands(project, shot):

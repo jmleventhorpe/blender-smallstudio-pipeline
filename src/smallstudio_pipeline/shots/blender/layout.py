@@ -1,8 +1,9 @@
-"""The sequence layout file: a master scene holding the cut, and a scene per shot.
+"""The sequence's cut: a master scene holding a strip per shot, and a scene per shot.
 
-The master scene is named after the sequence and has a scene strip per shot, each
-showing that shot's scene (the Storypencil pattern). start_cut() turns a new layout
-workfile's scene into the master. add_shot() creates a shot after the strip at the
+The master scene is the scene holding the sequence's node (project/blender/nodes.py); it
+has a scene strip per shot, each showing a scene holding that shot's node (the
+Storypencil pattern). Scenes carry nothing themselves. start_cut() makes a scene the
+sequence's master, with its node. add_shot() creates a shot after the strip at the
 playhead: its code goes between its neighbours' (0015 between 0010 and 0020), its scene
 gets a camera and starts at the project's shot_start, and later strips move along to
 make room. show_cut_in_sequencer() points each workspace's Video Sequencer at the cut.
@@ -11,12 +12,9 @@ its scene stays in the file. sync_ranges() makes each shot scene's range what it
 shows, so retiming in the cut is what layout publishes. set_playblast_output() points the
 master scene's output at the sequence's layout render folder for the workfile's version.
 
-Each shot scene has a root collection named after the shot, carrying its code like the
-scene does: the shot's camera and placed assets go in it, and it's what you select to see
-the shot. ensure_shot_root() gives scenes from before shot roots one. The master scene has
-a root too, named after the sequence (ensure_sequence_root): clicking either publishes the
-layout. sync_markers() keeps
-a timeline marker per shot ("0015"), at its strip in the cut and at the start of its scene.
+A shot's node holds its camera and placed assets, and is its scene's active collection,
+so assets dragged in land in it. sync_markers() keeps a timeline marker per shot ("0015"),
+at its strip in the cut and at the start of its scene.
 """
 
 from __future__ import annotations
@@ -27,37 +25,28 @@ from typing import cast
 import bpy
 
 from ...common.errors import PipelineError
+from ...project.blender import nodes
+from ...project.blender.identity import SEQUENCE, SHOT
 from ...project.core.entities import Sequence, Shot
 from ...project.core.metadata import CastEntry
 from ..core.layout import ShotCut
 
-LAYOUT = "layout"  # The task whose workfiles hold the cut.
-SEQUENCE = "pipeline_sequence"  # On the master scene: the sequence's code.
-SHOT = "pipeline_shot"  # On each shot scene: the shot's code.
+LAYOUT = "layout"  # The task whose publishes hold the cut.
 NEW_SHOT_LENGTH = 48  # Frames: two seconds at 24 fps.
 CHANNEL = 1
 
 
-def start_cut(scene: bpy.types.Scene, sequence: Sequence) -> None:
-    """Make a new layout workfile's scene the sequence's master scene."""
+def start_cut(scene: bpy.types.Scene, sequence: Sequence) -> bpy.types.Collection:
+    """Make a scene the sequence's master: its node, an empty cut, the project's settings."""
     scene.name = sequence.name
-    scene[SEQUENCE] = sequence.name
     scene.sequence_editor_create()
     scene.frame_start = scene.frame_end = 1
-    ensure_sequence_root(scene)
+    config = sequence.project.config
+    scene.render.fps, scene.render.fps_base = config.fps, 1.0
+    scene.render.resolution_x, scene.render.resolution_y = config.resolution
+    scene.render.resolution_percentage = 100
+    root = nodes.create_node(scene, sequence.name, SEQUENCE, sequence.name)
     show_cut_in_sequencer(scene)
-
-
-def ensure_sequence_root(master: bpy.types.Scene) -> bpy.types.Collection:
-    """The master scene's root collection, named after the sequence: what you click to
-    publish the layout. Made if the scene hasn't one (files from before sequence roots)."""
-    code = master[SEQUENCE]
-    for collection in master.collection.children:
-        if collection.get(SEQUENCE) == code:
-            return collection
-    root = bpy.data.collections.new(str(code))
-    root[SEQUENCE] = code
-    master.collection.children.link(root)
     return root
 
 
@@ -76,11 +65,16 @@ def show_cut_in_sequencer(master: bpy.types.Scene) -> None:
 
 
 def master_scene() -> bpy.types.Scene:
-    """The open layout file's master scene."""
+    """The open file's master scene: the one holding a sequence's node."""
     for scene in bpy.data.scenes:
-        if SEQUENCE in scene:
+        if nodes.sequence_node(scene) is not None:
             return scene
-    raise PipelineError("This file has no master scene, so it isn't a sequence layout file.")
+    raise PipelineError("This file has no sequence node, so it has no cut. Make one with New Node.")
+
+
+def has_cut() -> bool:
+    """Whether the open file holds a sequence's node, and so its cut."""
+    return any(nodes.sequence_node(scene) is not None for scene in bpy.data.scenes)
 
 
 def shot_strips(master: bpy.types.Scene) -> list[bpy.types.SceneStrip]:
@@ -88,15 +82,16 @@ def shot_strips(master: bpy.types.Scene) -> list[bpy.types.SceneStrip]:
     strips = [
         strip
         for strip in master.sequence_editor.strips
-        if isinstance(strip, bpy.types.SceneStrip) and strip.scene and SHOT in strip.scene
+        if isinstance(strip, bpy.types.SceneStrip) and nodes.shot_node(strip.scene) is not None
     ]
     return sorted(strips, key=lambda strip: strip.left_handle)
 
 
 def strip_shot(strip: bpy.types.SceneStrip) -> str:
     """The code of the shot a strip shows."""
-    assert strip.scene is not None  # shot_strips only returns strips showing a shot.
-    return str(strip.scene[SHOT])
+    node = nodes.shot_node(strip.scene)
+    assert node is not None  # shot_strips only returns strips showing a shot.
+    return node.name
 
 
 def add_shot(sequence: Sequence, master: bpy.types.Scene, frame: int) -> Shot:
@@ -128,7 +123,6 @@ def add_shot(sequence: Sequence, master: bpy.types.Scene, frame: int) -> Shot:
 def new_shot_scene(shot: Shot, master: bpy.types.Scene) -> bpy.types.Scene:
     """A scene for the shot, with a camera, taking the master's frame rate and resolution."""
     scene = bpy.data.scenes.new(shot.name)
-    scene[SHOT] = shot.name
     scene.frame_start = shot.project.config.shot_start
     scene.frame_end = scene.frame_start + NEW_SHOT_LENGTH - 1
     scene.render.fps, scene.render.fps_base = master.render.fps, master.render.fps_base
@@ -136,47 +130,13 @@ def new_shot_scene(shot: Shot, master: bpy.types.Scene) -> bpy.types.Scene:
     scene.render.resolution_y = master.render.resolution_y
     scene.render.resolution_percentage = master.render.resolution_percentage
 
-    root = ensure_shot_root(scene)
+    root = nodes.create_node(scene, shot.name, SHOT, shot.name)
     camera = bpy.data.objects.new(f"{shot.name}_cam", bpy.data.cameras.new(f"{shot.name}_cam"))
     camera.location = (0.0, -12.0, 2.0)
     camera.rotation_euler = (math.radians(85), 0.0, 0.0)
     root.objects.link(camera)
     scene.camera = camera
     return scene
-
-
-def shot_root(scene: bpy.types.Scene) -> bpy.types.Collection | None:
-    """A shot scene's root collection, if it has one."""
-    code = scene.get(SHOT)
-    for collection in scene.collection.children:
-        if code is not None and collection.get(SHOT) == code:
-            return collection
-    return None
-
-
-def ensure_shot_root(scene: bpy.types.Scene) -> bpy.types.Collection:
-    """The shot scene's root collection, made if it hasn't one, as the active collection.
-
-    A new root takes the scene's loose objects. Being active, it's where assets dragged in
-    from the Asset Browser land.
-    """
-    root = shot_root(scene)
-    if root is None:
-        root = bpy.data.collections.new(str(scene[SHOT]))
-        root[SHOT] = scene[SHOT]
-        scene.collection.children.link(root)
-        for obj in list(scene.collection.objects):
-            root.objects.link(obj)
-            scene.collection.objects.unlink(obj)
-    for view_layer in scene.view_layers:
-        if view_layer.layer_collection is None:  # A new scene's, until Blender updates it.
-            view_layer.update()
-        if view_layer.layer_collection is None:
-            continue
-        found = view_layer.layer_collection.children.get(root.name)
-        if found is not None:
-            view_layer.active_layer_collection = found
-    return root
 
 
 def shot_number(code: str) -> str:

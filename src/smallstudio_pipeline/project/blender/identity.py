@@ -1,10 +1,11 @@
-"""Identity on Blender data: which asset a root collection is.
+"""Identity on Blender data: the properties nodes carry, and which asset an empty places.
 
-An asset's root collection carries its name and type; an empty instance_id that each
-instance in a shot fills in (declared overridable, since spike T2 found overrides drop
-properties their reference lacks); and, when it was brought in from another publish (a
-rig from its model), which one and its version. Publishing, validation and updates read
-identity from here.
+A node (project/blender/nodes.py) is a root collection carrying what it is. An asset
+node carries the asset's name and type (ASSET, ASSET_TYPE), the task it's for (TASK),
+and an empty instance_id that each instance in a shot fills in (declared overridable,
+since spike T2 found overrides drop properties their reference lacks). A sequence node
+carries its code (SEQUENCE), a shot node its code (SHOT). The same keys travel with
+published assets, so a linked asset's root still says which asset it is.
 """
 
 from __future__ import annotations
@@ -16,18 +17,24 @@ from ..core.entities import Asset
 
 ASSET = "pipeline_asset"
 ASSET_TYPE = "pipeline_asset_type"
+TASK = "pipeline_task"
+SEQUENCE = "pipeline_sequence"
+SHOT = "pipeline_shot"
 INSTANCE_ID = "instance_id"
 # The publish a workfile's root was brought in from (a rig's model), and its version.
 BUILT_FROM = "pipeline_built_from"
 BUILT_FROM_VERSION = "pipeline_built_from_version"
 
 
-def create_root_collection(asset: Asset, scene: bpy.types.Scene) -> bpy.types.Collection:
-    """Make the asset's root collection in the scene, carrying its identity."""
+def create_root_collection(
+    asset: Asset, scene: bpy.types.Scene, task: str = ""
+) -> bpy.types.Collection:
+    """Make an asset node in the scene: its root collection, carrying its identity and task."""
     collection = bpy.data.collections.new(asset.name)
     scene.collection.children.link(collection)
     collection[ASSET] = asset.name
     collection[ASSET_TYPE] = asset.asset_type
+    collection[TASK] = task or asset.tasks[0]
     # Overrides drop custom properties their reference doesn't have (spike T2), so every
     # asset declares instance_id, empty and overridable, for each instance in a shot to set.
     collection[INSTANCE_ID] = ""

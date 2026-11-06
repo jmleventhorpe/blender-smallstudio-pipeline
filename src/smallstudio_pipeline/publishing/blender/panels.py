@@ -16,9 +16,9 @@ import bpy
 
 from ...common.errors import PipelineError
 from ...interface.panels import both_sidebars, pair, wrapped
+from ...project.blender.nodes import current_node
 from ...session import state
 from . import results, review
-from .node import current_node
 
 
 class PublishPanel:
