@@ -115,3 +115,19 @@ def test_an_instance_is_found_from_any_of_its_parts(project, shot):
         found = instances.instance_of(part, shot)
         assert found is not None and found.holder == override
     assert instances.instance_of(shot.camera, shot) is None
+
+
+def test_override_for_posing_and_back_to_link_act_on_the_selection(project, shot):
+    scene = shot
+    place(project, scene, "hero")
+    bpy.ops.wm.save_mainfile()
+    view_layer = scene.view_layers[0]
+    empty = next(o for o in scene.objects if o.get("instance_id") == "hero_01")
+    # The stubs miss temp_override's context-manager methods.
+    with bpy.context.temp_override(scene=scene, view_layer=view_layer, active_object=empty):  # pyright: ignore[reportGeneralTypeIssues]
+        assert bpy.ops.pipeline.override_for_posing() == {"FINISHED"}
+    override = next(c for c in bpy.data.collections if c.override_library)
+    posed = next(iter(override.all_objects))
+    with bpy.context.temp_override(scene=scene, view_layer=view_layer, active_object=posed):  # pyright: ignore[reportGeneralTypeIssues]
+        assert bpy.ops.pipeline.back_to_link() == {"FINISHED"}
+    assert empty.instance_collection is not None and empty["instance_id"] == "hero_01"

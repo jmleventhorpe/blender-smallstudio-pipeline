@@ -60,8 +60,7 @@ flowchart LR
 4. Open the **Pipeline** tab in the sidebar (N) of the 3D viewport or the Video Sequencer.
    Its panels show what applies: **Context** (the file, what's on show, warnings),
    **Nodes** (the scene's nodes, New Node, and changing a node's task), **Shot** (the shot
-   you're in: frames, cut, cast), **Loaded** (each asset instance, its version and
-   whether it's current, with Update, Override for Posing and Back to Link), **Publish**
+   you're in: frames, cut, cast), **Publish**
    (the node, the version it becomes, Check, Link Back) and **Workfiles** (browse and
    open any task's workfiles).
 

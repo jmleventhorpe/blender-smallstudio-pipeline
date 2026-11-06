@@ -104,15 +104,12 @@ def on_save_pre(path: object = "", *_args: object) -> None:
 
 @persistent
 def on_save_post(*_args: object) -> None:
-    """After a save: refresh the state, moving the in-use marker if the file moved, and
-    look again at the versions of what the file links (new links included)."""
+    """After a save: refresh the state, moving the in-use marker if the file moved."""
     # Save As (and Version Up) moves us to another file: move the marker with it.
     if _claimed != Path(bpy.data.filepath):
         release()
     state.refresh()
     claim()
-    if state.current.project is not None:
-        updates.refresh_latest(state.current.project)
 
 
 def claim() -> None:

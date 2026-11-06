@@ -1,7 +1,7 @@
 """The Pipeline tab in the sidebar, and the Context panel at its top.
 
-Each job draws its own panels in the tab: Context here, then Shot (shots), Loaded
-(loading), Publish (publishing) and Workfiles (workfiles), in that order (ORDER). Every
+Each job draws its own panels in the tab: Context here, then Nodes (interface/nodes.py),
+Shot (shots), Publish (publishing) and Workfiles (workfiles), in that order (ORDER). Every
 panel shows in both the 3D viewport's sidebar and the Video Sequencer's; Blender needs a
 class for each, which both_sidebars() makes from one. A panel hides when it doesn't apply
 to the open file.
@@ -23,7 +23,7 @@ from ..shots.blender.layout import shot_number
 
 TAB = "Pipeline"
 SPACES = {"VIEW_3D": "view3d", "SEQUENCE_EDITOR": "sequencer"}
-ORDER = {"context": 0, "nodes": 1, "shot": 2, "loaded": 3, "publish": 4, "workfiles": 5}
+ORDER = {"context": 0, "nodes": 1, "shot": 2, "publish": 3, "workfiles": 4}
 DASH = "\N{EN DASH}"  # Between the ends of a range of frames.
 WRAP = 46  # Characters per line for messages: sidebar labels don't wrap themselves.
 

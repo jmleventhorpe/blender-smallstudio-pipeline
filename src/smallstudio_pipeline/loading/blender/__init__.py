@@ -4,7 +4,7 @@ import bpy
 
 
 def register() -> None:
-    """Register loading's menu actions and the Loaded panel."""
+    """Register loading's menu actions."""
     for cls in _classes():
         bpy.utils.register_class(cls)
 
@@ -16,6 +16,6 @@ def unregister() -> None:
 
 def _classes() -> tuple:
     # Imported here, not above: other jobs import modules beside these.
-    from . import operators, panels
+    from . import operators
 
-    return (*operators.CLASSES, *panels.CLASSES)
+    return operators.CLASSES

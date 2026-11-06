@@ -48,14 +48,13 @@ Outside the jobs: `common/` (`errors`, `files`, `reading`), `session/` (`state`,
 ## The Pipeline tab
 
 The sidebar of the 3D viewport and the Video Sequencer has a Pipeline tab. Each job draws
-its own panel there, in this order: Context (`interface/panels.py`), Shot
-(`shots/blender/panels.py`), Loaded (`loading/blender/panels.py`), Publish
+its own panel there, in this order: Context (`interface/panels.py`), Nodes
+(`interface/nodes.py`), Shot (`shots/blender/panels.py`), Publish
 (`publishing/blender/panels.py`) and Workfiles (`workfiles/blender/panels.py`).
 `interface/panels.both_sidebars()` makes the two classes Blender needs (one per editor)
 from one panel class. A panel hides when it doesn't apply to the open file.
 
-Drawing never reads the disk, which may be a slow shared drive: Loaded reads versions
-noted on opening, saving and Refresh (`loading/blender/updates.py`); Publish shows what
+Drawing never reads the disk, which may be a slow shared drive: Publish shows what
 Check found (`publishing/blender/review.py`); Workfiles lists what was read when its
 choices changed. The tests draw each panel into a stand-in layout, since Blender doesn't
 draw headless.
@@ -127,7 +126,7 @@ flowchart TD
 what it uses, never the artist's whole file. The hero file is overwritten each time and
 marked as an asset that links; the versioned file is kept. Each gets a JSON record beside
 it (source file, Blender version, objects, dependencies, the instances placed in the node
-with their transforms, check results), which Check Updates and the Loaded panel read.
+with their transforms, check results), which Check Updates reads.
 
 ## When a layout is published
 
