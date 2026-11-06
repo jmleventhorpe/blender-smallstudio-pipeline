@@ -22,6 +22,7 @@ import bpy
 from ...interface.panels import DASH
 from ...loading.blender import instances
 from ...project.blender.identity import asset_identity, built_from
+from ...project.core.entities import Sequence
 from ...project.core.project import Project
 from ...shots.blender import layout
 from ...shots.core.layout import changes_since
@@ -29,7 +30,7 @@ from ...workfiles.core.context import FileContext
 from ..core.publishing import plan_publish, publish_target
 from . import in_context, results
 from . import layout as layout_publish
-from .assets import pick_root
+from .node import Node, current_node, layout_sequence
 from .validation import subject_for, validator_for
 
 
@@ -49,24 +50,49 @@ class Preview:
     facts: list[str] = field(default_factory=list)  # e.g. "Replaces hero_rig.blend (v004)".
     shots: list[ShotRow] = field(default_factory=list)
     omitted: list[str] = field(default_factory=list)
+    highlight: str = ""  # The shot whose node was chosen, e.g. "0015", listed first.
 
 
 current: Preview | None = None
+# What each node would publish as, e.g. {"hero": ("hero · rig", "hero_rig v005")}: read once,
+# then kept until something's published or another file opens, so drawing stays cheap.
+_described: dict[str, tuple[str, str]] = {}
 
 
 def clear() -> None:
     """Forget the last review: it was for another file, or something's been published."""
     global current
     current = None
+    _described.clear()
+
+
+def describe(project: Project, file: FileContext, chosen: Node) -> tuple[str, str]:
+    """What a node would publish as: ("hero · rig", "hero_rig v005")."""
+    key = f"{chosen.kind}:{chosen.root.name}"
+    if key not in _described:
+        if chosen.kind == "asset":
+            target = publish_target(project, file, chosen.name)
+            plan = plan_publish(target.asset, target.task)
+            title = f"{target.asset.name} · {target.task}"
+            title += " (in context)" if target.in_context else ""
+        else:
+            sequence = layout_sequence(project, file, chosen)
+            plan = plan_publish(sequence, layout.LAYOUT)
+            title = f"{sequence.name} · {layout.LAYOUT}"
+        _described[key] = (title, plan.label)
+    return _described[key]
 
 
 def review(context: bpy.types.Context, project: Project, file: FileContext) -> results.LastPublish:
     """Work out what Publish would write and run its checks, keeping both for the panel."""
     global current
-    if file.entity_kind == "sequence" and file.task == layout.LAYOUT:
-        current, subjects = _layout(project, file)
+    chosen = current_node(context)
+    if chosen.kind == "asset":
+        current, subjects = _asset(context, project, file, chosen.root)
     else:
-        current, subjects = _asset(context, project, file)
+        sequence = layout_sequence(project, file, chosen)
+        shot = node_shot(chosen)
+        current, subjects = _layout(project, sequence, shot)
     validator = validator_for(project)
     root = subjects[0][1].root if len(subjects) == 1 else None
     if root is not None and current.title.endswith("(in context)"):
@@ -79,10 +105,16 @@ def review(context: bpy.types.Context, project: Project, file: FileContext) -> r
     return last
 
 
-def _asset(context: bpy.types.Context, project: Project, file: FileContext) -> tuple[Preview, list]:
-    root = pick_root(context)
+def node_shot(chosen: Node) -> str:
+    """The shot a shot's node puts first ("0015"), or "" for a sequence's."""
+    return layout.shot_number(chosen.name) if chosen.kind == "shot" else ""
+
+
+def _asset(
+    context: bpy.types.Context, project: Project, file: FileContext, root: bpy.types.Collection
+) -> tuple[Preview, list]:
     identity = asset_identity(root)
-    assert identity is not None  # pick_root only returns asset roots.
+    assert identity is not None  # An asset's node is its root.
     target = publish_target(project, file, identity[0])
     asset, task = target.asset, target.task
     plan = plan_publish(asset, task)
@@ -106,8 +138,7 @@ def _asset(context: bpy.types.Context, project: Project, file: FileContext) -> t
     return preview, [("", subject_for(root, target, file.entity))]
 
 
-def _layout(project: Project, file: FileContext) -> tuple[Preview, list]:
-    sequence = project.sequence(file.entity)
+def _layout(project: Project, sequence: Sequence, shot: str) -> tuple[Preview, list]:
     master = layout.master_scene()
     for scene in bpy.data.scenes:  # As saving before a publish would, so IDs are checked.
         if layout.SHOT in scene:
@@ -128,4 +159,6 @@ def _layout(project: Project, file: FileContext) -> tuple[Preview, list]:
             )
         )
     preview.omitted = [layout.shot_number(code) for code in omitted]
+    preview.shots.sort(key=lambda row: row.shot != shot)  # The chosen shot first.
+    preview.highlight = shot
     return preview, layout_publish.shot_subjects(master, project)

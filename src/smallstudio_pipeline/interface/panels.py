@@ -44,6 +44,17 @@ def both_sidebars(panel: type, name: str) -> tuple[type, ...]:
     )
 
 
+def redraw_sidebars() -> None:
+    """Redraw the sidebars of every 3D viewport and sequencer, where the Pipeline tab is."""
+    window_manager = bpy.context.window_manager
+    for window in window_manager.windows if window_manager else ():
+        for area in window.screen.areas:
+            if area.type in SPACES:
+                for region in area.regions:
+                    if region.type == "UI":
+                        region.tag_redraw()
+
+
 def wrapped(layout: bpy.types.UILayout, text: str, icon: Any = "NONE", alert: bool = False) -> None:
     """A message over as many lines as it needs, with the icon on the first."""
     column = layout.column(align=True)

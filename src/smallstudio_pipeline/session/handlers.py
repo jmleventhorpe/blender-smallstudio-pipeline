@@ -13,11 +13,13 @@ from __future__ import annotations
 import atexit
 import contextlib
 from pathlib import Path
+from typing import Any
 
 import bpy
 from bpy.app.handlers import persistent
 
 from ..common.errors import PipelineError
+from ..interface.panels import redraw_sidebars
 from ..loading.blender import instances, libraries, updates
 from ..publishing.blender import results, review
 from ..shots.blender import layout
@@ -71,6 +73,7 @@ def prepare_layout_file() -> None:
         return
     with contextlib.suppress(PipelineError):  # No master scene: nothing to prepare.
         master = layout.master_scene()
+        layout.ensure_sequence_root(master)
         layout.show_cut_in_sequencer(master)
         for scene in bpy.data.scenes:
             if layout.SHOT in scene:
@@ -153,23 +156,43 @@ def show_message(*lines: str, icon: str = "ERROR") -> None:
     bpy.app.timers.register(popup, first_interval=0.1)
 
 
+@persistent
+def on_depsgraph_update(*_args: object) -> None:
+    """After a change (selecting included): redraw the Pipeline tab, which shows the node."""
+    redraw_sidebars()
+
+
 HANDLERS = (
     (bpy.app.handlers.load_pre, on_load_pre),
     (bpy.app.handlers.load_post, on_load_post),
     (bpy.app.handlers.save_pre, on_save_pre),
     (bpy.app.handlers.save_post, on_save_post),
+    (bpy.app.handlers.depsgraph_update_post, on_depsgraph_update),
 )
+# Changes that don't update the depsgraph, but change what the Pipeline tab shows: the
+# scene on show (Follow the cut switches it) and the collection clicked in the Outliner.
+# The stubs only allow a struct here; Blender also takes (type, "property") keys.
+WATCHED: tuple[Any, ...] = (
+    (bpy.types.Window, "scene"),
+    (bpy.types.ViewLayer, "active_layer_collection"),
+)
+_OWNER = object()  # Who the message bus subscriptions belong to.
 
 
 def register() -> None:
     for handlers, function in HANDLERS:
         handlers.append(function)
+    for watched in WATCHED:
+        bpy.msgbus.subscribe_rna(
+            key=watched, owner=_OWNER, args=(), notify=redraw_sidebars, options={"PERSISTENT"}
+        )
     atexit.register(release)  # Quitting Blender.
 
 
 def unregister() -> None:
     release()
     atexit.unregister(release)
+    bpy.msgbus.clear_by_owner(_OWNER)
     for handlers, function in HANDLERS:
         if function in handlers:
             handlers.remove(function)

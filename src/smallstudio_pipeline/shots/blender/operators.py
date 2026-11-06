@@ -152,26 +152,6 @@ CLASSES = (
 )
 
 
-class PIPELINE_OT_go_to_shot(bpy.types.Operator):
-    """Show the selected shot's scene"""
-
-    bl_idname = "pipeline.go_to_shot"
-    bl_label = "Go to Shot"
-    bl_options = {"REGISTER"}
-
-    @classmethod
-    def poll(cls, context: bpy.types.Context) -> bool:
-        if selected_shot_strip() is None:
-            cls.poll_message_set("Select a shot's strip in the cut.")
-            return False
-        return True
-
-    def execute(self, context: bpy.types.Context) -> set[str]:
-        strip = selected_shot_strip()
-        assert strip is not None and strip.scene is not None  # Checked by poll.
-        return show_scene(self, context, strip.scene)
-
-
 class PIPELINE_OT_back_to_cut(bpy.types.Operator):
     """Show the cut: the sequence's master scene"""
 
@@ -203,4 +183,4 @@ def show_scene(
     return {"FINISHED"}
 
 
-CLASSES = (*CLASSES, PIPELINE_OT_go_to_shot, PIPELINE_OT_back_to_cut)
+CLASSES = (*CLASSES, PIPELINE_OT_back_to_cut)

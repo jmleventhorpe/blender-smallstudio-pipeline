@@ -37,8 +37,9 @@ from ..core.publishing import (
 )
 from . import in_context, results, review
 from . import layout as layout_publish
-from .assets import dependencies, pick_root, write_publish
+from .assets import dependencies, write_publish
 from .materials import sync_materials
+from .node import current_node, layout_sequence
 from .validation import subject_for, validator_for
 
 Collection = bpy.types.Collection
@@ -68,10 +69,11 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         if context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
         try:
-            if file.entity_kind == "sequence" and file.task == layout.LAYOUT:
-                published = self.publish_layout(context, project.sequence(file.entity))
+            chosen = current_node(context)
+            if chosen.kind == "asset":
+                published = self.publish_asset(context, project, file, chosen.root)
             else:
-                published = self.publish_asset(context, project, file)
+                published = self.publish_layout(context, layout_sequence(project, file, chosen))
         except PipelineError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}
@@ -81,11 +83,12 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         self.report({"INFO"}, f"Published {published}")
         return {"FINISHED"}
 
-    def publish_asset(self, context: Context, project: Project, file: FileContext) -> str | None:
-        """Publish the asset holding the selection, from its own workfile or in context."""
-        root = pick_root(context)
+    def publish_asset(
+        self, context: Context, project: Project, file: FileContext, root: Collection
+    ) -> str | None:
+        """Publish an asset's root, from its own workfile or in context."""
         identity = asset_identity(root)
-        assert identity is not None  # pick_root only returns asset roots.
+        assert identity is not None  # An asset's node is its root.
         target = publish_target(project, file, identity[0])
         if target.in_context:
             return self.publish_in_context(context, root, target, file.entity)

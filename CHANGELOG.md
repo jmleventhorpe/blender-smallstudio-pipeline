@@ -51,11 +51,14 @@ All notable changes to this project are listed here. The format follows
 - The Pipeline tab in the sidebar of the 3D viewport and the Video Sequencer, with panels
   that show what applies to the open file:
   - Context: the file, what's on show (a shot or the cut) and every warning.
-  - Shot: a layout file's shot on show or selected, with frames, cut and cast; Go to Shot
-    and Back to Cut.
+  - Shot: the shot you're in, with frames, cut and cast; Back to Cut, and Follow the cut
+    (Sync Scene Time, on in new layout files) so scrubbing the cut shows each shot.
   - Loaded: each asset instance with its ID, the version loaded and whether a newer one
     is out; Select, Update, Override for Posing and Back to Link (new).
-  - Publish: Check shows what Publish would write and runs its checks without writing;
+  - Publish: the node (the root collection clicked in the Outliner, or holding the
+    selection) and the version it becomes, live. A layout file's master scene gets a
+    sequence root; it and every shot's root publish the sequence's layout.
+    Check shows what Publish would write and runs its checks without writing;
     for a layout, each shot and what changed since the last publish. Replaces the old
     results panel.
   - Workfiles: browse any task's workfiles and when each was saved, and open one.

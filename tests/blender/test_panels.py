@@ -47,8 +47,14 @@ class FakeLayout:
 def draw(panel_class, scene=None):
     """What a panel shows, as one string."""
     fake = FakeLayout()
+    scene = scene or bpy.context.scene
+    view_layer = bpy.context.view_layer if scene == bpy.context.scene else scene.view_layers[0]
     context = SimpleNamespace(
-        scene=scene or bpy.context.scene, window_manager=bpy.context.window_manager
+        scene=scene,
+        view_layer=view_layer,
+        selected_objects=[o for o in view_layer.objects if o.select_get(view_layer=view_layer)],
+        window_manager=bpy.context.window_manager,
+        workspace=None,
     )
     panel_class.draw(SimpleNamespace(layout=fake), context)
     return " | ".join(fake.texts)
@@ -89,19 +95,12 @@ def test_the_shot_panel_shows_the_shot_on_show(project, cut):
     assert "1\N{EN DASH}48" in shown and "hero_01" in shown and "[pipeline.back_to_cut]" in shown
 
 
-def test_in_the_cut_it_shows_the_selected_strip_or_asks_for_one(project, cut):
+def test_in_the_cut_the_shot_panel_says_so(project, cut):
     master = layout.master_scene()
-    strips = layout.shot_strips(master)
-    for strip in strips:
-        strip.select = strip == strips[1]
-    master.sequence_editor.active_strip = strips[1]
+    for strip in layout.shot_strips(master):
+        strip.select = True  # Selecting strips doesn't choose a shot any more.
     shown = draw(ShotPanel, master)
-    assert "010_010_0020" in shown and "49\N{EN DASH}96" in shown and "nobody yet" in shown
-    assert "[pipeline.go_to_shot]" in shown and bpy.ops.pipeline.go_to_shot.poll()
-
-    master.sequence_editor.active_strip = None
-    strips[1].select = False
-    assert "Select a shot's strip" in draw(ShotPanel, master)
+    assert "You're in the cut" in shown and "010_010_0020" not in shown
 
 
 def test_the_shot_panel_only_shows_in_layout_files(project):
@@ -228,3 +227,27 @@ def test_workfiles_lists_a_tasks_versions_newest_first(project):
 
     choices.task = "rig"
     assert listing == [] and "No workfiles yet" in draw(WorkfilesPanel)
+
+
+def test_publish_shows_the_node_and_what_it_becomes_before_any_check(project):
+    from smallstudio_pipeline.publishing.blender.panels import PublishPanel
+
+    publish_model(project)
+    shown = draw(PublishPanel)
+    assert "Node | hero" in shown and "hero · model" in shown and "hero_model v002" in shown
+
+
+def test_in_a_layout_file_a_shots_root_publishes_its_sequence_first(project, cut):
+    from smallstudio_pipeline.publishing.blender import review
+    from smallstudio_pipeline.publishing.blender.panels import PublishPanel
+
+    master = layout.master_scene()
+    assert "Node | 010_010 | Publishes | 010_010 · layout" in draw(PublishPanel, master)
+    shot = bpy.data.scenes["010_010_0020"]
+    assert "Node | 010_010_0020 | Publishes | 010_010 · layout" in draw(PublishPanel, shot)
+
+    # The stubs miss temp_override's context-manager methods.
+    with bpy.context.temp_override(scene=shot, view_layer=shot.view_layers[0]):  # pyright: ignore[reportGeneralTypeIssues]
+        bpy.ops.pipeline.check_publish()
+    assert review.current is not None and review.current.highlight == "0020"
+    assert [row.shot for row in review.current.shots] == ["0020", "0010"]

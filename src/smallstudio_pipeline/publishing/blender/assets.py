@@ -1,7 +1,7 @@
 """Writing a publish from the open session: the Blender side of publishing/core/publishing.py.
 
-pick_root() finds the asset root to publish: the innermost one holding the selection, or
-the file's only one. write_publish() writes only that root and what it uses (spike T3):
+Which root is published is the node's choice (publishing/blender/node.py).
+write_publish() writes only that root and what it uses (spike T3):
 the hero file, marked as an asset that links, with a thumbnail and catalog (T8, T10),
 then the versioned copy, unmarked; the artist's session is left as it was. Thumbnails are
 a quick Workbench render, falling back to Blender's generator where it can't render.
@@ -21,42 +21,11 @@ from mathutils import Euler, Vector
 from ...common.errors import PipelineError
 from ...common.files import replace_with_retry
 from ...loading.core.updates import publish_version
-from ...project.blender.identity import asset_identity
 from ...project.core.entities import Asset
 from ..core.catalogs import ensure_catalog
 from ..core.publishing import Dependency, PublishPlan, relative
 
 THUMBNAIL_SIZE = 256
-
-
-def asset_roots(scene: bpy.types.Scene) -> list[bpy.types.Collection]:
-    """Every asset root collection in the scene."""
-    return [c for c in scene.collection.children_recursive if asset_identity(c)]
-
-
-def pick_root(context: bpy.types.Context) -> bpy.types.Collection:
-    """The asset root to publish: the one holding the selection, or the file's only one."""
-    roots = asset_roots(context.scene)
-    selected = context.selected_objects
-    if selected:
-        holding = [root for root in roots if any(obj in root.all_objects[:] for obj in selected)]
-        # A prop being edited inside its set is in both roots: the innermost one wins.
-        holding = [
-            root
-            for root in holding
-            if not any(other in root.children_recursive[:] for other in holding)
-        ]
-        if len(holding) == 1:
-            return holding[0]
-        if len(holding) > 1:
-            names = ", ".join(root.name for root in holding)
-            raise PipelineError(f"The selection is in several assets ({names}). Select one.")
-    if len(roots) == 1:
-        return roots[0]
-    if not roots:
-        raise PipelineError("There's no asset in this file to publish.")
-    names = ", ".join(root.name for root in roots)
-    raise PipelineError(f"This file has several assets ({names}). Select something in one.")
 
 
 def write_publish(root: bpy.types.Collection, plan: PublishPlan) -> None:

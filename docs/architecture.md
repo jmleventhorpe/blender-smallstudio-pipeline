@@ -60,6 +60,15 @@ Check found (`publishing/blender/review.py`); Workfiles lists what was read when
 choices changed. The tests draw each panel into a stand-in layout, since Blender doesn't
 draw headless.
 
+## The node
+
+Publishing works on a node: a root collection (`publishing/blender/node.py`). An asset's
+root publishes that asset; a layout file's sequence root and every shot's root publish
+the sequence's layout. The node is the active collection in the Outliner when it's a
+root, else the root holding the selection, else the scene's only one. The Pipeline tab
+redraws as the selection, the active collection or the scene on show changes
+(`session/handlers.py`: the depsgraph handler and two message-bus subscriptions).
+
 ## Registering
 
 Blender calls the package's `register()`. It asks each job to register in turn

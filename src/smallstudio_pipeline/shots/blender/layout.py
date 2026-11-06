@@ -13,7 +13,9 @@ master scene's output at the sequence's layout render folder for the workfile's 
 
 Each shot scene has a root collection named after the shot, carrying its code like the
 scene does: the shot's camera and placed assets go in it, and it's what you select to see
-the shot. ensure_shot_root() gives scenes from before shot roots one. sync_markers() keeps
+the shot. ensure_shot_root() gives scenes from before shot roots one. The master scene has
+a root too, named after the sequence (ensure_sequence_root): clicking either publishes the
+layout. sync_markers() keeps
 a timeline marker per shot ("0015"), at its strip in the cut and at the start of its scene.
 """
 
@@ -42,7 +44,21 @@ def start_cut(scene: bpy.types.Scene, sequence: Sequence) -> None:
     scene[SEQUENCE] = sequence.name
     scene.sequence_editor_create()
     scene.frame_start = scene.frame_end = 1
+    ensure_sequence_root(scene)
     show_cut_in_sequencer(scene)
+
+
+def ensure_sequence_root(master: bpy.types.Scene) -> bpy.types.Collection:
+    """The master scene's root collection, named after the sequence: what you click to
+    publish the layout. Made if the scene hasn't one (files from before sequence roots)."""
+    code = master[SEQUENCE]
+    for collection in master.collection.children:
+        if collection.get(SEQUENCE) == code:
+            return collection
+    root = bpy.data.collections.new(str(code))
+    root[SEQUENCE] = code
+    master.collection.children.link(root)
+    return root
 
 
 def show_cut_in_sequencer(master: bpy.types.Scene) -> None:
@@ -50,10 +66,13 @@ def show_cut_in_sequencer(master: bpy.types.Scene) -> None:
 
     Blender 5 gives every workspace a sequencer scene of its own, apart from the scene on
     show; a new file has none, so a sequencer opened there would have nothing to edit.
+    Those workspaces also follow the cut (Sync Scene Time): the scene on show is the shot
+    under the playhead, so the 3D viewport shows each shot as the cut plays.
     """
     for workspace in bpy.data.workspaces:
         if workspace.sequencer_scene is None:
             workspace.sequencer_scene = master
+            workspace.use_scene_time_sync = True
 
 
 def master_scene() -> bpy.types.Scene:
