@@ -34,14 +34,14 @@ object it works on, so it runs headless in the tests.
 
 | Job | `core/` decides | `blender/` does |
 | --- | --- | --- |
-| **project** | `config` (defaults.toml merged with pipeline.toml), `naming`, `templates`, `metadata`, `tracker`, `project`, `entities`, `machine` (this machine's project list) | `identity` (which asset a root collection is), `preferences` (the project list page) |
-| **workfiles** | `context` (what a file is, from its path), `workfiles` (first workfile, next free version), `inuse` (who has a file open) | `workfiles` (start and save), operators: Open, New Workfile, New Asset, Version Up |
+| **project** | `config` (defaults.toml merged with pipeline.toml), `naming`, `templates`, `metadata`, `tracker`, `project`, `entities`, `machine` (this machine's project list) | `identity` (the properties nodes carry), `nodes` (which collections are nodes, the node Publish works on), `preferences` (the project list page) |
+| **workfiles** | `context` (what a file is, from its path), `workfiles` (next free version), `inuse` (who has a file open) | `workfiles` (saving in the right place), operators: Open, New Workfile, Save To, Version Up |
 | **loading** | `updates` (what's out of date), `casting` (instance IDs) | `libraries` (linking, the Asset Browser library), `updates` (reloading), `instances` (what stands in a shot, Override for Posing), `editable` (Make Editable), operators: Check Updates, Make Editable, Override for Posing |
-| **publishing** | `publishing` (targets, plans, records), `catalogs` | `assets` (writing asset publishes, thumbnails), `layout` (Save Copy of a layout file), `in_context` (publishing from a set), `materials` (rig takes model's materials), `validation`, `results` (the sidebar panel), operators: Publish |
-| **shots** | `layout` (the cut into each shot's metadata) | `layout` (master scene, strips, playblast path), operators: New Sequence, Add Shot, Omit Shot |
+| **publishing** | `publishing` (targets, plans, records with placed instances), `catalogs` | `assets` (writing asset publishes, thumbnails, placements), `layout` (Save Copy of a layout file), `in_context` (asset space, Link Back), `materials` (rig takes model's materials), `validation`, `review` (Check), `results`, `panels` (Publish), operators: Publish, Check |
+| **shots** | `layout` (the cut into each shot's metadata) | `layout` (the cut, strips, markers, playblast path), `panels` (Shot), operators: Add Shot, Omit Shot, Back to Cut |
 
 Outside the jobs: `common/` (`errors`, `files`, `reading`), `session/` (`state`,
-`handlers`), `interface/` (`menu`, `browse`, `common`), `publishing/checks/` and
+`handlers`), `interface/` (`menu`, `panels`, `nodes` for New Node and the Nodes panel, `browse`, `common`), `publishing/checks/` and
 `publishing/validation.toml` (the pipeline's own checks and settings), and `wheels/`
 (publish-validator, bundled).
 
@@ -84,46 +84,50 @@ ready.
    the active project in this machine's settings file), what the file is, and the top
    bar's label.
 2. It marks the file as in use, or warns whose it is (workfiles).
-3. It adds the project's `assets` folder to Blender's asset libraries, notes the version
-   of every publish the file links, and flags any root built from an older publish
-   (loading).
-4. In a layout file, each workspace's Video Sequencer is pointed at the cut (shots).
+3. It adds the project's `assets` folder to Blender's asset libraries and notes the
+   version of every publish the file links (loading).
+4. Files from before nodes carried everything get their scenes' identity moved onto
+   nodes, and their asset nodes the workfile's task (project).
+5. In a file with a cut, each workspace's Video Sequencer is pointed at it (shots).
 
-Before a save, new instances in shots get their IDs, and a layout file's playblast output
-follows the version being saved. After a save, including Version Up, the in-use marker
+Before a save, new instances get their IDs, and a cut's playblast output follows the
+version being saved. After a save, including Version Up, the in-use marker
 moves to the new file.
+
+## Nodes
+
+A node is one of the file's own collections carrying what it is (`project/blender/
+identity.py`): an asset node its asset, type and task; a sequence node its sequence; a
+shot node its shot. Scenes carry nothing: a cut is the scene holding a sequence's node, a
+shot's scene the one holding its node. Workfiles are files saved in the right place (New
+Workfile, Save To, Version Up); New Node makes nodes in whatever file is open. Everything
+that acts on "what this is" reads nodes (`project/blender/nodes.py`), never the file's
+path, which only names the file and drives Version Up.
 
 ## When an asset is published
 
 ```mermaid
 flowchart TD
-    pick["pick_root: the asset holding the selection"]
-    target["publish_target: which asset and task, in context or not"]
-    own["Own workfile: rig takes model materials, file saved"]
-    ctx["In context: moved into asset space"]
+    node["current_node: the clicked node, else the selection's"]
+    target["publish_target: its asset, as the node's task"]
+    materials["A rig takes its model's latest materials; the file is saved"]
+    space["in_asset_space: a made-editable copy moves into its own space"]
     checks["run_checks: publish-validator"]
     blocked["Blocked: problems listed in the sidebar"]
-    workfile["Saved as the asset's next workfile"]
-    write["write_publish: hero + versioned file, with records"]
-    link["swap_for_link: linked back where it was, file saved"]
+    write["write_publish: hero + versioned file, records with placed instances"]
+    link["Link Back ticked: swap_for_link, file saved"]
 
-    pick --> target
-    target --> own --> checks
-    target --> ctx --> checks
+    node --> target --> materials --> space --> checks
     checks -- fails --> blocked
-    checks -- own workfile --> write
-    checks -- in context --> workfile --> write
-    write -- in context --> link
+    checks --> write
+    write --> link
 ```
 
-`write_publish` (`publishing/blender/assets.py`) writes only the root collection and what
-it uses, never the artist's whole file. The hero file is overwritten each time and marked
-as an asset that links; the versioned file is kept. Each gets a JSON record beside it
-(source workfile, Blender version, objects, dependencies, check results), which Check
-Updates and the stale warnings read.
-
-In context, writing the asset's workfile happens in a separate headless Blender, because
-`bpy.data.libraries.write` crashes on scenes in Blender 5.2.2.
+`write_publish` (`publishing/blender/assets.py`) writes only the node's collection and
+what it uses, never the artist's whole file. The hero file is overwritten each time and
+marked as an asset that links; the versioned file is kept. Each gets a JSON record beside
+it (source file, Blender version, objects, dependencies, the instances placed in the node
+with their transforms, check results), which Check Updates and the Loaded panel read.
 
 ## When a layout is published
 

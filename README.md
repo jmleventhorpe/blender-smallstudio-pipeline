@@ -49,45 +49,54 @@ flowchart LR
    The list is kept for this machine in `~/.config/smallstudio-pipeline/projects.json`
    (`%APPDATA%\smallstudio-pipeline\` on Windows), so updating the add-on or Blender keeps
    it. Set `SMALLSTUDIO_PIPELINE_SETTINGS` to use another file.
-3. Use the **Pipeline** menu in the top bar: Open…, New Workfile…, New Asset…, New
-   Sequence…, Version Up, Publish and Check Updates. Below those, only where they apply:
-   Make Editable (a linked asset selected in an asset's file), Override for Posing (one
-   selected in a sequence's or shot's file), and Add Shot and Omit Shot (layout files). Next to
-   it, the top bar shows what the open file is (`hero · rig · v012`, with `· shot 0015` or
-   `· cut` in a layout file), in the warning colour for a publish, a file outside the
-   pipeline, one someone else has open, or one built from an older publish.
+3. Use the **Pipeline** menu in the top bar: Open…, New Workfile… (an empty file saved in
+   the right place), Save To… (save the open file as any asset's, sequence's or shot's
+   next workfile), New Node…, Version Up, Publish and Check Updates. Below those, only
+   where they apply: Make Editable (a linked asset in an asset's node), Override for
+   Posing or Back to Link (one in a shot's node), and Add Shot and Omit Shot (a file with
+   a cut). Next to it, the top bar shows what the open file is (`hero · rig · v012`, with
+   `· shot 0015` or `· cut` in a file with a cut), in the warning colour for a publish, a
+   file outside the pipeline, or one someone else has open.
 4. Open the **Pipeline** tab in the sidebar (N) of the 3D viewport or the Video Sequencer.
-   Its panels show what applies to the open file: **Context** (the file, what's on show,
-   warnings), **Shot** (in a layout file, the shot you're in: frames, cut, cast),
-   **Loaded** (each asset instance, its version and whether it's current, with Update,
-   Override for Posing and Back to Link), **Publish** (Check shows what Publish would
-   write and runs its checks) and **Workfiles** (browse and open any task's workfiles).
+   Its panels show what applies: **Context** (the file, what's on show, warnings),
+   **Nodes** (the scene's nodes, New Node, and changing a node's task), **Shot** (the shot
+   you're in: frames, cut, cast), **Loaded** (each asset instance, its version and
+   whether it's current, with Update, Override for Posing and Back to Link), **Publish**
+   (the node, the version it becomes, Check, Link Back) and **Workfiles** (browse and
+   open any task's workfiles).
 
-**Publishing** checks first with
-[publish-validator](https://github.com/jmleventhorpe/publish-validator). Publishing works
-the same way in every file: it publishes the **node**, a root collection, which is the one
-you click in the Outliner (or else the one holding the selection). An asset's root
-publishes that asset; a layout file's sequence root, or any shot's root, publishes the
+**Nodes** say what a file is working on. A node is a collection carrying what it is: an
+asset node its asset, type and task (model, rig); a sequence node its sequence, which
+makes its scene the cut; a shot node its shot. New Node makes one, empty, in the open
+file: an asset node goes inside the active collection, so a prop can be made inside its
+set's node. A file can hold several nodes, even of one asset (its model and its rig).
+Workfiles are just files saved in the right place: nothing is added to them.
+
+**Publishing** works on the node you click in the Outliner (or else the one holding the
+selection) and checks it first with
+[publish-validator](https://github.com/jmleventhorpe/publish-validator). An asset node
+publishes its asset as its task; a sequence's or any shot's node publishes the
 sequence's layout, that shot first. The Publish panel shows the node and the version it
 becomes straight away; Check adds the hero it replaces, or for a layout each shot and what
-changed, and runs the checks without writing anything; any problems are listed there, each
-with Select (and Fix where it can). A publish writes a new version and replaces the hero
-file that other files link, marked for the Asset Browser with a thumbnail. Rigs start from
-the latest model publish and take its materials again on every publish. An asset can also
-be edited, or started, inside another asset's file (a prop inside its set) and published
-from there.
+changed, and runs the checks without writing anything; any problems are listed there,
+each with Select (and Fix where it can). A publish writes a new version and replaces the
+hero file that other files link, marked for the Asset Browser with a thumbnail; its record
+lists the instances placed in the node, so a set's publish says what's in it and where. A
+rig takes its model's latest materials on every publish. A linked asset can be made
+editable inside another node (a crate in its set), published from there in its own space,
+and, with **Link Back** ticked, linked back in where it stood.
 
-**Layout** is one file per sequence: a master scene holding the cut, and a scene per shot.
-Add Shot puts a new shot after the one at the playhead, numbered between its neighbours
-(0015 between 0010 and 0020), with its own scene starting at frame 101, a root collection
-named after the shot holding its camera, and a timeline marker. With Follow the cut (Blender's
-Sync Scene Time, on in new layout files) the 3D viewport shows the shot under the
-sequencer's playhead, so scrubbing the cut shows each shot; Back to Cut returns to it. Assets
-dragged in from the Asset Browser get an instance ID on save (`crate_01`); Override for
-Posing makes one posable where it stands. Publishing layout checks each shot, publishes
-the whole file, and writes each shot's frame range, cut points and casting into its
-metadata; a shot whose strip is gone is marked omitted. The master scene renders its
-playblast to the sequence's layout render folder for that version.
+**Layout**: a sequence's node makes its scene the cut, with a strip per shot. Add Shot
+puts a new shot after the one at the playhead, numbered between its neighbours (0015
+between 0010 and 0020), with its own scene starting at frame 101, a shot node holding its
+camera, and a timeline marker. With Follow the cut (Blender's Sync Scene Time, on in new
+cuts) the 3D viewport shows the shot under the sequencer's playhead, so scrubbing the cut
+shows each shot; Back to Cut returns to it. Assets dragged in from the Asset Browser get
+an instance ID on save (`crate_01`); Override for Posing makes one posable where it
+stands, and Back to Link undoes it. Publishing the layout checks each shot, publishes the
+whole file, and writes each shot's frame range, cut points and casting into its metadata;
+a shot whose strip is gone is marked omitted. The cut renders its playblast to the
+sequence's layout render folder for the workfile's version.
 
 A project can tune the checks with a `validation.toml` beside its `pipeline.toml`, and add
 its own checks in a `checks/` folder there (see
@@ -113,7 +122,7 @@ shot.render_path("light", 1)
 
 | Path | What's there |
 | --- | --- |
-| `src/smallstudio_pipeline/project/` | Settings, names and paths, assets, sequences and shots, this machine's project list. `defaults.toml` holds the built-in settings a project's `pipeline.toml` overrides. |
+| `src/smallstudio_pipeline/project/` | Settings, names and paths, assets, sequences and shots, nodes, this machine's project list. `defaults.toml` holds the built-in settings a project's `pipeline.toml` overrides. |
 | `src/smallstudio_pipeline/workfiles/` | What a file is, new workfiles, Open and Version Up, in-use markers. |
 | `src/smallstudio_pipeline/loading/` | Linking publishes, Check Updates, instances and Override for Posing, Make Editable. |
 | `src/smallstudio_pipeline/publishing/` | Checks (with the pipeline's own in `checks/` and `validation.toml`), then writing asset and layout publishes. |

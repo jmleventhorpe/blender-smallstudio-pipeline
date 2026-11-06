@@ -82,6 +82,17 @@ All notable changes to this project are listed here. The format follows
 
 ### Changed
 
+- Nodes decide everything: a node is a collection carrying what it is (an asset node its
+  asset, type and task; a sequence node its sequence; a shot node its shot), and scenes
+  and the file's path no longer decide anything but the file's name and Version Up.
+  New Node… and the Nodes panel make and edit nodes in the open file, replacing New
+  Asset… and New Sequence…. New Workfile saves an empty file in the right place; Save To…
+  saves the open file as any task's next workfile. Starter files are gone.
+- Publish works on the node and its task. A made-editable copy publishes in its own
+  space with no extra workfile; Link Back, a box on the Publish panel, links it back.
+  An asset's publish records the instances placed in it. A rig takes its model's latest
+  materials from the model's hero; the "built from an older publish" warning is gone.
+
 - Tasks have short names: model, rig, layout, light, anim.
 - The code is split by job (project, workfiles, loading, publishing, shots), each with
   core/ for the rules and blender/ for the Blender work and menu actions, plus common/,
