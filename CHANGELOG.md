@@ -48,6 +48,19 @@ All notable changes to this project are listed here. The format follows
     to bring across.
   - The Pipeline menu lists every warning for the open file (a publish, someone else
     has it open, built from an older publish), not just the first.
+- The Pipeline tab in the sidebar of the 3D viewport and the Video Sequencer, with panels
+  that show what applies to the open file:
+  - Context: the file, what's on show (a shot or the cut) and every warning.
+  - Shot: a layout file's shot on show or selected, with frames, cut and cast; Go to Shot
+    and Back to Cut.
+  - Loaded: each asset instance with its ID, the version loaded and whether a newer one
+    is out; Select, Update, Override for Posing and Back to Link (new).
+  - Publish: Check shows what Publish would write and runs its checks without writing;
+    for a layout, each shot and what changed since the last publish. Replaces the old
+    results panel.
+  - Workfiles: browse any task's workfiles and when each was saved, and open one.
+- Each shot has a root collection named after it, holding its camera and placed assets,
+  and a timeline marker; the top-bar label adds the shot or "cut" on show.
 - Layout and shots (M4):
   - New Sequence… creates a sequence, with the episode's next number and an optional
     title shown beside its code, and opens its layout file: a master scene holding the

@@ -53,14 +53,21 @@ flowchart LR
    Sequence…, Version Up, Publish and Check Updates. Below those, only where they apply:
    Make Editable (a linked asset selected in an asset's file), Override for Posing (one
    selected in a sequence's or shot's file), and Add Shot and Omit Shot (layout files). Next to
-   it, the top bar shows what the open file is (`hero · rig · v012`), in the warning colour
-   for a publish, a file outside the pipeline, one someone else has open, or one built
-   from an older publish.
+   it, the top bar shows what the open file is (`hero · rig · v012`, with `· shot 0015` or
+   `· cut` in a layout file), in the warning colour for a publish, a file outside the
+   pipeline, one someone else has open, or one built from an older publish.
+4. Open the **Pipeline** tab in the sidebar (N) of the 3D viewport or the Video Sequencer.
+   Its panels show what applies to the open file: **Context** (the file, what's on show,
+   warnings), **Shot** (a layout file's shot on show or selected: frames, cut, cast),
+   **Loaded** (each asset instance, its version and whether it's current, with Update,
+   Override for Posing and Back to Link), **Publish** (Check shows what Publish would
+   write and runs its checks) and **Workfiles** (browse and open any task's workfiles).
 
-**Publishing** checks the asset first with
-[publish-validator](https://github.com/jmleventhorpe/publish-validator); if anything
-blocks it, the problems are listed under **Pipeline** in the 3D viewport's sidebar, each
-with Select (and Fix where it can). A publish writes a new version and replaces the hero
+**Publishing** checks first with
+[publish-validator](https://github.com/jmleventhorpe/publish-validator). Check, in the
+Publish panel, shows what would be written (the version, the hero it replaces, or for a
+layout each shot and what changed) and runs the checks without writing anything; any
+problems are listed there, each with Select (and Fix where it can). A publish writes a new version and replaces the hero
 file that other files link, marked for the Asset Browser with a thumbnail. Rigs start from
 the latest model publish and take its materials again on every publish. An asset can also
 be edited, or started, inside another asset's file (a prop inside its set) and published
@@ -68,7 +75,9 @@ from there.
 
 **Layout** is one file per sequence: a master scene holding the cut, and a scene per shot.
 Add Shot puts a new shot after the one at the playhead, numbered between its neighbours
-(0015 between 0010 and 0020), with a camera and a scene starting at frame 101. Assets
+(0015 between 0010 and 0020), with its own scene starting at frame 101, a root collection
+named after the shot holding its camera, and a timeline marker. Go to Shot and Back to
+Cut move between a shot and the cut. Assets
 dragged in from the Asset Browser get an instance ID on save (`crate_01`); Override for
 Posing makes one posable where it stands. Publishing layout checks each shot, publishes
 the whole file, and writes each shot's frame range, cut points and casting into its

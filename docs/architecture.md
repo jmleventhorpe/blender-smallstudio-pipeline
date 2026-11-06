@@ -45,6 +45,21 @@ Outside the jobs: `common/` (`errors`, `files`, `reading`), `session/` (`state`,
 `publishing/validation.toml` (the pipeline's own checks and settings), and `wheels/`
 (publish-validator, bundled).
 
+## The Pipeline tab
+
+The sidebar of the 3D viewport and the Video Sequencer has a Pipeline tab. Each job draws
+its own panel there, in this order: Context (`interface/panels.py`), Shot
+(`shots/blender/panels.py`), Loaded (`loading/blender/panels.py`), Publish
+(`publishing/blender/panels.py`) and Workfiles (`workfiles/blender/panels.py`).
+`interface/panels.both_sidebars()` makes the two classes Blender needs (one per editor)
+from one panel class. A panel hides when it doesn't apply to the open file.
+
+Drawing never reads the disk, which may be a slow shared drive: Loaded reads versions
+noted on opening, saving and Refresh (`loading/blender/updates.py`); Publish shows what
+Check found (`publishing/blender/review.py`); Workfiles lists what was read when its
+choices changed. The tests draw each panel into a stand-in layout, since Blender doesn't
+draw headless.
+
 ## Registering
 
 Blender calls the package's `register()`. It asks each job to register in turn
