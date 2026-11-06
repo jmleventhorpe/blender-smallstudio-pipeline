@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import bpy
 
+from ..loading.blender import instances
 from ..project.blender.identity import linked_asset
 from ..session import state
 from ..shots.blender.layout import LAYOUT, SEQUENCE, SHOT, shot_number
@@ -44,10 +45,19 @@ class PIPELINE_MT_main(bpy.types.Menu):
         if file.entity_kind != "asset" and selected_link:
             layout.separator()
             layout.operator("pipeline.override_for_posing", icon="LIBRARY_DATA_OVERRIDE")
+        elif file.entity_kind != "asset" and posed_instance(context):
+            layout.separator()
+            layout.operator("pipeline.back_to_link", icon="LINKED")
         if file.task == LAYOUT:
             layout.separator()
             layout.operator("pipeline.add_shot", icon="ADD")
             layout.operator("pipeline.omit_shot", icon="REMOVE")
+
+
+def posed_instance(context: bpy.types.Context) -> bool:
+    """True when the selection belongs to an asset overridden for posing."""
+    found = instances.instance_of(context.active_object, context.scene)
+    return found is not None and found.overridden
 
 
 def draw_in_top_bar(self: bpy.types.Menu, context: bpy.types.Context) -> None:

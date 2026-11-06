@@ -100,3 +100,37 @@ def test_the_shot_panel_only_shows_in_layout_files(project):
     project.create_asset("prop", "crate")
     bpy.ops.pipeline.new_workfile(category="prop", entity="crate", task="model")
     assert not ShotPanel.poll(bpy.context)
+
+
+def test_loaded_lists_each_instance_and_flags_newer_publishes(project, cut):
+    from test_updates import republish_behind_the_files_back
+
+    from smallstudio_pipeline.loading.blender.panels import LoadedPanel
+
+    scene = bpy.data.scenes["010_010_0010"]
+    shown = draw(LoadedPanel, scene)
+    assert "hero_01" in shown and "hero · model v001" in shown and "out" not in shown
+
+    republish_behind_the_files_back(project.asset("hero"), "new_hat")
+    assert "v002 out" not in draw(LoadedPanel, scene)  # Not looked yet: no disk reads.
+    bpy.ops.pipeline.refresh_versions()
+    shown = draw(LoadedPanel, scene)
+    assert "v002 out" in shown and "1 out of date" in shown
+
+    path = "assets/character/hero/model/publish/hero_model.blend"
+    bpy.ops.pipeline.update_publish(path=path)
+    assert "out" not in draw(LoadedPanel, scene).replace("Update All", "")
+
+
+def test_loaded_buttons_select_override_and_link_back(project, cut):
+    scene = bpy.data.scenes["010_010_0010"]
+    view_layer = scene.view_layers[0]
+    empty = next(o for o in scene.objects if o.get("instance_id") == "hero_01")
+    # The stubs miss temp_override's context-manager methods.
+    with bpy.context.temp_override(scene=scene, view_layer=view_layer):  # pyright: ignore[reportGeneralTypeIssues]
+        assert bpy.ops.pipeline.select_instance(holder=empty.name) == {"FINISHED"}
+        assert empty.select_get(view_layer=view_layer)
+        assert bpy.ops.pipeline.override_for_posing(holder=empty.name) == {"FINISHED"}
+        override = next(c for c in bpy.data.collections if c.override_library)
+        assert bpy.ops.pipeline.back_to_link(holder=override.name) == {"FINISHED"}
+    assert empty.instance_collection is not None and empty["instance_id"] == "hero_01"

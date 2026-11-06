@@ -16,12 +16,33 @@ from .libraries import linked_publishes
 
 # The publishes this file links, and their versions when it was opened (or last updated).
 seen: dict[str, int | None] = {}
+# Their latest versions when last looked (on opening, Refresh or Check Updates). The Loaded
+# panel reads these rather than the disk, which may be a slow shared drive.
+latest: dict[str, int | None] = {}
 
 
 def remember_versions(project: Project) -> None:
     """Note the version of every linked publish, to tell later what's changed."""
     seen.clear()
     seen.update({path: publish_version(project, path) for path in linked_publishes(project)})
+    latest.clear()
+    latest.update(seen)
+
+
+def refresh_latest(project: Project) -> None:
+    """Look again at the latest version of every linked publish."""
+    latest.clear()
+    latest.update({path: publish_version(project, path) for path in linked_publishes(project)})
+    for path in latest.keys() - seen.keys():  # Linked since the file opened.
+        seen[path] = latest[path]
+
+
+def reload_one(project: Project, path: str) -> None:
+    """Reload one linked publish, so it shows its latest version."""
+    library = linked_publishes(project).get(path)
+    if library is not None:
+        library.reload()
+        seen[path] = latest[path] = publish_version(project, path)
 
 
 def reload_changed(project: Project) -> list[Change]:
@@ -38,6 +59,8 @@ def reload_changed(project: Project) -> list[Change]:
     for change in changes:
         libraries[change.path].reload()
         seen[change.path] = change.new
+    latest.clear()
+    latest.update(seen)
     return changes
 
 

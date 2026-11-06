@@ -4,6 +4,7 @@ import bpy
 import pytest
 from conftest import place, placed_at, publish_model, publish_prop
 
+from smallstudio_pipeline.common.errors import PipelineError
 from smallstudio_pipeline.loading.blender import instances
 from smallstudio_pipeline.project.blender.identity import INSTANCE_ID
 from smallstudio_pipeline.project.core.metadata import CastEntry
@@ -77,3 +78,40 @@ def test_each_kind_of_file_offers_its_own_action_for_a_linked_asset(project, sho
     bpy.context.view_layer.objects.active = empty
     assert bpy.ops.pipeline.override_for_posing.poll()
     assert not bpy.ops.pipeline.make_editable.poll()
+
+
+def test_back_to_link_undoes_override_for_posing(project, shot):
+    empty = place(project, shot, "hero", location=(2.0, 0.0, 0.0))
+    bpy.ops.wm.save_mainfile()
+    override = instances.override_for_posing(empty, shot, shot.view_layers[0])
+    reference = override.override_library.reference
+
+    back = instances.back_to_link(override)
+
+    assert back == empty and empty.instance_collection == reference
+    assert empty[INSTANCE_ID] == "hero_01" and placed_at(empty) == (2.0, 0.0, 0.0)
+    assert not [c for c in bpy.data.collections if c.override_library]
+    assert not [o for o in bpy.data.objects if o.override_library]
+    (instance,) = instances.instances(shot)
+    assert (instance.holder, instance.instance_id, instance.overridden) == (empty, "hero_01", False)
+    again = instances.override_for_posing(empty, shot, shot.view_layers[0])  # And back again.
+    assert again[INSTANCE_ID] == "hero_01"
+
+
+def test_an_override_not_made_for_posing_cant_go_back(project, shot):
+    empty = place(project, shot, "hero")
+    override = instances.override_for_posing(empty, shot, shot.view_layers[0])
+    for obj in override.all_objects:
+        obj.parent = None  # No longer hangs from an empty.
+    with pytest.raises(PipelineError, match="wasn't made by Override for Posing"):
+        instances.back_to_link(override)
+
+
+def test_an_instance_is_found_from_any_of_its_parts(project, shot):
+    empty = place(project, shot, "hero")
+    override = instances.override_for_posing(empty, shot, shot.view_layers[0])
+    body = next(obj for obj in override.all_objects if obj.type == "MESH")
+    for part in (body, empty):
+        found = instances.instance_of(part, shot)
+        assert found is not None and found.holder == override
+    assert instances.instance_of(shot.camera, shot) is None
