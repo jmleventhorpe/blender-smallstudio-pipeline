@@ -136,3 +136,54 @@ def test_sequence_titles_show_beside_their_codes_in_the_dialogs(project, sequenc
         ("010_010", "010_010"),
         ("010_020", "010_020  Opening chase"),
     ]
+
+
+def test_each_shot_has_a_root_holding_its_camera_as_the_active_collection(sequence):
+    add_shot_at(1)
+    scene = bpy.data.scenes["010_010_0010"]
+    root = layout.shot_root(scene)
+    assert root is not None and root.name == "010_010_0010" and root[layout.SHOT] == "010_010_0010"
+    assert scene.camera.name in root.objects
+    assert scene.view_layers[0].active_layer_collection.collection == root
+
+
+def test_shot_scenes_from_before_roots_get_one_with_their_objects(sequence):
+    add_shot_at(1)
+    scene = bpy.data.scenes["010_010_0010"]
+    root = layout.shot_root(scene)
+    scene.collection.children.unlink(root)  # As files saved before shot roots were.
+    for obj in list(root.objects):
+        scene.collection.objects.link(obj)
+    bpy.data.collections.remove(root)
+
+    made = layout.ensure_shot_root(scene)
+    assert made.name == "010_010_0010" and scene.camera.name in made.objects
+    assert not scene.collection.objects
+
+
+def markers(scene):
+    return sorted((marker.name, marker.frame) for marker in scene.timeline_markers)
+
+
+def test_markers_follow_the_cut_and_leave_others_alone(project, sequence):
+    master = layout.master_scene()
+    master.timeline_markers.new("note", frame=5)
+    add_shot_at(1)
+    add_shot_at(1000)
+    add_shot_at(10)
+    assert markers(master) == [("0010", 1), ("0015", 49), ("0020", 97), ("note", 5)]
+    assert markers(bpy.data.scenes["010_010_0015"]) == [("0015", 101)]
+
+    strips = layout.shot_strips(master)
+    for strip in strips:
+        strip.select = strip == strips[1]
+    bpy.ops.pipeline.omit_shot()
+    assert markers(master) == [("0010", 1), ("0020", 49), ("note", 5)]
+
+
+def test_the_label_names_the_shot_or_the_cut(sequence):
+    from smallstudio_pipeline.interface.menu import scene_label
+
+    add_shot_at(1)
+    assert scene_label(bpy.data.scenes["010_010_0010"]) == " · shot 0010"
+    assert scene_label(layout.master_scene()) == " · cut"

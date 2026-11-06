@@ -10,6 +10,11 @@ omit_shot() takes a shot's strip out of the cut and marks the shot omitted;
 its scene stays in the file. sync_ranges() makes each shot scene's range what its strip
 shows, so retiming in the cut is what layout publishes. set_playblast_output() points the
 master scene's output at the sequence's layout render folder for the workfile's version.
+
+Each shot scene has a root collection named after the shot, carrying its code like the
+scene does: the shot's camera and placed assets go in it, and it's what you select to see
+the shot. ensure_shot_root() gives scenes from before shot roots one. sync_markers() keeps
+a timeline marker per shot ("0015"), at its strip in the cut and at the start of its scene.
 """
 
 from __future__ import annotations
@@ -97,6 +102,7 @@ def add_shot(sequence: Sequence, master: bpy.types.Scene, frame: int) -> Shot:
     strip.select = True
     master.sequence_editor.active_strip = strip
     fit_master_range(master)
+    sync_markers(master, sequence)
     return shot
 
 
@@ -111,12 +117,78 @@ def new_shot_scene(shot: Shot, master: bpy.types.Scene) -> bpy.types.Scene:
     scene.render.resolution_y = master.render.resolution_y
     scene.render.resolution_percentage = master.render.resolution_percentage
 
+    root = ensure_shot_root(scene)
     camera = bpy.data.objects.new(f"{shot.name}_cam", bpy.data.cameras.new(f"{shot.name}_cam"))
     camera.location = (0.0, -12.0, 2.0)
     camera.rotation_euler = (math.radians(85), 0.0, 0.0)
-    scene.collection.objects.link(camera)
+    root.objects.link(camera)
     scene.camera = camera
     return scene
+
+
+def shot_root(scene: bpy.types.Scene) -> bpy.types.Collection | None:
+    """A shot scene's root collection, if it has one."""
+    code = scene.get(SHOT)
+    for collection in scene.collection.children:
+        if code is not None and collection.get(SHOT) == code:
+            return collection
+    return None
+
+
+def ensure_shot_root(scene: bpy.types.Scene) -> bpy.types.Collection:
+    """The shot scene's root collection, made if it hasn't one, as the active collection.
+
+    A new root takes the scene's loose objects. Being active, it's where assets dragged in
+    from the Asset Browser land.
+    """
+    root = shot_root(scene)
+    if root is None:
+        root = bpy.data.collections.new(str(scene[SHOT]))
+        root[SHOT] = scene[SHOT]
+        scene.collection.children.link(root)
+        for obj in list(scene.collection.objects):
+            root.objects.link(obj)
+            scene.collection.objects.unlink(obj)
+    for view_layer in scene.view_layers:
+        if view_layer.layer_collection is None:  # A new scene's, until Blender updates it.
+            view_layer.update()
+        if view_layer.layer_collection is None:
+            continue
+        found = view_layer.layer_collection.children.get(root.name)
+        if found is not None:
+            view_layer.active_layer_collection = found
+    return root
+
+
+def shot_number(code: str) -> str:
+    """The shot's own number, e.g. "0015" for "010_010_0015": what markers show."""
+    return code.rpartition("_")[2]
+
+
+def sync_markers(master: bpy.types.Scene, sequence: Sequence) -> None:
+    """A marker per shot in the cut at its strip, and one at the start of each shot scene.
+
+    Markers named after one of the sequence's shots are the pipeline's: they're moved,
+    added and removed to match. Other markers are left alone.
+    """
+    numbers = {shot_number(shot.name) for shot in sequence.shots(include_omitted=True)}
+    strips = shot_strips(master)
+    numbers |= {shot_number(strip_shot(strip)) for strip in strips}
+    wanted = {shot_number(strip_shot(strip)): strip.left_handle for strip in strips}
+    _set_markers(master, numbers, wanted)
+    for strip in strips:
+        scene = strip.scene
+        assert scene is not None  # shot_strips only returns strips showing a shot.
+        _set_markers(scene, numbers, {shot_number(strip_shot(strip)): scene.frame_start})
+
+
+def _set_markers(scene: bpy.types.Scene, ours: set[str], wanted: dict[str, int]) -> None:
+    markers = scene.timeline_markers
+    for marker in [m for m in markers if m.name in ours and m.name not in wanted]:
+        markers.remove(marker)
+    for name, frame in wanted.items():
+        marker = markers.get(name) or markers.new(name, frame=frame)
+        marker.frame = frame
 
 
 def omit_shot(strip: bpy.types.SceneStrip, sequence: Sequence, master: bpy.types.Scene) -> Shot:
@@ -129,6 +201,7 @@ def omit_shot(strip: bpy.types.SceneStrip, sequence: Sequence, master: bpy.types
         other.content_start -= length
     fit_master_range(master)
     shot.omit()
+    sync_markers(master, sequence)
     return shot
 
 

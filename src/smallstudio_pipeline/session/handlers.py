@@ -42,7 +42,7 @@ def on_load_post(*_args: object) -> None:
     state.refresh()
     claim()
     after_open()
-    show_cut_in_sequencer()
+    prepare_layout_file()
     if state.current.warnings and state.current.context is not None:
         show_message(*state.current.warnings)  # Publishes, files in use, stale builds.
 
@@ -60,19 +60,28 @@ def after_open() -> None:
         state.current.warnings.append(updates.stale_warning(stale))
 
 
-def show_cut_in_sequencer() -> None:
-    """In a layout workfile, point any workspace's sequencer that edits nothing at the cut."""
-    file = state.current.context
-    if file is None or file.task != layout.LAYOUT or file.entity_kind != "sequence":
+def prepare_layout_file() -> None:
+    """In a layout workfile: show the cut in the sequencer, and give every shot a root and
+    its markers (files from before shot roots get them now)."""
+    project, file = state.current.project, state.current.context
+    if project is None or file is None or file.task != layout.LAYOUT:
         return
-    with contextlib.suppress(PipelineError):  # No master scene: nothing to show.
-        layout.show_cut_in_sequencer(layout.master_scene())
+    if file.entity_kind != "sequence":
+        return
+    with contextlib.suppress(PipelineError):  # No master scene: nothing to prepare.
+        master = layout.master_scene()
+        layout.show_cut_in_sequencer(master)
+        for scene in bpy.data.scenes:
+            if layout.SHOT in scene:
+                layout.ensure_shot_root(scene)
+        layout.sync_markers(master, project.sequence(file.entity))
 
 
 @persistent
 def on_save_pre(path: object = "", *_args: object) -> None:
     """Before a save (or a publish's copy, spike T13): number new instances in each shot,
-    and point a layout workfile's playblast output at the version being saved."""
+    and point a layout workfile's playblast output at the version being saved and its
+    markers at the cut."""
     for scene in bpy.data.scenes:
         if layout.SHOT in scene:
             instances.number_instances(scene)
@@ -85,13 +94,15 @@ def on_save_pre(path: object = "", *_args: object) -> None:
             master = layout.master_scene()
         except PipelineError:
             return
-        layout.set_playblast_output(master, project.sequence(file.entity), file.version)
+        sequence = project.sequence(file.entity)
+        layout.set_playblast_output(master, sequence, file.version)
+        layout.sync_markers(master, sequence)  # Strips moved by hand since.
 
 
 @persistent
 def on_save_post(*_args: object) -> None:
-    # Save As (and Version Up) moves us to another file: move the marker with it.
     """After a save: refresh the state, moving the in-use marker if the file moved."""
+    # Save As (and Version Up) moves us to another file: move the marker with it.
     if _claimed != Path(bpy.data.filepath):
         release()
     state.refresh()

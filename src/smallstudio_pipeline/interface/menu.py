@@ -12,7 +12,7 @@ import bpy
 
 from ..project.blender.identity import linked_asset
 from ..session import state
-from ..shots.blender.layout import LAYOUT
+from ..shots.blender.layout import LAYOUT, SEQUENCE, SHOT, shot_number
 
 
 class PIPELINE_MT_main(bpy.types.Menu):
@@ -55,7 +55,17 @@ def draw_in_top_bar(self: bpy.types.Menu, context: bpy.types.Context) -> None:
     self.layout.menu(PIPELINE_MT_main.bl_idname)
     row = self.layout.row()
     row.alert = bool(state.current.warnings)  # Draws in the warning colour.
-    row.label(text=state.current.label, icon="ERROR" if state.current.warnings else "NONE")
+    text = state.current.label + scene_label(context.scene)
+    row.label(text=text, icon="ERROR" if state.current.warnings else "NONE")
+
+
+def scene_label(scene: bpy.types.Scene | None) -> str:
+    """What the label adds for the scene on show: " · shot 0015", " · cut", or nothing."""
+    if scene is not None and SHOT in scene:
+        return f" · shot {shot_number(str(scene[SHOT]))}"
+    if scene is not None and SEQUENCE in scene:
+        return " · cut"
+    return ""
 
 
 # The stubs say draw functions take (context); Blender calls them with (self, context).
