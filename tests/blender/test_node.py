@@ -63,7 +63,7 @@ def test_a_loaded_asset_isnt_published_here(project):
     place(project, scene, "hero")
     empty = next(o for o in scene.objects if o.instance_type == "COLLECTION")
     view_layer = scene.view_layers[0]
-    with pytest.raises(LoadedPicked, match="publish it from its own file"):
+    with pytest.raises(LoadedPicked, match="Unable to publish a linked asset"):
         find_node(scene, view_layer, [empty], prefer="selection")
     assert find_node(scene, view_layer, [empty]).kind == "shot"  # The shot node was clicked.
 

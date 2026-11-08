@@ -100,18 +100,14 @@ def find_node(
 
 def _clicked_node(clicked: bpy.types.Collection | None) -> Node | None:
     if clicked is not None and (clicked.library or clicked.override_library):
-        raise LoadedPicked(
-            f"{clicked.name} is loaded from its asset's publish: publish it from its own file."
-        )
+        raise LoadedPicked("Unable to publish a linked asset.")
     return node_of(clicked)
 
 
 def _selection_node(scene: bpy.types.Scene, selected: list[bpy.types.Object]) -> Node | None:
     loaded = [obj for obj in selected if is_loaded(obj)]
     if loaded:
-        raise LoadedPicked(
-            f"{loaded[0].name} is loaded from its asset's publish: publish it from its own file."
-        )
+        raise LoadedPicked("Unable to publish a linked asset.")
     holding = {found for obj in selected if (found := node_holding(obj, scene))}
     if len(holding) > 1:
         names = ", ".join(sorted(n.root.name for n in holding))
