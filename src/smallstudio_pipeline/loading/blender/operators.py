@@ -1,16 +1,17 @@
-"""Loading's menu actions: Check Updates, Make Editable and Override for Posing.
+"""Loading's menu actions: Check Updates, Make Editable, Override and Back to Link.
 
 Pipeline > Check Updates: reload linked publishes that were published again, and say
 which.
 
-Pipeline > Make Editable: swap the selected linked asset for a local copy to edit here.
+Pipeline > Make Editable: swap the selected linked asset for a local copy to edit here,
+in any file. Publishing the copy (with Link Back) links the asset in again; see
+loading/blender/editable.py.
 
-Publishing the copy links the asset back in; see loading/blender/editable.py.
+Pipeline > Override: override the selected linked asset where it stands, in any file, to
+pose it or, for a set, move its pieces in this shot only. See loading/blender/instances.py
+for how the override keeps its placement.
 
-Pipeline > Override for Posing: make a linked asset in a shot posable, where it stands.
-
-Used in a sequence's or shot's workfile; see loading/blender/instances.py for how the
-override keeps its placement.
+Pipeline > Back to Link: undo either, throwing away what was changed here.
 """
 
 from __future__ import annotations
@@ -20,7 +21,7 @@ import bpy
 from ...common.errors import PipelineError
 from ...interface.common import has_project
 from ...project.blender import nodes
-from ...project.blender.identity import linked_asset
+from ...project.core.project import Project
 from ...session import state
 from . import editable, instances, updates
 
@@ -58,12 +59,8 @@ class PIPELINE_OT_make_editable(bpy.types.Operator):
     def poll(cls, context: bpy.types.Context) -> bool:
         if not has_project(cls):
             return False
-        if linked_asset(context.active_object) is None:
+        if not instances.places_link(context.active_object):
             cls.poll_message_set("Select a linked asset (the empty that places it).")
-            return False
-        holder = nodes.node_holding(context.active_object, context.scene)
-        if holder is None or holder.kind != "asset":
-            cls.poll_message_set("Make Editable works on a linked asset inside an asset's node.")
             return False
         return True
 
@@ -79,47 +76,35 @@ class PIPELINE_OT_make_editable(bpy.types.Operator):
         return {"FINISHED"}
 
 
-def in_shot(instance: instances.Instance, scene: bpy.types.Scene) -> bool:
-    """Whether an instance stands in a shot's node: where posing happens."""
-    holder = instance.holder
-    placed = instances.placing_empty(holder) if isinstance(holder, bpy.types.Collection) else holder
-    node = nodes.node_holding(placed, scene)
-    return node is not None and node.kind == "shot"
+class PIPELINE_OT_override(bpy.types.Operator):
+    """Override the linked asset where it stands, to pose it or move a set's pieces here"""
 
-
-class PIPELINE_OT_override_for_posing(bpy.types.Operator):
-    """Override the linked asset so it can be posed, keeping where it stands"""
-
-    bl_idname = "pipeline.override_for_posing"
-    bl_label = "Override for Posing"
+    bl_idname = "pipeline.override"
+    bl_label = "Override"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
     def poll(cls, context: bpy.types.Context) -> bool:
-        return has_project(cls)
+        if not has_project(cls):
+            return False
+        if not instances.places_link(context.active_object):
+            cls.poll_message_set("Select a linked asset (the empty that places it).")
+            return False
+        return True
 
     def execute(self, context: bpy.types.Context) -> set[str]:
-        instance = instances.instance_of(context.active_object, context.scene)
-        if instance is None or instance.overridden:
-            self.report({"ERROR"}, "Select a linked asset (the empty that places it).")
-            return {"CANCELLED"}
-        if not in_shot(instance, context.scene):
-            self.report({"ERROR"}, "Override for Posing works on an asset inside a shot's node.")
-            return {"CANCELLED"}
-        assert isinstance(instance.holder, bpy.types.Object)  # Not overridden: an empty.
+        assert context.active_object is not None  # Checked by poll.
         try:
-            override = instances.override_for_posing(
-                instance.holder, context.scene, context.view_layer
-            )
+            root = instances.override(context.active_object, context.scene, context.view_layer)
         except PipelineError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}
-        self.report({"INFO"}, f"{override.name} can be posed now.")
+        self.report({"INFO"}, f"{root.name} is overridden: change it here.")
         return {"FINISHED"}
 
 
 class PIPELINE_OT_back_to_link(bpy.types.Operator):
-    """Undo Override for Posing: link the asset again where it stands. Its pose is lost"""
+    """Link the asset again where it stands, throwing away what was changed here"""
 
     bl_idname = "pipeline.back_to_link"
     bl_label = "Back to Link"
@@ -127,24 +112,34 @@ class PIPELINE_OT_back_to_link(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context: bpy.types.Context) -> bool:
-        return has_project(cls)
+        if not has_project(cls):
+            return False
+        if not can_go_back(context.active_object, context.scene):
+            cls.poll_message_set("Select an overridden or made-editable asset.")
+            return False
+        return True
 
     def invoke(self, context: bpy.types.Context, event: bpy.types.Event) -> set[str]:
         return context.window_manager.invoke_confirm(
             self,
             event,
-            message="Link it again? Its pose here is lost.",
+            message="Link it again? What was changed here is lost.",
             confirm_text="Back to Link",
         )
 
     def execute(self, context: bpy.types.Context) -> set[str]:
-        instance = instances.instance_of(context.active_object, context.scene)
-        if instance is None or not instance.overridden:
-            self.report({"ERROR"}, "Select an asset overridden for posing.")
-            return {"CANCELLED"}
-        assert isinstance(instance.holder, bpy.types.Collection)  # Overridden: a collection.
+        project = state.current.project
+        assert project is not None  # Checked by poll.
+        obj, scene = context.active_object, context.scene
         try:
-            empty = instances.back_to_link(instance.holder)
+            copy = editable.editable_copy(obj, scene)
+            if copy is not None:
+                empty = link_copy_again(copy, project, scene)
+            else:
+                instance = instances.instance_of(obj, scene)
+                assert instance is not None and instance.overridden  # Checked by poll.
+                assert isinstance(instance.holder, bpy.types.Collection)
+                empty = instances.back_to_link(instance.holder)
         except PipelineError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}
@@ -152,9 +147,32 @@ class PIPELINE_OT_back_to_link(bpy.types.Operator):
         return {"FINISHED"}
 
 
+def can_go_back(obj: bpy.types.Object | None, scene: bpy.types.Scene) -> bool:
+    """Whether an object is part of an override or a made-editable copy: Back to Link."""
+    if editable.editable_copy(obj, scene) is not None:
+        return True
+    instance = instances.instance_of(obj, scene)
+    return instance is not None and instance.overridden
+
+
+def link_copy_again(
+    copy: bpy.types.Collection, project: Project, scene: bpy.types.Scene
+) -> bpy.types.Object:
+    """Throw a made-editable copy away, linking its asset's hero where it stood."""
+    node = nodes.node_of(copy)
+    if node is None or node.kind != "asset":
+        raise PipelineError(f"{copy.name} isn't an asset's copy, so it can't be linked again.")
+    asset = project.asset(node.name)
+    task = node.task or asset.tasks[0]
+    hero = asset.hero_path(task)
+    if not hero.exists():
+        raise PipelineError(f"{asset.name} has no {task} publish to link.")
+    return editable.link_again(copy, asset, hero, scene)
+
+
 CLASSES = (
     PIPELINE_OT_check_updates,
     PIPELINE_OT_make_editable,
-    PIPELINE_OT_override_for_posing,
+    PIPELINE_OT_override,
     PIPELINE_OT_back_to_link,
 )

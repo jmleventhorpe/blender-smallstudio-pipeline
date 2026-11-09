@@ -1,4 +1,4 @@
-"""Runs inside Blender (see run.py): instance IDs in shots, and Override for Posing."""
+"""Runs inside Blender (see run.py): instance IDs in shots, and Override."""
 
 import bpy
 import pytest
@@ -46,10 +46,10 @@ def test_instances_in_every_scene_are_numbered(project, shot):
     assert empty[INSTANCE_ID] == "crate_01"
 
 
-def test_override_for_posing_keeps_the_asset_where_it_stands(project, shot):
+def test_override_keeps_the_asset_where_it_stands(project, shot):
     empty = place(project, shot, "hero", location=(2.0, 0.0, 0.0))
     bpy.ops.wm.save_mainfile()
-    override = instances.override_for_posing(empty, shot, shot.view_layers[0])
+    override = instances.override(empty, shot, shot.view_layers[0])
 
     assert override.override_library is not None
     assert empty.instance_collection is None and INSTANCE_ID not in empty
@@ -68,22 +68,21 @@ def test_override_for_posing_keeps_the_asset_where_it_stands(project, shot):
 
 def test_an_unnumbered_asset_is_numbered_when_overridden(project, shot):
     empty = place(project, shot, "hero")
-    override = instances.override_for_posing(empty, shot, shot.view_layers[0])
+    override = instances.override(empty, shot, shot.view_layers[0])
     assert override[INSTANCE_ID] == "hero_01"
 
 
-def test_each_kind_of_file_offers_its_own_action_for_a_linked_asset(project, shot):
+def test_a_linked_asset_can_be_overridden_or_made_editable_anywhere(project, shot):
     master = layout.master_scene()
     empty = place(project, master, "crate")
     bpy.context.view_layer.objects.active = empty
-    assert bpy.ops.pipeline.override_for_posing.poll()
-    assert not bpy.ops.pipeline.make_editable.poll()
+    assert bpy.ops.pipeline.override.poll() and bpy.ops.pipeline.make_editable.poll()
 
 
-def test_back_to_link_undoes_override_for_posing(project, shot):
+def test_back_to_link_undoes_override(project, shot):
     empty = place(project, shot, "hero", location=(2.0, 0.0, 0.0))
     bpy.ops.wm.save_mainfile()
-    override = instances.override_for_posing(empty, shot, shot.view_layers[0])
+    override = instances.override(empty, shot, shot.view_layers[0])
     reference = override.override_library.reference
 
     back = instances.back_to_link(override)
@@ -94,22 +93,22 @@ def test_back_to_link_undoes_override_for_posing(project, shot):
     assert not [o for o in bpy.data.objects if o.override_library]
     (instance,) = instances.instances(shot)
     assert (instance.holder, instance.instance_id, instance.overridden) == (empty, "hero_01", False)
-    again = instances.override_for_posing(empty, shot, shot.view_layers[0])  # And back again.
+    again = instances.override(empty, shot, shot.view_layers[0])  # And back again.
     assert again[INSTANCE_ID] == "hero_01"
 
 
 def test_an_override_not_made_for_posing_cant_go_back(project, shot):
     empty = place(project, shot, "hero")
-    override = instances.override_for_posing(empty, shot, shot.view_layers[0])
+    override = instances.override(empty, shot, shot.view_layers[0])
     for obj in override.all_objects:
         obj.parent = None  # No longer hangs from an empty.
-    with pytest.raises(PipelineError, match="wasn't made by Override for Posing"):
+    with pytest.raises(PipelineError, match="wasn't made by Override"):
         instances.back_to_link(override)
 
 
 def test_an_instance_is_found_from_any_of_its_parts(project, shot):
     empty = place(project, shot, "hero")
-    override = instances.override_for_posing(empty, shot, shot.view_layers[0])
+    override = instances.override(empty, shot, shot.view_layers[0])
     body = next(obj for obj in override.all_objects if obj.type == "MESH")
     for part in (body, empty):
         found = instances.instance_of(part, shot)
@@ -117,7 +116,7 @@ def test_an_instance_is_found_from_any_of_its_parts(project, shot):
     assert instances.instance_of(shot.camera, shot) is None
 
 
-def test_override_for_posing_and_back_to_link_act_on_the_selection(project, shot):
+def test_override_and_back_to_link_act_on_the_selection(project, shot):
     scene = shot
     place(project, scene, "hero")
     bpy.ops.wm.save_mainfile()
@@ -125,7 +124,7 @@ def test_override_for_posing_and_back_to_link_act_on_the_selection(project, shot
     empty = next(o for o in scene.objects if o.get("instance_id") == "hero_01")
     # The stubs miss temp_override's context-manager methods.
     with bpy.context.temp_override(scene=scene, view_layer=view_layer, active_object=empty):  # pyright: ignore[reportGeneralTypeIssues]
-        assert bpy.ops.pipeline.override_for_posing() == {"FINISHED"}
+        assert bpy.ops.pipeline.override() == {"FINISHED"}
     override = next(c for c in bpy.data.collections if c.override_library)
     posed = next(iter(override.all_objects))
     with bpy.context.temp_override(scene=scene, view_layer=view_layer, active_object=posed):  # pyright: ignore[reportGeneralTypeIssues]

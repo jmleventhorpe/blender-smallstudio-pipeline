@@ -52,9 +52,8 @@ flowchart LR
 3. Use the **Pipeline** menu in the top bar: Open…, New Workfile… (an empty file saved in
    the right place), Save To… (save the open file as any asset's, sequence's or shot's
    next workfile), New Node…, Version Up, Publish and Check Updates. Below those, only
-   where they apply: Make Editable (a linked asset in an asset's node), Override for
-   Posing or Back to Link (one in a shot's node), and Add Shot and Omit Shot (a file with
-   a cut). Next to it, the top bar shows what the open file is (`hero · rig · v012`, with
+   where they apply: Make Editable and Override (a linked asset selected), Back to Link
+   (an overridden or made-editable one), and Add Shot and Omit Shot (a file with a cut). Next to it, the top bar shows what the open file is (`hero · rig · v012`, with
    `· shot 0015` or `· cut` in a file with a cut), in the warning colour for a publish, a
    file outside the pipeline, or one someone else has open.
 4. Open the **Pipeline** tab in the sidebar (N) of the 3D viewport or the Video Sequencer.
@@ -81,9 +80,12 @@ changed, and runs the checks without writing anything; any problems are listed t
 each with Select (and Fix where it can). A publish writes a new version and replaces the
 hero file that other files link, marked for the Asset Browser with a thumbnail; its record
 lists the instances placed in the node, so a set's publish says what's in it and where. A
-rig takes its model's latest materials on every publish. A linked asset can be made
-editable inside another node (a crate in its set), published from there in its own space,
-and, with **Link Back** ticked, linked back in where it stood.
+rig takes its model's latest materials on every publish. Any linked asset, in any
+file, can be made editable (a crate in its set, or a set in a shot), published from there
+in its own space, and, with **Link Back** ticked, linked back in where it stood. Or it can
+be overridden where it stands: a character posed, or a set's pieces moved for one shot
+only, while updates to the set still arrive. Back to Link undoes either, throwing away
+what was changed. Where to use which is the artist's call.
 
 **Layout**: a sequence's node makes its scene the cut, with a strip per shot. Add Shot
 puts a new shot after the one at the playhead, numbered between its neighbours (0015
@@ -91,8 +93,8 @@ between 0010 and 0020), with its own scene starting at frame 101, a shot node ho
 camera, and a timeline marker. With Follow the cut (Blender's Sync Scene Time, on in new
 cuts) the 3D viewport shows the shot under the sequencer's playhead, so scrubbing the cut
 shows each shot; Back to Cut returns to it. Assets dragged in from the Asset Browser get
-an instance ID on save (`crate_01`); Override for Posing makes one posable where it
-stands, and Back to Link undoes it. Publishing the layout checks each shot, publishes the
+an instance ID on save (`crate_01`); Override makes one posable where it stands, or
+lets a set be dressed for that shot, and Back to Link undoes it. Publishing the layout checks each shot, publishes the
 whole file, and writes each shot's frame range, cut points and casting into its metadata;
 a shot whose strip is gone is marked omitted. The cut renders its playblast to the
 sequence's layout render folder for the workfile's version.
@@ -123,7 +125,7 @@ shot.render_path("light", 1)
 | --- | --- |
 | `src/smallstudio_pipeline/project/` | Settings, names and paths, assets, sequences and shots, nodes, this machine's project list. `defaults.toml` holds the built-in settings a project's `pipeline.toml` overrides. |
 | `src/smallstudio_pipeline/workfiles/` | What a file is, new workfiles, Open and Version Up, in-use markers. |
-| `src/smallstudio_pipeline/loading/` | Linking publishes, Check Updates, instances and Override for Posing, Make Editable. |
+| `src/smallstudio_pipeline/loading/` | Linking publishes, Check Updates, instances, Override, Make Editable and Back to Link. |
 | `src/smallstudio_pipeline/publishing/` | Checks (with the pipeline's own in `checks/` and `validation.toml`), then writing asset and layout publishes. |
 | `src/smallstudio_pipeline/shots/` | The sequence layout file: the cut, Add Shot and Omit Shot. |
 | `src/smallstudio_pipeline/common/`, `session/`, `interface/` | Shared helpers; what's open and the load/save handlers; the Pipeline menu. |

@@ -1,20 +1,27 @@
-"""Make Editable: swap a linked asset for a local copy to edit inside another asset's file.
+"""Make Editable: swap a linked asset for a local copy to edit in whatever file it's in.
 
 make_editable() appends the asset's latest versioned publish where the linked one was,
 bakes the placing empty's transform into the copy and keeps it on the copy's root
-(PLACEMENT), so publishing can move the copy back into the asset's own space and link the
-asset in again where it stood (publishing/blender/in_context.py). Tested as spike T12.
+(PLACEMENT), so publishing can move the copy back into the asset's own space
+(publishing/blender/in_context.py). link_again() swaps the copy for a link to the asset's
+hero where it stood: after publishing it (Link Back), or to throw the edits away (Back
+to Link). Tested as spike T12.
 """
 
 from __future__ import annotations
+
+from pathlib import Path
 
 import bpy
 from mathutils import Matrix
 
 from ...common.errors import PipelineError
 from ...project.blender.identity import TASK, asset_identity, linked_asset
+from ...project.core.entities import Asset
 from ...project.core.project import Project
-from . import libraries
+from ...publishing.core.publishing import relative
+from ..core.updates import publish_version
+from . import libraries, updates
 
 # Where the linked asset was placed, kept on the copy's root while it's being edited.
 PLACEMENT = "pipeline_placement"  # The placing empty's world matrix, 16 numbers by row.
@@ -78,4 +85,45 @@ def world_matrix(obj: bpy.types.Object, view_layer: bpy.types.ViewLayer) -> Matr
     return obj.matrix_world.copy()
 
 
-# Run in a separate Blender: libraries.write can't write scenes (Blender 5.2 crashes), so
+def link_again(
+    root: bpy.types.Collection, asset: Asset, hero: Path, scene: bpy.types.Scene
+) -> bpy.types.Object:
+    """Replace a made-editable copy with the asset's hero, instanced where the copy stood."""
+    homes = [c for c in scene.collection.children_recursive if root in c.children[:]]
+    home = homes[0] if homes else scene.collection
+    placement = placement_of(root)
+    name = root.get(PLACEMENT_NAME, asset.name)
+
+    # Remove the copy and the data only it used, so the next copy doesn't get .001 names.
+    objects = list(root.all_objects)
+    data = {obj.data for obj in objects if obj.data is not None}
+    materials = {slot.material for obj in objects for slot in obj.material_slots if slot.material}
+    bpy.data.batch_remove([*objects, *root.children_recursive, root])
+    bpy.data.batch_remove([d for d in data if d.users == 0])
+    bpy.data.batch_remove([m for m in materials if m.users == 0])
+
+    # The old version is still loaded here (that's what was made editable), and linking
+    # again would just hand it back: reload it, so every instance shows the new publish.
+    path = relative(asset.project, hero)
+    library = libraries.linked_publishes(asset.project).get(path)
+    if library is not None:
+        library.reload()
+    linked = libraries.load_root(hero, asset.name, link=True)
+    updates.seen[path] = publish_version(asset.project, path)
+    empty = bpy.data.objects.new(name, None)
+    home.objects.link(empty)
+    empty.instance_type = "COLLECTION"
+    empty.instance_collection = linked
+    if placement is not None:
+        empty.matrix_world = placement
+    return empty
+
+
+def editable_copy(
+    obj: bpy.types.Object | None, scene: bpy.types.Scene
+) -> bpy.types.Collection | None:
+    """The made-editable copy an object is part of, if any."""
+    for collection in scene.collection.children_recursive:
+        if placement_of(collection) is not None and obj in collection.all_objects[:]:
+            return collection
+    return None

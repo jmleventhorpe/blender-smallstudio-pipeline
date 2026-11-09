@@ -19,6 +19,7 @@ from publish_validator import Subject, Validator
 
 from ...common.errors import PipelineError
 from ...interface.common import has_project
+from ...loading.blender import editable
 from ...project.blender.nodes import Node, current_node, node_sequence
 from ...project.core.entities import Sequence
 from ...project.core.project import Project
@@ -103,7 +104,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
             published = self.write_files(root, target, last, Path(bpy.data.filepath), placed)
         if link_back_chosen(context):
             hero = target.asset.hero_path(target.task)
-            in_context.swap_for_link(root, target.asset, hero, context.scene)
+            editable.link_again(root, target.asset, hero, context.scene)
             workfiles.save_changes()  # This file now links the new publish.
             published += "; linked back here"
         return f"{published} ({synced.summary})" if synced else published

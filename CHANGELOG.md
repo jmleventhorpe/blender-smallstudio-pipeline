@@ -6,6 +6,14 @@ All notable changes to this project are listed here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Make Editable and Override (was Override for Posing) work on any linked asset in any
+  file: a set can be dressed for one shot, or made editable in a shot and published from
+  there. Back to Link also throws a made-editable copy away.
+- The Loaded panel is gone: the Outliner shows what's loaded.
+- Publish follows what was picked last, and is greyed out for a linked asset.
+
 ### Added
 
 - Spikes T1 to T11 testing the Blender 5.2 behaviour the design depends on, with results.

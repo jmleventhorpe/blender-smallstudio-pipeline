@@ -1,15 +1,16 @@
-"""What stands in a shot: instances of assets, their IDs, and overriding one for posing.
+"""What stands in a scene: instances of assets, their IDs, and overriding one.
 
 An instance is an empty placing a linked asset (sets, and props left as they are) or an
-override of an asset's root (characters posed in layout). Which asset it is comes from
-the root's identity, readable through a link or an override. Which instance it is, its
-instance ID, lives on whatever stands in the scene: the empty, or the override's root
-(spike T2). Instance reads both.
+override of an asset's root (a character posed, or a set dressed for one shot). Which
+asset it is comes from the root's identity, readable through a link or an override.
+Which instance it is, its instance ID, lives on whatever stands in the scene: the empty,
+or the override's root (spike T2). Instance reads both.
 
 number_instances() gives each instance in a shot without an ID the next one for its
-asset (crate_03); the save handler calls it. override_for_posing() overrides a linked
-asset where it stands, keeping its empty as a plain parent for placement (spike T5), and
-back_to_link() undoes it.
+asset (crate_03); the save handler calls it. override() overrides a linked asset
+where it stands, keeping its empty as a plain parent for placement (spike T5), so it can
+be posed or, for a set, its pieces moved; back_to_link() undoes it. Overriding works in
+any file: where to use it is the artist's call.
 """
 
 from __future__ import annotations
@@ -97,10 +98,23 @@ def casting(scene: bpy.types.Scene) -> tuple[CastEntry, ...]:
     return tuple(sorted(entries, key=lambda entry: entry.instance_id))
 
 
-def override_for_posing(
+def places_link(obj: bpy.types.Object | None) -> bool:
+    """Whether an object is this file's own empty placing a linked asset: what Make
+    Editable and Override work on. Not a piece inside an overridden set."""
+    return (
+        obj is not None
+        and obj.library is None
+        and obj.override_library is None
+        and linked_asset(obj) is not None
+    )
+
+
+def override(
     empty: bpy.types.Object, scene: bpy.types.Scene, view_layer: bpy.types.ViewLayer
 ) -> bpy.types.Collection:
     """Override the linked asset an empty places, keeping the empty as its plain parent.
+
+    Everything in it is editable: a character's rig to pose, a set's pieces to move.
 
     Blender puts a new override at the origin and leaves the empty behind (spike T5), so
     the empty stops instancing and the override's top objects are parented to it. Only
@@ -115,30 +129,30 @@ def override_for_posing(
     instance_id = empty.get(INSTANCE_ID, "")
     homes = list(empty.users_collection)
 
-    override = linked.override_hierarchy_create(scene, view_layer, do_fully_editable=True)
+    root = linked.override_hierarchy_create(scene, view_layer, do_fully_editable=True)
     if homes and scene.collection not in homes:  # Keep it beside its empty.
-        homes[0].children.link(override)
-        scene.collection.children.unlink(override)
+        homes[0].children.link(root)
+        scene.collection.children.unlink(root)
     empty.instance_type = "NONE"
     empty.instance_collection = None
-    inside = set(override.all_objects)
-    for obj in override.all_objects:
+    inside = set(root.all_objects)
+    for obj in root.all_objects:
         if obj.parent not in inside:
             obj.parent = empty
-    override[INSTANCE_ID] = instance_id
+    root[INSTANCE_ID] = instance_id
     del empty[INSTANCE_ID]
-    return override
+    return root
 
 
 def placing_empty(override: bpy.types.Collection) -> bpy.types.Object | None:
-    """The empty an override for posing hangs from (see override_for_posing)."""
+    """The empty an override hangs from (see override())."""
     inside = set(override.all_objects)
     parents = {obj.parent for obj in override.all_objects if obj.parent not in inside}
     return parents.pop() if len(parents) == 1 and None not in parents else None
 
 
 def back_to_link(override: bpy.types.Collection) -> bpy.types.Object:
-    """Undo Override for Posing: the empty places the linked asset again, its pose lost.
+    """Undo Override: the empty places the linked asset again; what was changed is lost.
 
     The override and the data only it used are removed; the instance ID moves back to
     the empty, so the instance stays the same one.
@@ -146,9 +160,7 @@ def back_to_link(override: bpy.types.Collection) -> bpy.types.Object:
     reference = override.override_library.reference if override.override_library else None
     empty = placing_empty(override)
     if not isinstance(reference, bpy.types.Collection) or empty is None:
-        raise PipelineError(
-            f"{override.name} wasn't made by Override for Posing, so it can't go back."
-        )
+        raise PipelineError(f"{override.name} wasn't made by Override, so it can't go back.")
     instance_id = override.get(INSTANCE_ID, "")
     objects = list(override.all_objects)
     data = {obj.data for obj in objects if obj.data is not None and obj.data.override_library}

@@ -36,7 +36,7 @@ object it works on, so it runs headless in the tests.
 | --- | --- | --- |
 | **project** | `config` (defaults.toml merged with pipeline.toml), `naming`, `templates`, `metadata`, `tracker`, `project`, `entities`, `machine` (this machine's project list) | `identity` (the properties nodes carry), `nodes` (which collections are nodes, the node Publish works on), `preferences` (the project list page) |
 | **workfiles** | `context` (what a file is, from its path), `workfiles` (next free version), `inuse` (who has a file open) | `workfiles` (saving in the right place), operators: Open, New Workfile, Save To, Version Up |
-| **loading** | `updates` (what's out of date), `casting` (instance IDs) | `libraries` (linking, the Asset Browser library), `updates` (reloading), `instances` (what stands in a shot, Override for Posing), `editable` (Make Editable), operators: Check Updates, Make Editable, Override for Posing |
+| **loading** | `updates` (what's out of date), `casting` (instance IDs) | `libraries` (linking, the Asset Browser library), `updates` (reloading), `instances` (what stands in a scene, Override), `editable` (Make Editable, linking a copy again), operators: Check Updates, Make Editable, Override, Back to Link |
 | **publishing** | `publishing` (targets, plans, records with placed instances), `catalogs` | `assets` (writing asset publishes, thumbnails, placements), `layout` (Save Copy of a layout file), `in_context` (asset space, Link Back), `materials` (rig takes model's materials), `validation`, `review` (Check), `results`, `panels` (Publish), operators: Publish, Check |
 | **shots** | `layout` (the cut into each shot's metadata) | `layout` (the cut, strips, markers, playblast path), `panels` (Shot), operators: Add Shot, Omit Shot, Back to Cut |
 
@@ -116,7 +116,7 @@ flowchart TD
     checks["run_checks: publish-validator"]
     blocked["Blocked: problems listed in the sidebar"]
     write["write_publish: hero + versioned file, records with placed instances"]
-    link["Link Back ticked: swap_for_link, file saved"]
+    link["Link Back ticked: link_again, file saved"]
 
     node --> target --> materials --> space --> checks
     checks -- fails --> blocked

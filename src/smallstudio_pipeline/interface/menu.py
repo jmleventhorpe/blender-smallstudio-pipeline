@@ -2,8 +2,8 @@
 
 Both read state.current and nothing else: the top bar redraws constantly, so nothing
 here may touch the disk. Below the separator, only what applies: with a linked asset
-selected, Make Editable in an asset's workfile and Override for Posing in a sequence's
-or shot's; Add Shot and Omit Shot in a layout workfile.
+selected, Make Editable and Override; with an overridden or made-editable one, Back to
+Link; in a file with a cut, Add Shot and Omit Shot.
 """
 
 from __future__ import annotations
@@ -11,8 +11,8 @@ from __future__ import annotations
 import bpy
 
 from ..loading.blender import instances
+from ..loading.blender.operators import can_go_back
 from ..project.blender import nodes
-from ..project.blender.identity import linked_asset
 from ..session import state
 from ..shots.blender.layout import has_cut, shot_number
 
@@ -39,27 +39,18 @@ class PIPELINE_MT_main(bpy.types.Menu):
         file = state.current.context
         if file is None or file.is_publish:
             return
-        selected_link = linked_asset(context.active_object) is not None
-        holder = nodes.node_holding(context.active_object, context.scene)
-        if selected_link and holder is not None and holder.kind == "asset":
+        obj = context.active_object
+        if instances.places_link(obj):
             layout.separator()
-            layout.operator("pipeline.make_editable", icon="LIBRARY_DATA_OVERRIDE")
-        if selected_link and holder is not None and holder.kind == "shot":
-            layout.separator()
-            layout.operator("pipeline.override_for_posing", icon="LIBRARY_DATA_OVERRIDE")
-        elif posed_instance(context):
+            layout.operator("pipeline.make_editable", icon="LIBRARY_DATA_DIRECT")
+            layout.operator("pipeline.override", icon="LIBRARY_DATA_OVERRIDE")
+        elif can_go_back(obj, context.scene):
             layout.separator()
             layout.operator("pipeline.back_to_link", icon="LINKED")
         if has_cut():
             layout.separator()
             layout.operator("pipeline.add_shot", icon="ADD")
             layout.operator("pipeline.omit_shot", icon="REMOVE")
-
-
-def posed_instance(context: bpy.types.Context) -> bool:
-    """True when the selection belongs to an asset overridden for posing."""
-    found = instances.instance_of(context.active_object, context.scene)
-    return found is not None and found.overridden
 
 
 def draw_in_top_bar(self: bpy.types.Menu, context: bpy.types.Context) -> None:
