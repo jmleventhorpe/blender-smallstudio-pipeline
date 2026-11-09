@@ -4,5 +4,5 @@ core/ works out what's out of date (updates) and numbers instances (casting). bl
 links publishes and registers the project's Asset Browser library (libraries), reloads
 changed ones (updates), keeps track of the asset instances in a shot and overrides one
 for posing (instances), and makes a linked asset a local copy to edit (editable), with
-the Check Updates, Make Editable and Override for Posing actions.
+the Check Updates, Make Editable, Override and Back to Link actions.
 """
