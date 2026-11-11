@@ -27,6 +27,7 @@ Leave out `--out` to use a new temp folder. Open the files it writes to look aro
 | `t10_asset_previews.py` | Can a publish give the hero's asset a preview, headless? |
 | `t11_scene_controls.py` | Can one shared, linked material render different values per shot, with no scripts? |
 | `t13_layout_save_copy.py` | Can a sequence layout file be published as a Save Copy, with its scenes, cut, links and overrides intact? |
+| `t14_link_layout.py` | Can animation link and override a shot's node from the layout publish, keep layout's later changes, and publish to lighting? |
 
 T1 needs the NAS and two machines; its `local` mode runs every step on one machine.
 

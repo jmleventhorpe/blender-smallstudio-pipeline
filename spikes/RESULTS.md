@@ -221,3 +221,28 @@ read from each object's own transform up its parent chain (or after evaluating t
 scene's depsgraph). This matters for M5, which copies blocking from layout. Whether the
 unsaved-changes flag survives a copy can't be checked headless (Python edits don't set
 it); check it in the UI.
+
+## T14. Animation links layout's shot node instead of copying it: pass (2026-11-11)
+
+Run on 5.2.2 LTS and again on 5.3.0, same results. An animation file links a shot's node
+(camera, an overridden character with blocking keys) from the layout publish and overrides
+it: an override of layout's override. Then layout is republished with the camera and the
+character moved and a prop added.
+
+- Layout's camera move, character move and new prop all come through on reopening
+  animation, with nothing broken; `instance_id` survives both levels of override.
+- **Keys don't go straight onto layout's action**: it's linked, so Blender skips the key
+  ("not editable") and the pose only sticks as a static override. Giving the rig a local
+  copy of layout's action first works: blocking keeps playing and the animator's keys go
+  on top. From then on that character no longer follows layout's blocking; characters the
+  animator hasn't keyed still do.
+- Animation publishes the overridden shot node with `libraries.write`; lighting links it
+  and plays both the animator's keys and layout's blocking, three levels deep (rig, layout,
+  animation), with nothing broken.
+- A 10-shot animation file (a scene per shot, each linking and overriding its shot node, 3
+  characters each) opens in a fresh Blender in about 0.03 s over Blender's own startup,
+  with all 30 animated overrides and their actions loaded. Small generated rigs only;
+  T4's heavy-rig numbers suggest overrides stay cheap.
+
+So animation, per shot or per sequence, can link layout rather than copy it. M5 needs a
+"start animating" step that gives a character a local copy of its action.
