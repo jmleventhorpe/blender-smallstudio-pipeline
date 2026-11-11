@@ -22,7 +22,9 @@ def test_defaults_load():
     assert [task.name for task in config.tasks.values() if task.entity == "sequence"] == [
         "layout",
         "light",
+        "anim",
     ]
+    assert config.tasks["anim"].renders == "shot"
     assert config.tasks["light"].renders == "shot"
     assert config.tasks["light"].publishes is False
 

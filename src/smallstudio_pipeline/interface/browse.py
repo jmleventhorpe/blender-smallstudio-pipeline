@@ -34,7 +34,7 @@ def _keep(key: str, items: Items) -> Items:
 
 
 def category_items(operator: Any, context: bpy.types.Context | None) -> Items:
-    """The asset types, then Sequence and Shot."""
+    """The asset types, then Sequence (and Shot, if a task works per shot)."""
     project = state.current.project
     categories = project.categories() if project else []
     return _keep("category", [(name, name.title(), "") for name in categories])

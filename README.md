@@ -16,9 +16,10 @@ inside Blender. Built for an animated comic series, with nothing studio-specific
   plus a hero file that shots link, so they pick up the latest on open.
 - **Loading.** Assets come in through Blender's Asset Browser, linked by default, with
   library overrides only where something must be editable.
-- **Shots.** Layout creates shots from sequencer strips and decides casting. Animation
-  files are built from layout, lighting files from the animation publishes, and the
-  episode edit from the best media available.
+- **Shots.** Layout creates shots from sequencer strips and decides casting. Animation,
+  like layout, is one file per sequence with a scene per shot; it links each shot from the
+  layout publish and overrides it, so layout's later changes keep coming through. Lighting
+  files link the animation publishes, and the episode edit uses the best media available.
 - **No database.** Each entity is a folder with a small metadata file; per-project
   settings live in a `pipeline.toml` at the project root.
 
@@ -30,15 +31,13 @@ Blender 5.3. Kitsu support is planned behind a tracker interface.
 flowchart LR
     assets["Asset publishes<br/>characters, props, sets, libs"]
     layout["Layout<br/>sequence file, scene per shot"]
-    animation["Animation<br/>file per shot"]
+    animation["Animation<br/>sequence file, scene per shot"]
     lighting["Lighting<br/>sequence file, lighting + comp per shot"]
     edit["Editorial<br/>episode edit"]
 
     assets -- "link + override" --> layout
-    assets -- "link + override" --> animation
-    assets -- "link sets" --> lighting
-    layout -- "copy blocking, camera" --> animation
-    animation -- "link output collection" --> lighting
+    layout -- "link + override each shot" --> animation
+    animation -- "link each shot" --> lighting
     lighting -- "renders" --> edit
 ```
 

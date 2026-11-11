@@ -8,6 +8,8 @@ All notable changes to this project are listed here. The format follows
 
 ### Changed
 
+- Animation is a sequence task, like layout: one file per sequence, playblasts still
+  per shot. Dialogs only offer Shot as a category if a project gives shots a task.
 - Targets Blender 5.3 (was 5.2 LTS). A strip now follows its shot scene's range by
   itself, so the layout code no longer resets its length.
 - Make Editable and Override (was Override for Posing) work on any linked asset in any

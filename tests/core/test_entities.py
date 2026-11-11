@@ -210,19 +210,20 @@ def test_sequence_tasks(project):
         sequence.publish_path("light", 1)
     with pytest.raises(PipelineError, match="light doesn't render per sequence"):
         sequence.render_path("light", 1)
-    with pytest.raises(PipelineError, match="has no anim task"):
-        sequence.workfile_path("anim", 1)
+    assert sequence.workfile_path("anim", 2) == folder / "anim/work/010_010_anim_v002.blend"
+    assert sequence.hero_path("anim") == folder / "anim/publish/010_010_anim.blend"
+    with pytest.raises(PipelineError, match="anim doesn't render per sequence"):
+        sequence.render_path("anim", 1)
 
 
 def test_shot_tasks(project):
     shot = project.create_sequence("010").create_shot()
     folder = project.root / "shots/010_010_0010"
-    assert shot.workfile_path("anim", 7).name == "010_010_0010_anim_v007.blend"
-    assert shot.hero_path("anim") == folder / "anim/publish/010_010_0010_anim.blend"
-    assert shot.render_path("anim", 7) == folder / "anim/render/v007"
+    assert shot.render_path("anim", 7) == folder / "anim/render/v007"  # Playblasts.
     assert shot.render_path("light", 2) == folder / "light/render/v002"
-    with pytest.raises(PipelineError, match="has no light task"):
-        shot.workfile_path("light", 1)  # Lighting is worked on in the sequence file.
+    for task in ("anim", "light"):  # Worked on in the sequence's file.
+        with pytest.raises(PipelineError, match=f"has no {task} task"):
+            shot.workfile_path(task, 1)
 
 
 @pytest.mark.parametrize("relative", [True, False])
@@ -232,4 +233,4 @@ def test_renders_resolve_under_render_root(make_project, tmp_path, relative):
     shot = project.create_sequence("010").create_shot()
     expected_root = project.root / "renders" if relative else tmp_path / "farm"
     assert shot.render_path("light", 1) == expected_root / "shots/010_010_0010/light/render/v001"
-    assert shot.workfile_path("anim", 1).is_relative_to(project.root)
+    assert shot.project.sequence("010_010").workfile_path("anim", 1).is_relative_to(project.root)

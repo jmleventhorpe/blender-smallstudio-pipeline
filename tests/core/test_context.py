@@ -35,12 +35,12 @@ def test_asset_files(project, entities):
     assert hero_file.label == "hero · rig · published"
 
 
-def test_sequence_and_shot_files(project, entities):
-    _, sequence, shot = entities
+def test_sequence_files(project, entities):
+    _, sequence, _ = entities
     layout = file_context(project, sequence.workfile_path("layout", 3))
     assert layout == FileContext("sequence", "010_010", "layout", 3, "work")
-    anim = file_context(project, shot.hero_path("anim"))
-    assert anim == FileContext("shot", "010_010_0010", "anim", None, "hero")
+    anim = file_context(project, sequence.hero_path("anim"))
+    assert anim == FileContext("sequence", "010_010", "anim", None, "hero")
 
 
 def test_asset_names_that_look_like_versions(project):

@@ -19,8 +19,8 @@ def test_new_workfiles_go_to_the_tasks_next_free_version(project):
 
 
 def test_workfiles_only_for_the_entitys_tasks(project):
-    with pytest.raises(PipelineError, match="has no anim task"):
-        next_workfile_path(project.create_sequence("010"), "anim")
+    with pytest.raises(PipelineError, match="has no model task"):
+        next_workfile_path(project.create_sequence("010"), "model")
 
 
 def test_version_up_goes_to_the_next_free_version(project):
@@ -43,11 +43,16 @@ def test_entities_by_category(project):
     project.create_asset("character", "hero")
     project.create_asset("prop", "crate")
     project.create_sequence("010").create_shot()
-    assert project.categories()[-2:] == ["sequence", "shot"]
+    assert project.categories()[-1] == "sequence"  # No task works per shot by default.
     assert [asset.name for asset in project.entities_in("prop")] == ["crate"]
     assert [str(shot.code) for shot in project.entities_in("shot")] == ["010_010_0010"]
     assert project.entity("asset", "hero").label == "hero"
     assert project.entity("shot", "010_010_0010").label == "shot 010_010_0010"
+
+
+def test_shots_are_browsed_when_a_task_works_per_shot(make_project):
+    project = make_project('[tasks.paint]\nentity = "shot"\n')
+    assert project.categories()[-2:] == ["sequence", "shot"]
 
 
 def test_tasks_with_workfiles(project):
@@ -57,7 +62,7 @@ def test_tasks_with_workfiles(project):
     touch(hero.workfile_path("rig", 1))
     touch(sequence.workfile_path("light", 1))
     assert hero.tasks_with_workfiles() == ["rig"]
-    assert sequence.tasks == ["layout", "light"]
+    assert sequence.tasks == ["layout", "light", "anim"]
     assert sequence.tasks_with_workfiles() == ["light"]
 
 

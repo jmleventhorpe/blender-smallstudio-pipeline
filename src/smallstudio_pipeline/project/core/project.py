@@ -110,8 +110,10 @@ class Project:
     # Any entity
 
     def categories(self) -> list[str]:
-        """What the dialogs browse by: each asset type, then "sequence" and "shot"."""
-        return [*self.config.asset_types, "sequence", "shot"]
+        """What the dialogs browse by: each asset type, then "sequence", then "shot" if any
+        task works per shot (none does by default)."""
+        per_shot = any(task.entity == "shot" for task in self.config.tasks.values())
+        return [*self.config.asset_types, "sequence", *(["shot"] if per_shot else [])]
 
     def entities_in(self, category: str) -> list[Asset] | list[Sequence] | list[Shot]:
         """Every entity in a category: an asset type, "sequence" or "shot"."""

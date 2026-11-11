@@ -42,9 +42,9 @@ publishes = false
 renders = "shot" # Lighting and comp renders belong to each shot.
 
 [tasks.anim]
-entity = "shot"
+entity = "sequence" # One file per sequence, like layout, with a scene per shot.
 publishes = true
-renders = "shot" # Playblasts.
+renders = "shot" # Playblasts belong to each shot.
 
 # Asset types: their tasks, which are optional, and which task's publish shots link
 # (the first one in shot_link that the asset has). With mark_children, a publish marks
