@@ -22,7 +22,7 @@ inside Blender. Built for an animated comic series, with nothing studio-specific
 - **No database.** Each entity is a folder with a small metadata file; per-project
   settings live in a `pipeline.toml` at the project root.
 
-Blender 5.2 LTS only. Kitsu support is planned behind a tracker interface.
+Blender 5.3. Kitsu support is planned behind a tracker interface.
 
 ## How it fits together
 
@@ -143,7 +143,7 @@ publish does step by step, and where to add tasks, checks and menu actions.
 
 ## Development
 
-Needs [uv](https://docs.astral.sh/uv/) and Blender 5.2 on the `PATH` (or in `$BLENDER`).
+Needs [uv](https://docs.astral.sh/uv/) and Blender 5.3 on the `PATH` (or in `$BLENDER`).
 
 ```bash
 uv sync

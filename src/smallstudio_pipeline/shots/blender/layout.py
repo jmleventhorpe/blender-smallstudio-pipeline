@@ -194,8 +194,8 @@ def sync_ranges(master: bpy.types.Scene) -> None:
     """Make each shot scene's range the frames its strip shows, keeping the cut as it is.
 
     Trimming a strip only hides frames of its scene, so the trim moves into the scene's
-    range and the strip shows all of it again. A strip keeps the length it was made with
-    when its scene's range changes, so its length is set again too.
+    range and the strip shows all of it again. The strip follows its scene's new range
+    by itself (Blender 5.3).
     """
     for strip in shot_strips(master):
         scene = strip.scene
@@ -204,7 +204,6 @@ def sync_ranges(master: bpy.types.Scene) -> None:
         scene.frame_start, scene.frame_end = first, first + length - 1
         strip.left_handle_offset = strip.right_handle_offset = 0
         strip.content_start = cut_in
-        strip.duration = length
 
 
 def set_playblast_output(master: bpy.types.Scene, sequence: Sequence, version: int) -> None:

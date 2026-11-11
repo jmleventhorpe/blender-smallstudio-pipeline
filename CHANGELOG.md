@@ -8,6 +8,8 @@ All notable changes to this project are listed here. The format follows
 
 ### Changed
 
+- Targets Blender 5.3 (was 5.2 LTS). A strip now follows its shot scene's range by
+  itself, so the layout code no longer resets its length.
 - Make Editable and Override (was Override for Posing) work on any linked asset in any
   file: a set can be dressed for one shot, or made editable in a shot and published from
   there. Back to Link also throws a made-editable copy away.

@@ -5,7 +5,7 @@ tool is built. Each one builds its own tiny assets in an output folder, prints a
 FAIL line per check and exits non-zero if anything failed. Results are in
 [RESULTS.md](RESULTS.md).
 
-Run from the repo root with Blender 5.2:
+Run from the repo root with Blender 5.3 (most were first run on 5.2; see RESULTS.md):
 
 ```bash
 blender -b --factory-startup --python-exit-code 1 --python spikes/t2_link_overrides.py -- --out /tmp/t2

@@ -3,7 +3,7 @@ name = "blender-smallstudio-pipeline"
 version = "0.1.0"
 description = "Publishing, loading and scene construction for small animation teams, entirely inside Blender."
 readme = "README.md"
-# Blender 5.2 bundles Python 3.13; the core is tested on the same version.
+# Blender 5.3 bundles Python 3.13; the core is tested on the same version.
 requires-python = ">=3.13,<3.14"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
@@ -12,6 +12,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+    # No 5.3 stubs are published yet; 5.2's are close enough for type checks.
     "fake-bpy-module-5.2>=20260730",
     "publish-validator",
     "pyright>=1.1.414",

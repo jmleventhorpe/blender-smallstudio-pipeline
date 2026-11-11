@@ -2,6 +2,9 @@
 
 Blender 5.2.2 LTS (d13f752e3b9c), bundled Python 3.13.13, Linux, local disk.
 
+Rerun on Blender 5.3.0 (02f0899d78e3) on 2026-11-11: T2, T3, T5 to T11, T13 and T14 all
+pass unchanged. T1 (NAS) and T4 (benchmark) weren't rerun.
+
 ## T1. Overwriting a linked hero file: local pass, NAS run still to do (2026-11-02)
 
 `local` mode, one Linux machine, local disk: a second Blender holds the shot open while

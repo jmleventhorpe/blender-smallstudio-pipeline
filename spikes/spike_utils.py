@@ -1,4 +1,4 @@
-"""Shared helpers for the M0 spike scripts. Runs inside Blender 5.2, not plain Python."""
+"""Shared helpers for the M0 spike scripts. Runs inside Blender 5.3, not plain Python."""
 
 from __future__ import annotations
 
