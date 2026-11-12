@@ -4,13 +4,11 @@ Each asset placed in a shot gets an instance ID: the asset's name and a two-digi
 (crate_01, crate_02), kept on whatever stands in the scene. IDs are given once and kept,
 so later stages match instances by ID rather than by Blender's names, which gain
 suffixes per scene (spike T6). next_instance_id() gives a new instance the number after
-the asset's highest in the shot; duplicate_ids() finds IDs used twice, as after Shift+D.
-A shot's casting is the list of its instances (metadata.CastEntry).
+the asset's highest in the shot. A shot's casting is the list of its instances (metadata.CastEntry).
 """
 
 from __future__ import annotations
 
-from collections import Counter
 from collections.abc import Iterable
 
 INSTANCE_DIGITS = 2
@@ -33,8 +31,3 @@ def next_instance_id(asset: str, taken: Iterable[str]) -> str:
     """The ID for a new instance of asset: the number after its highest one in the shot."""
     numbers = [instance_number(asset, text) for text in taken]
     return instance_id(asset, max((n for n in numbers if n is not None), default=0) + 1)
-
-
-def duplicate_ids(ids: Iterable[str]) -> list[str]:
-    """IDs that appear more than once, sorted."""
-    return sorted(text for text, count in Counter(ids).items() if count > 1)

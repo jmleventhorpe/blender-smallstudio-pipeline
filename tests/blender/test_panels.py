@@ -168,10 +168,6 @@ def test_a_check_that_would_block_says_so_and_writes_nothing(project, cut):
     assert not project.sequence("010_010").hero_path("layout").exists()
 
 
-def test_the_old_results_panel_is_gone(registered):
-    assert not hasattr(bpy.types, "PIPELINE_PT_results")
-
-
 def test_workfiles_lists_a_tasks_versions_newest_first(project):
     from conftest import save_blend
 

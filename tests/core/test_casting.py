@@ -1,5 +1,4 @@
 from smallstudio_pipeline.loading.core.casting import (
-    duplicate_ids,
     instance_id,
     instance_number,
     next_instance_id,
@@ -22,8 +21,3 @@ def test_names_with_underscores_number_on_their_own():
     taken = ["street_lamp_02", "street_01"]
     assert next_instance_id("street_lamp", taken) == "street_lamp_03"
     assert next_instance_id("street", taken) == "street_02"
-
-
-def test_duplicates_are_found():
-    assert duplicate_ids(["crate_01", "crate_02", "crate_01", "hero_01"]) == ["crate_01"]
-    assert duplicate_ids(["crate_01"]) == []
