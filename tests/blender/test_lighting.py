@@ -2,25 +2,11 @@
 
 import bpy
 import pytest
-from conftest import make_cut, place, publish_model
+from conftest import make_cut, new_file, place, publish_cut, publish_model
 
 from smallstudio_pipeline.lighting.blender import build as lighting
 from smallstudio_pipeline.project.blender import nodes
 from smallstudio_pipeline.shots.blender import layout
-
-
-def publish_cut():
-    """Publish the open cut file, from its sequence node."""
-    master = layout.master_scene()
-    nodes.make_active(master, nodes.sequence_node(master).root)  # pyright: ignore[reportOptionalMemberAccess]
-    assert bpy.ops.pipeline.publish() == {"FINISHED"}
-
-
-def new_file(task, kind):
-    """An empty file saved as 010_010's workfile for a task, built with New Node."""
-    bpy.ops.wm.read_homefile(use_empty=True)
-    bpy.ops.pipeline.save_to(category="sequence", entity="010_010", task=task)
-    return bpy.ops.pipeline.new_node(kind=kind, sequence="010_010")
 
 
 @pytest.fixture

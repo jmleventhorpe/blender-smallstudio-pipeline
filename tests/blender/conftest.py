@@ -11,6 +11,7 @@ from smallstudio_pipeline.project.blender.identity import create_root_collection
 from smallstudio_pipeline.project.core.machine import ENV
 from smallstudio_pipeline.project.core.project import Project
 from smallstudio_pipeline.session import state
+from smallstudio_pipeline.shots.blender import layout
 
 
 @pytest.fixture(autouse=True)
@@ -108,10 +109,10 @@ def publish_prop(project, name):
     return asset
 
 
-def place(project, scene, asset_name, location=(0.0, 0.0, 0.0)):
+def place(project, scene, asset_name, location=(0.0, 0.0, 0.0), task="model"):
     """Place a linked asset in a scene with an empty, as dragging it from the Asset Browser does."""
     asset = project.asset(asset_name)
-    linked = link_collection(asset.hero_path("model"), asset_name)
+    linked = link_collection(asset.hero_path(task), asset_name)
     empty = bpy.data.objects.new(asset_name, None)
     empty.instance_type = "COLLECTION"
     empty.instance_collection = linked
@@ -151,3 +152,32 @@ def publish_model(project, colour=(1, 0, 0, 1)):
     state.refresh()
     bpy.ops.pipeline.publish()
     return hero
+
+
+def publish_cut():
+    """Publish the open sequence file (layout or animation), from its sequence node."""
+    master = layout.master_scene()
+    nodes.make_active(master, nodes.sequence_node(master).root)  # pyright: ignore[reportOptionalMemberAccess]
+    assert bpy.ops.pipeline.publish() == {"FINISHED"}
+
+
+def new_file(task, kind, sequence="010_010"):
+    """An empty file saved as a sequence's workfile for a task, built with New Node."""
+    bpy.ops.wm.read_homefile(use_empty=True)
+    bpy.ops.pipeline.save_to(category="sequence", entity=sequence, task=task)
+    return bpy.ops.pipeline.new_node(kind=kind, sequence=sequence)
+
+
+def x_at(obj, scene, frame):
+    """An object's X location at a frame, as it plays in its scene."""
+    scene.frame_set(frame)
+    depsgraph = scene.view_layers[0].depsgraph  # The scene's own, not the one on show.
+    depsgraph.update()
+    return round(obj.evaluated_get(depsgraph).matrix_basis.translation.x, 3)
+
+
+def key_x(obj, frames):
+    """Key an object's X location: {frame: x}."""
+    for frame, x in frames.items():
+        obj.location.x = x
+        obj.keyframe_insert("location", index=0, frame=frame)

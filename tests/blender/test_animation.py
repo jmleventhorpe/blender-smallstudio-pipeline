@@ -2,7 +2,7 @@
 
 import bpy
 import pytest
-from conftest import library_load, make_cut, place, publish_model
+from conftest import key_x, library_load, make_cut, place, publish_model, x_at
 
 from smallstudio_pipeline.loading.blender import instances
 from smallstudio_pipeline.project.blender import nodes
@@ -115,20 +115,6 @@ def test_a_character_layout_left_linked_can_be_overridden_in_animation(project, 
     empty = instances.back_to_link(hero.holder)
     (hero,) = instances.instances(scene)
     assert hero.holder == empty and not hero.overridden and hero.instance_id == "hero_01"
-
-
-def x_at(obj, scene, frame):
-    """An object's X location at a frame, as it plays in its scene."""
-    scene.frame_set(frame)
-    depsgraph = scene.view_layers[0].depsgraph  # The scene's own, not the one on show.
-    depsgraph.update()
-    return round(obj.evaluated_get(depsgraph).matrix_basis.translation.x, 3)
-
-
-def key_x(obj, frames):
-    for frame, x in frames.items():
-        obj.location.x = x
-        obj.keyframe_insert("location", index=0, frame=frame)
 
 
 @pytest.fixture
