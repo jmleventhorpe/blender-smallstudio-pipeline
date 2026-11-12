@@ -39,8 +39,8 @@ from ..core.publishing import (
     write_records,
 )
 from . import animation as animation_publish
-from . import in_context, results, review
 from . import layout as layout_publish
+from . import results, review
 from .assets import dependencies, placements, write_publish
 from .materials import sync_materials
 from .validation import subject_for, validator_for
@@ -101,7 +101,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
                 "Save this file first (Save To), so the publish can say where it came from."
             )
         workfiles.save_changes()
-        with in_context.in_asset_space(root, context.view_layer):  # Placed by Make Editable.
+        with editable.in_asset_space(root, context.view_layer):  # Placed by Make Editable.
             last = self.check_asset(context, root, target)
             if last is None:
                 return None

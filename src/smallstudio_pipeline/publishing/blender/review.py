@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 import bpy
 
 from ...interface.panels import DASH
-from ...loading.blender import instances
+from ...loading.blender import editable, instances
 from ...loading.blender.editable import placement_of
 from ...project.blender.nodes import Node, current_node, node_sequence
 from ...project.core.entities import Sequence
@@ -28,8 +28,8 @@ from ...shots.blender import layout
 from ...shots.core.layout import changes_since
 from ...workfiles.core.context import FileContext
 from ..core.publishing import builds_on_hero, hero_record, plan_publish, publish_target
-from . import in_context, results
 from . import layout as layout_publish
+from . import results
 from .validation import subject_for, validator_for
 
 
@@ -92,7 +92,7 @@ def review(context: bpy.types.Context, project: Project, file: FileContext) -> r
         current, subjects = _cut(project, sequence, node_shot(chosen), chosen.task)
     validator = validator_for(project)
     if chosen.kind == "asset":
-        with in_context.in_asset_space(chosen.root, context.view_layer):  # As it would publish.
+        with editable.in_asset_space(chosen.root, context.view_layer):  # As it would publish.
             checked = [results.Checked(label, validator.run(s), s) for label, s in subjects]
     else:
         checked = [results.Checked(label, validator.run(s), s) for label, s in subjects]

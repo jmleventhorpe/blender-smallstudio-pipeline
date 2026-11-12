@@ -2,14 +2,16 @@
 
 make_editable() appends the asset's latest versioned publish where the linked one was,
 bakes the placing empty's transform into the copy and keeps it on the copy's root
-(PLACEMENT), so publishing can move the copy back into the asset's own space
-(publishing/blender/in_context.py). link_again() swaps the copy for a link to the asset's
+(PLACEMENT), so in_asset_space() can move the copy back into the asset's own space while
+it's checked and published. link_again() swaps the copy for a link to the asset's
 hero where it stood: after publishing it (Link Back), or to throw the edits away (Back
 to Link). Tested as spike T12.
 """
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 import bpy
@@ -71,6 +73,30 @@ def placement_of(root: bpy.types.Collection) -> Matrix | None:
         return None
     values = list(values)
     return Matrix([values[row * 4 : row * 4 + 4] for row in range(4)])
+
+
+@contextmanager
+def in_asset_space(root: bpy.types.Collection, view_layer: bpy.types.ViewLayer) -> Iterator[None]:
+    """Move a copy's objects into the asset's own space for as long as this lasts, as
+    publishing it does. Objects added while editing in place are moved too."""
+    placement = placement_of(root)
+    if placement is None:  # Started here: the file's space is the asset's own.
+        yield
+        return
+    to_asset = placement.inverted()
+    saved = [(obj, obj.parent, obj.matrix_basis.copy()) for obj in top_objects(root)]
+    try:
+        for obj, _, _ in saved:
+            world = world_matrix(obj, view_layer)
+            obj.parent = None
+            obj.matrix_basis = to_asset @ world
+        view_layer.update()
+        yield
+    finally:
+        for obj, parent, basis in saved:
+            obj.parent = parent
+            obj.matrix_basis = basis
+        view_layer.update()
 
 
 def world_matrix(obj: bpy.types.Object, view_layer: bpy.types.ViewLayer) -> Matrix:
