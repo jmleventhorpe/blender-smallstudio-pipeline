@@ -30,7 +30,9 @@ from ...shots.blender import layout
 from ...shots.core.layout import apply_cut, check_cut
 from ...workfiles.blender import workfiles
 from ..core.publishing import (
+    Dependency,
     Placement,
+    PublishPlan,
     PublishTarget,
     builds_on_hero,
     new_record,
@@ -131,17 +133,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         plan = plan_publish(sequence, layout.LAYOUT)
         layout_publish.write_layout(plan)
         changes = apply_cut(sequence, cuts)
-        record = new_record(
-            plan,
-            source=Path(bpy.data.filepath),
-            blender=bpy.app.version_string,
-            object_names=[],
-            dependencies=layout_publish.dependencies(project),
-            checks=last.statuses(),
-        )
-        write_records(plan, record)
-        last.published = plan.label
-        results.redraw()
+        record_publish(plan, last, Path(bpy.data.filepath), layout_publish.dependencies(project))
         return f"{plan.label} ({changes.summary})"
 
     def publish_animation(self, context: Context, sequence: Sequence) -> str | None:
@@ -156,17 +148,7 @@ class PIPELINE_OT_publish(bpy.types.Operator):
             return None
         plan = plan_publish(sequence, ANIM)
         animation_publish.write_animation(plan, animation_publish.shot_roots(master))
-        record = new_record(
-            plan,
-            source=Path(bpy.data.filepath),
-            blender=bpy.app.version_string,
-            object_names=[],
-            dependencies=layout_publish.dependencies(project),
-            checks=last.statuses(),
-        )
-        write_records(plan, record)
-        last.published = plan.label
-        results.redraw()
+        record_publish(plan, last, Path(bpy.data.filepath), layout_publish.dependencies(project))
         shots = len(subjects)
         return f"{plan.label} ({shots} shot{'s' if shots != 1 else ''})"
 
@@ -204,19 +186,32 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         """Write the publish and its records. Returns e.g. "hero_model v004"."""
         plan = plan_publish(target.asset, target.task)
         write_publish(root, plan)
-        record = new_record(
-            plan,
-            source=source,
-            blender=bpy.app.version_string,
-            object_names=[obj.name for obj in root.all_objects],
-            dependencies=dependencies(root, plan),
-            instances=placed,
-            checks=last.statuses(),
-        )
-        write_records(plan, record)
-        last.published = plan.label
-        results.redraw()
-        return last.published
+        names = [obj.name for obj in root.all_objects]
+        record_publish(plan, last, source, dependencies(root, plan), names, placed)
+        return plan.label
+
+
+def record_publish(
+    plan: PublishPlan,
+    last: results.LastPublish,
+    source: Path,
+    depends_on: list[Dependency],
+    object_names: list[str] | None = None,
+    placed: list[Placement] | None = None,
+) -> None:
+    """Write a publish's records, and show it as published in the sidebar."""
+    record = new_record(
+        plan,
+        source=source,
+        blender=bpy.app.version_string,
+        object_names=object_names or [],
+        dependencies=depends_on,
+        instances=placed or [],
+        checks=last.statuses(),
+    )
+    write_records(plan, record)
+    last.published = plan.label
+    results.redraw()
 
 
 def link_back_chosen(context: Context) -> bool:
