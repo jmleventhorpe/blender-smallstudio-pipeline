@@ -6,7 +6,6 @@ from conftest import library_load, make_cut, place, publish_model
 
 from smallstudio_pipeline.loading.blender import instances
 from smallstudio_pipeline.project.blender import nodes
-from smallstudio_pipeline.project.blender.identity import TASK
 from smallstudio_pipeline.project.core.metadata import CastEntry
 from smallstudio_pipeline.publishing.blender import results, review
 from smallstudio_pipeline.publishing.core.publishing import read_record
@@ -88,10 +87,7 @@ def test_a_layout_cut_and_its_shots_say_theyre_layouts(project):
     make_cut()
     bpy.ops.pipeline.add_shot()
     assert layout.cut_task() == "layout"
-    shot = bpy.data.collections["010_010_0010"]
-    assert shot[TASK] == "layout"
-    del shot[TASK]  # From before cut nodes carried a task: still layout's.
-    found = nodes.node_of(shot)
+    found = nodes.node_of(bpy.data.collections["010_010_0010"])
     assert found is not None and found.task == "layout"
 
 

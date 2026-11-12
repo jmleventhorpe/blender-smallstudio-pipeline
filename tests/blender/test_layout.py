@@ -9,7 +9,6 @@ from conftest import make_cut
 
 from smallstudio_pipeline.interface import browse
 from smallstudio_pipeline.project.blender import nodes
-from smallstudio_pipeline.project.blender.identity import SEQUENCE, SHOT
 from smallstudio_pipeline.shots.blender import layout
 
 
@@ -153,25 +152,6 @@ def test_each_shot_has_a_node_holding_its_camera_as_the_active_collection(sequen
     assert node is not None and (node.root.name, node.name) == ("010_010_0010", "010_010_0010")
     assert scene.camera.name in node.root.objects and not scene.keys()
     assert scene.view_layers[0].active_layer_collection.collection == node.root
-
-
-def test_files_from_before_nodes_get_their_scenes_identity_moved_onto_nodes(sequence):
-    add_shot_at(1)
-    master, scene = layout.master_scene(), bpy.data.scenes["010_010_0010"]
-    for each in (master, scene):  # As files saved before nodes carried everything.
-        node = nodes.sequence_node(each) or nodes.shot_node(each)
-        each.collection.children.unlink(node.root)
-        for obj in list(node.root.objects):
-            each.collection.objects.link(obj)
-        bpy.data.collections.remove(node.root)
-    master[SEQUENCE], scene[SHOT] = "010_010", "010_010_0010"
-
-    nodes.adopt_scene_identity()
-
-    shot = nodes.shot_node(scene)
-    assert shot is not None and scene.camera.name in shot.root.objects
-    assert not scene.collection.objects and not scene.keys() and not master.keys()
-    assert nodes.sequence_node(master) is not None
 
 
 def markers(scene):

@@ -2,8 +2,8 @@
 
 Everything that publishes is a node, a collection carrying what it is (see identity.py):
 an asset node its asset, type and task; a sequence node its sequence; a shot node its
-shot. Sequence and shot nodes also carry their task, LAYOUT or ANIM; one without is
-layout's, from before they carried one. Scenes carry nothing: a shot's scene is the one
+shot. Sequence and shot nodes also carry their task, LAYOUT or ANIM. Scenes carry
+nothing: a shot's scene is the one
 holding its node, and the cut is the scene holding the sequence node. Only a file's own
 collections are nodes; a linked asset's root, or an override of one, is an instance
 (loading/blender/instances.py).
@@ -69,8 +69,7 @@ def node_of(collection: bpy.types.Collection | None) -> Node | None:
         return Node(collection, "asset", *identity, task=task if isinstance(task, str) else "")
     for key, kind in ((SEQUENCE, "sequence"), (SHOT, "shot")):
         if key in collection:
-            task = collection.get(TASK) or LAYOUT
-            return Node(collection, kind, str(collection[key]), task=str(task))
+            return Node(collection, kind, str(collection[key]), task=str(collection.get(TASK, "")))
     return None
 
 
@@ -228,31 +227,3 @@ def unmake_node(collection: bpy.types.Collection) -> None:
     for key in (ASSET, ASSET_TYPE, TASK, SEQUENCE, SHOT, INSTANCE_ID):
         if key in collection:
             del collection[key]
-
-
-def adopt_scene_identity() -> None:
-    """Move identity off scenes onto nodes, for files from before nodes carried it.
-
-    A scene with a sequence or shot code gets that node if it hasn't one (a shot's takes the
-    scene's loose objects), then loses the code.
-    """
-    for scene in bpy.data.scenes:
-        for key, finder in ((SEQUENCE, sequence_node), (SHOT, shot_node)):
-            if key not in scene:
-                continue
-            code = str(scene[key])
-            if finder(scene) is None:
-                root = create_node(scene, code, key, code)
-                if key == SHOT:
-                    for obj in list(scene.collection.objects):
-                        root.objects.link(obj)
-                        scene.collection.objects.unlink(obj)
-            del scene[key]
-
-
-def give_tasks(asset: str, task: str) -> None:
-    """Give an asset's nodes with no task this one (files from before nodes had tasks)."""
-    for scene in bpy.data.scenes:
-        for node in nodes_in(scene):
-            if node.kind == "asset" and node.name == asset and not node.task:
-                node.root[TASK] = task

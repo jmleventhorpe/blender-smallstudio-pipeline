@@ -2,7 +2,7 @@
 
 After a file loads: refresh the state, mark the file as in use (or warn whose it is),
 register the project's asset library, note the versions of the publishes it links, and
-bring older files up to date with nodes. Before a save, new instances get their IDs and
+show its cut, if it has one. Before a save, new instances get their IDs and
 a cut's playblast output follows the version. After a save, including Save As and
 Version Up, the in-use marker moves to the new file. Warnings pop up once the UI is
 ready; the Pipeline tab redraws when the selection, the
@@ -49,7 +49,7 @@ def on_load_post(*_args: object) -> None:
     state.refresh()
     claim()
     after_open()
-    prepare_nodes()
+    show_cut()
     if state.current.warnings and state.current.context is not None:
         show_message(*state.current.warnings)  # Publishes, files in use.
 
@@ -64,17 +64,10 @@ def after_open() -> None:
     updates.remember_versions(project)
 
 
-def prepare_nodes() -> None:
-    """Bring an opened file up to date with nodes, and show its cut if it has one.
-
-    Files from before nodes carried everything get their scenes' identity moved onto
-    nodes, and asset nodes without a task get the workfile's. Then a file holding a
-    sequence's node shows its cut in the sequencer, with a marker per shot.
-    """
-    project, file = state.current.project, state.current.context
-    nodes.adopt_scene_identity()
-    if file is not None and file.entity_kind == "asset":
-        nodes.give_tasks(file.entity, file.task)
+def show_cut() -> None:
+    """In a file holding a sequence's node, show its cut in the sequencer, with a marker
+    per shot."""
+    project = state.current.project
     if project is None or not layout.has_cut():
         return
     with contextlib.suppress(PipelineError):  # A sequence that isn't in this project.

@@ -89,9 +89,7 @@ ready.
 2. It marks the file as in use, or warns whose it is (workfiles).
 3. It adds the project's `assets` folder to Blender's asset libraries and notes the
    version of every publish the file links (loading).
-4. Files from before nodes carried everything get their scenes' identity moved onto
-   nodes, and their asset nodes the workfile's task (project).
-5. In a file with a cut, each workspace's Video Sequencer is pointed at it (shots).
+4. In a file with a cut, each workspace's Video Sequencer is pointed at it (shots).
 
 Before a save, new instances get their IDs, and a cut's playblast output follows the
 version being saved. After a save, including Version Up, the in-use marker
