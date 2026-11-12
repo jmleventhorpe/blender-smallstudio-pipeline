@@ -119,3 +119,80 @@ def test_a_character_layout_left_linked_can_be_overridden_in_animation(project, 
     empty = instances.back_to_link(hero.holder)
     (hero,) = instances.instances(scene)
     assert hero.holder == empty and not hero.overridden and hero.instance_id == "hero_01"
+
+
+def x_at(obj, scene, frame):
+    """An object's X location at a frame, as it plays in its scene."""
+    scene.frame_set(frame)
+    depsgraph = scene.view_layers[0].depsgraph  # The scene's own, not the one on show.
+    depsgraph.update()
+    return round(obj.evaluated_get(depsgraph).matrix_basis.translation.x, 3)
+
+
+def key_x(obj, frames):
+    for frame, x in frames.items():
+        obj.location.x = x
+        obj.keyframe_insert("location", index=0, frame=frame)
+
+
+@pytest.fixture
+def blocked(project):
+    """010_010's layout, published: hero overridden in 0010 with its body blocked from x=0
+    to x=4, and the camera keyed from x=0 to x=1."""
+    publish_model(project)
+    make_cut()
+    bpy.ops.pipeline.add_shot()
+    scene = bpy.data.scenes["010_010_0010"]
+    empty = place(project, scene, "hero")
+    hero = instances.override(empty, scene, scene.view_layers[0])
+    key_x(next(iter(hero.all_objects)), {101: 0, 148: 4})
+    assert scene.camera is not None
+    key_x(scene.camera, {101: 0, 148: 1})
+    master = layout.master_scene()
+    nodes.make_active(master, nodes.sequence_node(master).root)  # pyright: ignore[reportOptionalMemberAccess]
+    bpy.context.window.scene = master
+    assert bpy.ops.pipeline.publish() == {"FINISHED"}
+    return bpy.data.filepath
+
+
+def body_in(scene):
+    (hero,) = instances.instances(scene)
+    assert isinstance(hero.holder, bpy.types.Collection)
+    return next(iter(hero.holder.all_objects))
+
+
+def test_animate_keys_on_top_of_layouts_blocking(project, blocked):
+    animation_file()
+    scene = bpy.data.scenes["010_010_0010"]
+    body = body_in(scene)
+    assert x_at(body, scene, 148) == 4.0  # Layout's blocking plays.
+    view_layer = scene.view_layers[0]
+    for obj in view_layer.objects:
+        obj.select_set(obj == body, view_layer=view_layer)
+    # The stubs miss temp_override's context-manager methods.
+    with bpy.context.temp_override(
+        scene=scene, view_layer=view_layer, active_object=body, selected_objects=[body]
+    ):  # pyright: ignore[reportGeneralTypeIssues]
+        assert bpy.ops.pipeline.animate() == {"FINISHED"}
+        assert not bpy.ops.pipeline.animate.poll()  # Done: it's local now.
+    key_x(body, {120: 10})
+    assert x_at(body, scene, 101) == 0.0 and x_at(body, scene, 120) == 10.0
+    assert x_at(body, scene, 148) == 4.0
+    bpy.ops.wm.save_mainfile()
+    animation = bpy.data.filepath
+
+    bpy.ops.wm.open_mainfile(filepath=blocked)  # Layout re-blocks both.
+    scene = bpy.data.scenes["010_010_0010"]
+    key_x(next(o for o in instances.instances(scene)[0].holder.all_objects), {148: 8})  # pyright: ignore[reportAttributeAccessIssue]
+    assert scene.camera is not None
+    key_x(scene.camera, {148: 3})
+    master = layout.master_scene()
+    nodes.make_active(master, nodes.sequence_node(master).root)  # pyright: ignore[reportOptionalMemberAccess]
+    bpy.context.window.scene = master
+    assert bpy.ops.pipeline.publish() == {"FINISHED"}
+
+    bpy.ops.wm.open_mainfile(filepath=animation)
+    scene = bpy.data.scenes["010_010_0010"]
+    assert x_at(body_in(scene), scene, 120) == 10.0  # The animator's keys survive...
+    assert x_at(body_in(scene), scene, 148) == 4.0  # ...and it no longer follows layout.
+    assert scene.camera is not None and x_at(scene.camera, scene, 148) == 3.0  # Not animated.

@@ -40,7 +40,7 @@ object it works on, so it runs headless in the tests.
 | **loading** | `updates` (what's out of date), `casting` (instance IDs) | `libraries` (linking, the Asset Browser library), `updates` (reloading), `instances` (what stands in a scene, Override), `editable` (Make Editable, linking a copy again), operators: Check Updates, Make Editable, Override, Back to Link |
 | **publishing** | `publishing` (targets, plans, records with placed instances), `catalogs` | `assets` (writing asset publishes, thumbnails, placements), `layout` (Save Copy of a layout file), `in_context` (asset space, Link Back), `materials` (rig takes model's materials), `validation`, `review` (Check), `results`, `panels` (Publish), operators: Publish, Check |
 | **shots** | `layout` (the cut into each shot's metadata) | `layout` (the cut, strips, markers, playblast path), `panels` (Shot), operators: Add Shot, Omit Shot, Back to Cut |
-| **animation** | (nothing yet) | `build` (the animation cut, a scene per shot linking and overriding layout's shot node; New Node › Animation calls it) |
+| **animation** | (nothing yet) | `build` (the animation cut, a scene per shot linking and overriding layout's shot node; New Node › Animation calls it), `animate` (a local copy of layout's keys), operators: Animate |
 
 Outside the jobs: `common/` (`errors`, `files`, `reading`), `session/` (`state`,
 `handlers`), `interface/` (`menu`, `panels`, `nodes` for New Node and the Nodes panel, `browse`, `common`), `publishing/checks/` and
@@ -75,7 +75,7 @@ changed, and only then redraws the Pipeline tab.
 ## Registering
 
 Blender calls the package's `register()`. It asks each job to register in turn
-(project, workfiles, loading, publishing, shots, interface, session) and the reverse to
+(project, workfiles, loading, publishing, shots, animation, interface, session) and the reverse to
 unregister. Each job's `blender/__init__.py` registers its own classes, importing them
 only when called, so a job's modules can import each other's without loops. `session`
 goes last: it adds the load and save handlers and looks at the open file once Blender is

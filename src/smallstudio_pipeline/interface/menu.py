@@ -3,7 +3,8 @@
 Both read state.current and nothing else: the top bar redraws constantly, so nothing
 here may touch the disk. Below the separator, only what applies: with a linked asset
 selected, Make Editable and Override; with an overridden or made-editable one, Back to
-Link; in a file with a layout cut, Add Shot and Omit Shot.
+Link; in an animation file, Animate; in a file with a layout cut, Add Shot and Omit
+Shot.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ import bpy
 from ..loading.blender import instances
 from ..loading.blender.operators import can_go_back
 from ..project.blender import nodes
+from ..project.blender.nodes import ANIM
 from ..session import state
 from ..shots.blender.layout import LAYOUT, cut_task, shot_number
 
@@ -47,6 +49,9 @@ class PIPELINE_MT_main(bpy.types.Menu):
         elif can_go_back(obj, context.scene):
             layout.separator()
             layout.operator("pipeline.back_to_link", icon="LINKED")
+        if cut_task() == ANIM:
+            layout.separator()
+            layout.operator("pipeline.animate", icon="ACTION")
         if cut_task() == LAYOUT:
             layout.separator()
             layout.operator("pipeline.add_shot", icon="ADD")

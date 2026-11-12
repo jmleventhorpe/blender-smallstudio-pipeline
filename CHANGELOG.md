@@ -22,6 +22,8 @@ All notable changes to this project are listed here. The format follows
 
 ### Added
 
+- Animate: in an animation file, gives the selection its own copy of layout's keys, so
+  it can be keyed on top of its blocking.
 - New Node › Animation builds a sequence's animation file from its layout publish: the
   cut, and a scene per shot linking and overriding layout's shot node (spike T14).
 - Spikes T1 to T11 testing the Blender 5.2 behaviour the design depends on, with results.
