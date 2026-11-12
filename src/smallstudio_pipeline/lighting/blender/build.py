@@ -13,6 +13,10 @@ where per-shot shader controls live (spike T11).
 A shot's comp scene ("010_010_0010.comp") has no objects: its compositor reads the shot's
 rendered EXRs through an Image node and runs them through the sequence's comp group
 ("010_010.comp"), so editing the group changes every shot (spike T7).
+
+Render settings start the same in every shot (render_settings): Cycles, a multilayer EXR
+per frame holding every view layer and the common passes (PASSES), at half float. The
+artist changes them from there; comp scenes write plain EXRs of the final image.
 """
 
 from __future__ import annotations
@@ -30,6 +34,24 @@ from ...project.blender.identity import SHOT
 from ...project.blender.nodes import ANIM, LIGHT
 from ...project.core.entities import Sequence, Shot
 from ...shots.blender import layout
+
+# The passes every lighting scene's view layers start with, besides Combined.
+PASSES = (
+    "use_pass_z",
+    "use_pass_normal",
+    "use_pass_vector",
+    "use_pass_ambient_occlusion",
+    "use_pass_emit",
+    "use_pass_environment",
+    "use_pass_diffuse_direct",
+    "use_pass_diffuse_indirect",
+    "use_pass_diffuse_color",
+    "use_pass_glossy_direct",
+    "use_pass_glossy_indirect",
+    "use_pass_glossy_color",
+    "use_pass_cryptomatte_object",
+    "use_pass_cryptomatte_material",
+)
 
 
 def build_lighting(master: bpy.types.Scene, sequence: Sequence) -> bpy.types.Collection:
@@ -99,6 +121,7 @@ def lighting_scene(
     scene = layout.shot_scene(shot.name, master)
     scene.frame_start, scene.frame_end = shot.frame_range
     scene.world = world
+    render_settings(scene)
     root = nodes.create_node(scene, f"{shot.name}.{LIGHT}", SHOT, shot.name, LIGHT)
     name = f"{shot.name}.{ANIM}"
     found = libraries.load(publish, "collections", [name], link=True)
@@ -123,6 +146,8 @@ def comp_scene(shot: Shot, lit: bpy.types.Scene, group: bpy.types.NodeTree) -> b
     scene.render.resolution_x = lit.render.resolution_x
     scene.render.resolution_y = lit.render.resolution_y
     scene.render.resolution_percentage = lit.render.resolution_percentage
+    image = scene.render.image_settings
+    image.file_format, image.color_depth = "OPEN_EXR", "16"
     tree = bpy.data.node_groups.new(f"{shot.name}.comp", "CompositorNodeTree")
     image_socket(tree, "OUTPUT")
     reader = tree.nodes.new("CompositorNodeImage")
@@ -139,6 +164,18 @@ def comp_scene(shot: Shot, lit: bpy.types.Scene, group: bpy.types.NodeTree) -> b
     effects.new("comp").node_group = tree
     scene.render.use_compositing = True
     return scene
+
+
+def render_settings(scene: bpy.types.Scene) -> None:
+    """A lighting scene's starting render settings: Cycles, multilayer EXRs, the passes."""
+    render: Any = scene.render  # The stubs don't list Cycles as an engine.
+    render.engine = "CYCLES"
+    image: Any = render.image_settings  # Nor media types (5.x): multilayer is one of them.
+    image.media_type = "MULTI_LAYER_IMAGE"
+    image.file_format, image.color_depth = "OPEN_EXR_MULTILAYER", "16"
+    for view_layer in scene.view_layers:
+        for name in PASSES:
+            setattr(view_layer, name, True)
 
 
 def image_socket(tree: bpy.types.NodeTree, in_out: str) -> None:

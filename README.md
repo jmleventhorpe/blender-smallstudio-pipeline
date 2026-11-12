@@ -121,7 +121,9 @@ node (`010_010_0010.light`), with the shot's animation node linked inside, not o
 so a republished animation comes through on opening. Every shot shares the sequence's
 light rig (`010_010.lightrig`) and world; lights for one shot only go in its light node.
 Each shot also gets a comp scene (`010_010_0010.comp`) that runs its renders through the
-sequence's comp group (`010_010.comp`). Lighting doesn't publish: it renders.
+sequence's comp group (`010_010.comp`). Lighting scenes start on Cycles, writing a
+multilayer EXR per frame with the common passes; change them from there. Lighting
+doesn't publish: it renders.
 
 A project can tune the checks with a `validation.toml` beside its `pipeline.toml`, and add
 its own checks in a `checks/` folder there (see

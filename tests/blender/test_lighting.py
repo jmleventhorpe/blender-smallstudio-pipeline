@@ -4,6 +4,7 @@ import bpy
 import pytest
 from conftest import make_cut, place, publish_model
 
+from smallstudio_pipeline.lighting.blender import build as lighting
 from smallstudio_pipeline.project.blender import nodes
 from smallstudio_pipeline.shots.blender import layout
 
@@ -85,3 +86,15 @@ def test_lighting_doesnt_publish_or_add_shots(project, animated):
     assert not bpy.ops.pipeline.add_shot.poll()
     with pytest.raises(RuntimeError, match="Light doesn't publish: render it instead"):
         publish_cut()
+
+
+def test_lighting_scenes_start_with_cycles_multilayer_exrs_and_the_passes(project, animated):
+    new_file("light", "LIGHTING")
+    scene = bpy.data.scenes["010_010_0010"]
+    image = scene.render.image_settings
+    assert scene.render.engine == "CYCLES"
+    assert (image.file_format, image.color_depth) == ("OPEN_EXR_MULTILAYER", "16")
+    view_layer = scene.view_layers[0]
+    assert all(getattr(view_layer, name) for name in lighting.PASSES)
+    comp = bpy.data.scenes["010_010_0010.comp"].render.image_settings
+    assert (comp.file_format, comp.color_depth) == ("OPEN_EXR", "16")
