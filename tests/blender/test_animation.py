@@ -267,4 +267,15 @@ def test_check_updates_brings_the_cut_in_line_with_layout(project, published):
     assert "animators_prop" in bpy.data.scenes["010_010_0010"].objects
     shot = nodes.shot_node(bpy.data.scenes["010_010_0015"])
     assert shot is not None and shot.task == "anim" and shot.root.children
+    added = bpy.data.scenes["010_010_0015"].render.filepath  # A playblast path of its own.
+    assert added.endswith("shots/010_010_0015/anim/render/v001/010_010_0015_anim_v001_")
     assert bpy.ops.pipeline.check_updates() == {"FINISHED"}  # Nothing more to do.
+
+
+def test_playblasts_go_to_each_shots_folder_for_the_workfiles_version(project, published):
+    animation_file()
+    folder = project.root / "shots/010_010_0010/anim/render"
+    scene = bpy.data.scenes["010_010_0010"]
+    assert scene.render.filepath == str(folder / "v001/010_010_0010_anim_v001_")
+    bpy.ops.pipeline.version_up()
+    assert scene.render.filepath == str(folder / "v002/010_010_0010_anim_v002_")

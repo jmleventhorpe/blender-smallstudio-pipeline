@@ -25,12 +25,11 @@ from ..interface.panels import redraw_sidebars
 from ..lighting.blender import renders
 from ..loading.blender import instances, libraries, updates
 from ..project.blender import nodes
-from ..project.blender.nodes import LIGHT
 from ..publishing.blender import results, review
 from ..shots.blender import layout
 from ..workfiles.core import inuse
 from ..workfiles.core.context import file_context
-from . import state
+from . import outputs, state
 
 # The workfile whose in-use marker this Blender holds.
 _claimed: Path | None = None
@@ -80,8 +79,8 @@ def show_cut() -> None:
         assert sequence_node is not None  # master_scene holds it.
         layout.sync_markers(master, project.sequence(sequence_node.name))
     file = state.current.context
-    if file is not None and file.version and layout.cut_task() == LIGHT:
-        renders.set_render_paths(project, file.version)  # Renders made since show in comp.
+    if file is not None and file.version:
+        outputs.follow_version(project, file.version)  # Lighting renders made since show in comp.
 
 
 @persistent
@@ -94,16 +93,11 @@ def on_save_pre(path: object = "", *_args: object) -> None:
     if project is None or not isinstance(path, str) or not path:
         return
     file = file_context(project, Path(path))  # Save As and Version Up save somewhere new.
-    if file and file.version and layout.cut_task() == LIGHT:
-        renders.set_render_paths(project, file.version)
+    if file and file.version and layout.has_cut():
+        outputs.follow_version(project, file.version)
     if file and file.version and layout.cut_task() == layout.LAYOUT:
-        try:
-            master = layout.master_scene()
-        except PipelineError:
-            return
-        sequence = project.sequence(file.entity)
-        layout.set_playblast_output(master, sequence, file.version)
-        layout.sync_markers(master, sequence)  # Strips moved by hand since.
+        with contextlib.suppress(PipelineError):  # A sequence that isn't in this project.
+            layout.sync_markers(layout.master_scene(), project.sequence(file.entity))
 
 
 @persistent

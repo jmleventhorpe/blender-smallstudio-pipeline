@@ -25,6 +25,8 @@ All notable changes to this project are listed here. The format follows
 
 ### Added
 
+- Animation playblasts go to each shot's `anim/render/v###/` folder for the workfile's
+  version. A sequence file's output paths are set in one place (`session/outputs.py`).
 - Check Updates in a lighting file follows layout's latest publish, as in animation,
   building new shots from the animation publish.
 - Lighting render paths follow the workfile's version, per shot, and each comp scene

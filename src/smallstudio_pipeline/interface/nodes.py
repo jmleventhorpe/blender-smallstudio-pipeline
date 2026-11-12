@@ -22,11 +22,10 @@ from bpy.props import EnumProperty, StringProperty
 from ..animation.blender import build
 from ..common.errors import PipelineError
 from ..lighting.blender import build as lighting
-from ..lighting.blender import renders
 from ..project.blender import nodes
 from ..project.blender.identity import TASK
 from ..project.core.project import Project
-from ..session import state
+from ..session import outputs, state
 from ..shots.blender import layout
 from . import browse
 from .common import has_project
@@ -159,9 +158,9 @@ class PIPELINE_OT_new_node(bpy.types.Operator):
             build.build_animation(context.scene, sequence)
         else:
             lighting.build_lighting(context.scene, sequence)
-            file = state.current.context
-            if file is not None and file.version:
-                renders.set_render_paths(project, file.version)
+        file = state.current.context
+        if file is not None and file.version:
+            outputs.follow_version(project, file.version)
         count = len(layout.shot_strips(context.scene))
         return f"{sequence.name}'s {what}, {count} shot{'s' if count != 1 else ''}"
 

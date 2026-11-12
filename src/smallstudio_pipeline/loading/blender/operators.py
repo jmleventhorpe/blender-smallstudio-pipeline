@@ -23,11 +23,10 @@ from ...animation.blender import build
 from ...common.errors import PipelineError
 from ...interface.common import has_project
 from ...lighting.blender import build as lighting
-from ...lighting.blender import renders
 from ...project.blender import nodes
 from ...project.blender.nodes import ANIM, LIGHT
 from ...project.core.project import Project
-from ...session import state
+from ...session import outputs, state
 from ...shots.blender import layout
 from . import editable, instances, updates
 
@@ -63,8 +62,8 @@ class PIPELINE_OT_check_updates(bpy.types.Operator):
                 self.report({"ERROR"}, str(error))
                 return {"CANCELLED"}
             file = state.current.context
-            if task == LIGHT and file is not None and file.version:
-                renders.set_render_paths(project, file.version)  # New shots' scenes.
+            if file is not None and file.version:
+                outputs.follow_version(project, file.version)  # New shots' scenes.
             said += [f"shots {synced}"] if synced else []
         self.report({"INFO"}, f"Updated {', '.join(said)}" if said else "Everything is up to date.")
         return {"FINISHED"}

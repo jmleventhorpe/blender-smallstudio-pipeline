@@ -110,7 +110,9 @@ brings the animation cut in line (new shots get a scene, retimed ones their rang
 place, omitted ones lose their strip but keep their scene). A character layout
 left linked can be overridden here to animate it. What layout keyed (blocking, a camera
 move) plays layout's keys; Animate gives the selection (a whole character) its own copy
-to key on top, after which it no longer follows layout's keys. Publishing (from the
+to key on top, after which it no longer follows layout's keys. Each shot's playblast
+(View › Viewport Render Animation) goes to `shots/{shot}/anim/render/v###/` for the
+workfile's version. Publishing (from the
 sequence's or any shot's animation node) checks each shot, warns where its cast differs
 from layout's, and writes each shot's animation node into the sequence's animation
 publish, for lighting to link.
