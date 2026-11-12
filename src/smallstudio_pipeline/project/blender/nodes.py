@@ -12,7 +12,7 @@ The node Publish works on (current_node) follows what you picked last (picked, k
 session/handlers.py's note_picks): the collection you clicked in the Outliner, when it's a
 node, or the node holding the selected objects (the innermost, for a prop inside its set).
 Failing those, the other; failing both, the scene's only node. A loaded asset (linked, or
-overridden for posing) isn't a node: picking one is a LoadedPicked error, and the Publish
+overridden) isn't a node: picking one is a LoadedPicked error, and the Publish
 panel greys out its buttons.
 """
 

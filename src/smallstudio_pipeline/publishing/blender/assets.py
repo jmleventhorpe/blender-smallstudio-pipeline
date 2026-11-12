@@ -1,7 +1,7 @@
 """Writing a publish from the open session: the Blender side of publishing/core/publishing.py.
 
-Which root is published is the node's choice (publishing/blender/node.py).
-write_publish() writes only that root and what it uses (spike T3):
+Which node is published is current_node()'s choice (project/blender/nodes.py).
+write_publish() writes only that node's collection and what it uses (spike T3):
 the hero file, marked as an asset that links, with a thumbnail and catalog (T8, T10),
 then the versioned copy, unmarked; the artist's session is left as it was. Thumbnails are
 a quick Workbench render, falling back to Blender's generator where it can't render.

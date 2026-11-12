@@ -1,4 +1,4 @@
-"""The project in Blender: which asset a root collection is, and the preferences page."""
+"""The project in Blender: nodes and the identity they carry, and the preferences page."""
 
 import bpy
 

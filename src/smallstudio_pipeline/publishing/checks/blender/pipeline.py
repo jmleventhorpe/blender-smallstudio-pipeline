@@ -136,7 +136,7 @@ class StableNames(AssetCheck):
 class ShotCamera(ShotCheck):
     """Each shot's scene needs a camera.
 
-    The cut shows each shot through its scene's camera, and animation copies it from
+    The cut shows each shot through its scene's camera, and animation links it from
     layout. Add Shot gives every shot one; set the scene's camera if it was removed.
     """
 

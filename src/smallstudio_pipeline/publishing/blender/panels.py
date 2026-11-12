@@ -1,12 +1,12 @@
 """The Publish panel: the node Publish would work on, what it becomes, and its checks.
 
-The node (project/blender/nodes.py) is shown straight away: the root collection, what it
+The node (project/blender/nodes.py) is shown straight away: its collection, what it
 publishes and the version it becomes. Check adds the rest (publishing/blender/review.py):
-the facts that matter (the hero it replaces, materials, in context), and for a layout a row
-per shot with its frames, cut, cast and what changed since the last publish, the chosen
-shot first. With no node picked, or a loaded asset, it says why and greys out the
-buttons. Below, the last Check's or Publish's results, with Select and Fix. It shows
-in any pipeline workfile.
+the facts that matter (the hero it replaces, materials, made editable here), and for a
+layout or animation a row per shot with its frames, cut and cast (and for layout, what
+changed since the last publish), the chosen shot first. With no node picked, or a loaded
+asset, it says why and greys out the buttons. Below, the last Check's or Publish's
+results, with Select and Fix. It shows in any pipeline workfile.
 """
 
 from __future__ import annotations

@@ -67,8 +67,8 @@ Publishing works on a node (`project/blender/nodes.py`). An asset's node publish
 asset; a layout file's sequence node and every shot's node publish the sequence's layout.
 The node follows what you picked last: the collection you clicked in the Outliner, when
 it's a node, or the node holding the selection; failing both, the scene's only one. A
-loaded asset (linked, or overridden for posing) isn't a node, so picking one greys out
-Publish. `session/handlers.py` notes which changed last (`note_picks`) when the scene updates
+loaded asset (linked, or overridden) isn't a node, so picking one greys out Publish.
+`session/handlers.py` notes which changed last (`note_picks`) when the scene updates
 (selecting does) or the message bus says the clicked collection or the scene on show
 changed, and only then redraws the Pipeline tab.
 

@@ -4,7 +4,8 @@ Each asset placed in a shot gets an instance ID: the asset's name and a two-digi
 (crate_01, crate_02), kept on whatever stands in the scene. IDs are given once and kept,
 so later stages match instances by ID rather than by Blender's names, which gain
 suffixes per scene (spike T6). next_instance_id() gives a new instance the number after
-the asset's highest in the shot. A shot's casting is the list of its instances (metadata.CastEntry).
+the asset's highest in the shot. A shot's casting is the list of its instances
+(metadata.CastEntry).
 """
 
 from __future__ import annotations
