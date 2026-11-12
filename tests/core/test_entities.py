@@ -82,11 +82,11 @@ def test_asset_lookup_suggests_close_names(project):
         project.asset("heros")
 
 
-def test_shot_task_follows_the_assets_tasks(project):
+def test_an_optional_task_can_be_added(project):
     crate = project.create_asset("prop", "crate")
-    assert crate.shot_task() == "model"
+    assert not crate.has_task("rig")
     crate.add_task("rig")
-    assert project.asset("crate").shot_task() == "rig"  # Saved, not just in memory.
+    assert project.asset("crate").has_task("rig")  # Saved, not just in memory.
     with pytest.raises(PipelineError, match="already has"):
         crate.add_task("rig")
 

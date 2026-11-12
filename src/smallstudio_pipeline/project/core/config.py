@@ -3,8 +3,8 @@
 load_config() merges the two, table by table, and checks every setting on load, so a
 mistake in pipeline.toml is reported once with the file and setting named. The result is
 a Config of plain dataclasses: a Task says which entity it belongs to, whether it
-publishes, where it renders and which task it builds on; an AssetType lists its tasks, which
-are optional and which task's publish shots link. Everything else reads settings here.
+publishes, where it renders and which task it builds on; an AssetType lists its tasks and
+which are optional. Everything else reads settings here.
 """
 
 from __future__ import annotations
@@ -42,7 +42,6 @@ class AssetType:
     name: str
     tasks: tuple[str, ...]
     optional_tasks: tuple[str, ...]
-    shot_link: tuple[str, ...]  # Shots link the first of these the asset has.
     mark_children: bool = False  # Publish marks each child collection as an asset (a kit).
 
     @property
@@ -180,15 +179,13 @@ def _asset_type(name: str, table: Any, tasks: dict[str, Task]) -> AssetType:
         if task not in tasks or tasks[task].entity != "asset":
             raise ValueError(f"{where}.tasks: '{task}' isn't an asset task in [tasks]")
     optional = get_names(table, "optional_tasks", where, default=[])
-    shot_link = get_names(table, "shot_link", where)
-    for key, names in (("optional_tasks", optional), ("shot_link", shot_link)):
-        for task in names:
-            if task not in asset_tasks:
-                raise ValueError(f"{where}.{key}: '{task}' isn't one of {name}'s tasks")
-    if all(task in optional for task in shot_link):
-        raise ValueError(f"{where}.shot_link needs at least one task that isn't optional")
+    for task in optional:
+        if task not in asset_tasks:
+            raise ValueError(f"{where}.optional_tasks: '{task}' isn't one of {name}'s tasks")
+    if all(task in optional for task in asset_tasks):
+        raise ValueError(f"{where}.optional_tasks leaves no task every {name} has")
     mark_children = get(table, "mark_children", bool, where, default=False)
-    return AssetType(name, tuple(asset_tasks), tuple(optional), tuple(shot_link), mark_children)
+    return AssetType(name, tuple(asset_tasks), tuple(optional), mark_children)
 
 
 def _read_toml(path: Path) -> dict[str, Any]:

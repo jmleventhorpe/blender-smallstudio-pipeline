@@ -46,30 +46,25 @@ entity = "sequence" # One file per sequence, like layout, with a scene per shot.
 publishes = true
 renders = "shot" # Playblasts belong to each shot.
 
-# Asset types: their tasks, which are optional, and which task's publish shots link
-# (the first one in shot_link that the asset has). With mark_children, a publish marks
-# each child collection of the root as its own asset, for kits of pieces.
+# Asset types: their tasks, and which are optional. Each task's hero shows in the Asset
+# Browser in its own catalog (character/model, character/rig). With mark_children, a
+# publish marks each child collection of the node as its own asset, for kits of pieces.
 [asset_types.character]
 tasks = ["model", "rig"]
-shot_link = ["rig"]
 
 [asset_types.prop]
 tasks = ["model", "rig"]
 optional_tasks = ["rig"]
-shot_link = ["rig", "model"]
 
 [asset_types.set]
 tasks = ["model"]
-shot_link = ["model"]
 
 [asset_types.lib]
 tasks = ["model"]
-shot_link = ["model"]
 mark_children = true
 
 [asset_types.utility]
 tasks = ["rig"]
-shot_link = ["rig"]
 
 # Paths relative to the project root. {@name} includes another template.
 [templates]

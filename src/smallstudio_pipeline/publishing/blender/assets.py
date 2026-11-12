@@ -37,10 +37,12 @@ def write_publish(root: bpy.types.Collection, plan: PublishPlan) -> None:
         raise PipelineError(f"{asset.label} isn't an asset; this writes asset publishes.")
     settings = asset.settings
     library = asset.project.root / asset.project.config.asset_library
+    # Each task's hero in its own catalog (character/model, character/rig), so an asset
+    # with a model and a rig never shows twice side by side.
     if settings.mark_children:  # A kit: each piece is an asset in the kit's own catalog.
-        marked, catalog = list(root.children), f"{asset.asset_type}/{asset.name}"
+        marked, catalog = list(root.children), f"{asset.asset_type}/{asset.name}/{plan.task}"
     else:
-        marked, catalog = [root], asset.asset_type
+        marked, catalog = [root], f"{asset.asset_type}/{plan.task}"
     catalog_id = str(ensure_catalog(library, catalog))
 
     plan.hero.parent.mkdir(parents=True, exist_ok=True)

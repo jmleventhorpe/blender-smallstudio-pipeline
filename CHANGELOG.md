@@ -8,6 +8,9 @@ All notable changes to this project are listed here. The format follows
 
 ### Changed
 
+- Each task's hero shows in the Asset Browser in its own catalog (`character/model`,
+  `character/rig`). The `shot_link` setting is gone; an old `pipeline.toml` that sets
+  it still loads.
 - Sequence and shot nodes carry their task (layout or anim). Add Shot and Omit Shot are
   layout's only.
 - Animation is a sequence task, like layout: one file per sequence, playblasts still

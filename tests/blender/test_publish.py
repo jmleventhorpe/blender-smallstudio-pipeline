@@ -40,7 +40,7 @@ def test_publish_writes_the_hero_the_version_and_their_records(project):
     assert results.last is not None and results.last.published == "hero_model v001"
 
 
-def test_the_hero_links_with_a_thumbnail_in_its_type_catalog(project):
+def test_the_hero_links_with_a_thumbnail_in_its_tasks_catalog(project):
     hero, _ = open_workfile(project, "character", "hero")
     bpy.ops.pipeline.publish()
 
@@ -50,7 +50,7 @@ def test_the_hero_links_with_a_thumbnail_in_its_type_catalog(project):
     assert linked.preview is not None
     assert linked.preview.image_size[0] > 0  # pyright: ignore[reportIndexIssue]
     catalogs = {c.path: str(c.id) for c in read_catalogs(project.root / "assets")}
-    assert linked.asset_data.catalog_id == catalogs["character"]
+    assert linked.asset_data.catalog_id == catalogs["character/model"]
 
 
 def test_publishing_again_makes_v002_and_updates_the_hero(project):
@@ -71,7 +71,7 @@ def test_a_kit_marks_each_piece(project):
     bpy.ops.pipeline.publish()
     assert sorted(assets_in(kit.hero_path("model"))) == ["crate", "rock"]
     catalogs = [c.path for c in read_catalogs(project.root / "assets")]
-    assert "lib/street_kit" in catalogs
+    assert "lib/street_kit/model" in catalogs
 
 
 def test_a_failing_check_blocks_the_publish_and_writes_nothing(project):

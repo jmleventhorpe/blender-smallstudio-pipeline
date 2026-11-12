@@ -77,7 +77,8 @@ sequence's layout, that shot first. The Publish panel shows the node and the ver
 becomes straight away; Check adds the hero it replaces, or for a layout each shot and what
 changed, and runs the checks without writing anything; any problems are listed there,
 each with Select (and Fix where it can). A publish writes a new version and replaces the
-hero file that other files link, marked for the Asset Browser with a thumbnail; its record
+hero file that other files link, marked for the Asset Browser with a thumbnail, in its
+task's catalog (`character/model`, `character/rig`); its record
 lists the instances placed in the node, so a set's publish says what's in it and where. A
 rig takes its model's latest materials on every publish. Any linked asset, in any
 file, can be made editable (a crate in its set, or a set in a shot), published from there

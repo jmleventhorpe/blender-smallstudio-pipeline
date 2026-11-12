@@ -32,7 +32,6 @@ def test_defaults_load():
 def test_prop_rig_is_optional():
     prop = load_config().asset_types["prop"]
     assert prop.required_tasks == ("model",)
-    assert prop.shot_link == ("rig", "model")
 
 
 def test_a_project_without_pipeline_toml_gets_the_defaults(tmp_path):
@@ -47,18 +46,17 @@ def test_project_settings_merge_table_by_table(tmp_path):
         fps = 25
 
         [asset_types.prop]
-        shot_link = ["model"]
+        mark_children = true
 
         [asset_types.vehicle]
         tasks = ["model", "rig"]
-        shot_link = ["rig"]
         """,
     )
     config = load_config(tmp_path)
     assert config.fps == 25
     assert config.resolution == (1920, 1080)  # Untouched default.
     assert config.asset_types["prop"].tasks == ("model", "rig")
-    assert config.asset_types["prop"].shot_link == ("model",)
+    assert config.asset_types["prop"].mark_children
     assert "vehicle" in config.asset_types
 
 
@@ -74,18 +72,18 @@ def test_project_settings_merge_table_by_table(tmp_path):
         ('[tasks.paint]\nentity = "frame"', "tasks.paint.entity should be one of"),
         ('[tasks.paint]\nentity = "shot"\nrenders = "asset"', "tasks.paint.renders should be"),
         (
-            '[asset_types.prop]\nshot_link = ["rigg"]',
-            "asset_types.prop.shot_link: 'rigg' isn't one of prop's tasks",
+            '[asset_types.prop]\noptional_tasks = ["rigg"]',
+            "asset_types.prop.optional_tasks: 'rigg' isn't one of prop's tasks",
         ),
         (
             '[asset_types.prop]\ntasks = ["layout"]',
             "asset_types.prop.tasks: 'layout' isn't an asset task",
         ),
         (
-            '[asset_types.prop]\nshot_link = ["rig"]',
-            "asset_types.prop.shot_link needs at least one task that isn't optional",
+            '[asset_types.prop]\noptional_tasks = ["model", "rig"]',
+            "asset_types.prop.optional_tasks leaves no task every prop has",
         ),
-        ('[asset_types.Big]\ntasks = ["model"]\nshot_link = ["model"]', "doesn't match"),
+        ('[asset_types.Big]\ntasks = ["model"]', "doesn't match"),
         ("[templates]\nasset_work = 3", "templates.asset_work should be text"),
         ("[project\nfps = 24", "isn't valid TOML"),
     ],

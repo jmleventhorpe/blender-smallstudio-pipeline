@@ -68,4 +68,4 @@ def test_tasks_with_workfiles(project):
 
 def test_asset_types_cannot_be_called_sequence_or_shot(make_project):
     with pytest.raises(ConfigError, match="can't be an asset type name"):
-        make_project('[asset_types.shot]\ntasks = ["model"]\nshot_link = ["model"]\n')
+        make_project('[asset_types.shot]\ntasks = ["model"]\n')
