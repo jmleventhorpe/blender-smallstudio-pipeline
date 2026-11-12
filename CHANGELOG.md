@@ -25,6 +25,9 @@ All notable changes to this project are listed here. The format follows
 
 ### Added
 
+- New Node › Lighting builds a sequence's lighting file from its animation publish: the
+  cut, a lighting scene per shot linking its animation, a comp scene per shot, and the
+  shared light rig, world and comp group.
 - Check Updates in an animation file follows layout's latest publish: new, retimed and
   omitted shots, without touching the work in existing ones.
 - Animation publishes: each shot's animation node, written for lighting to link, with

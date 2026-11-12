@@ -22,7 +22,7 @@ from publish_validator import Subject, Validator
 from ...common.errors import PipelineError
 from ...interface.common import has_project
 from ...loading.blender import editable
-from ...project.blender.nodes import ANIM, Node, current_node, node_sequence
+from ...project.blender.nodes import ANIM, LAYOUT, Node, current_node, node_sequence
 from ...project.core.entities import Sequence
 from ...project.core.project import Project
 from ...session import state
@@ -79,8 +79,10 @@ class PIPELINE_OT_publish(bpy.types.Operator):
                 published = self.publish_asset(context, project, chosen)
             elif chosen.task == ANIM:
                 published = self.publish_animation(context, node_sequence(project, chosen))
-            else:
+            elif chosen.task == LAYOUT:
                 published = self.publish_layout(context, node_sequence(project, chosen))
+            else:
+                raise PipelineError(f"{chosen.task.title()} doesn't publish: render it instead.")
         except PipelineError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}

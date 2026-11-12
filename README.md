@@ -115,6 +115,14 @@ sequence's or any shot's animation node) checks each shot, warns where its cast 
 from layout's, and writes each shot's animation node into the sequence's animation
 publish, for lighting to link.
 
+**Lighting**: one file per sequence too. In a new lighting workfile, New Node › Lighting
+builds the cut from the animation publish: a lighting scene per shot holding its light
+node (`010_010_0010.light`), with the shot's animation node linked inside, not overridden,
+so a republished animation comes through on opening. Every shot shares the sequence's
+light rig (`010_010.lightrig`) and world; lights for one shot only go in its light node.
+Each shot also gets a comp scene (`010_010_0010.comp`) that runs its renders through the
+sequence's comp group (`010_010.comp`). Lighting doesn't publish: it renders.
+
 A project can tune the checks with a `validation.toml` beside its `pipeline.toml`, and add
 its own checks in a `checks/` folder there (see
 [writing checks](https://github.com/jmleventhorpe/publish-validator/blob/main/docs/writing-checks.md)).

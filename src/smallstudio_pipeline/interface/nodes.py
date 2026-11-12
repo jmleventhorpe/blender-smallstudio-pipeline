@@ -3,8 +3,9 @@
 New Node makes a node in the open file: an asset node, empty (an existing asset or a new
 one, and its task), placed in the active collection so a prop can go inside its set's
 node; a sequence node, which makes the scene on show the sequence's layout cut, its
-shots' nodes coming from Add Shot; or a sequence's animation, which builds its cut and a
-scene per shot from the layout publish (animation/blender/build.py). The Nodes panel
+shots' nodes coming from Add Shot; or a sequence's animation or lighting, which builds
+its cut and a scene per shot from the layout or animation publish
+(animation/blender/build.py, lighting/blender/build.py). The Nodes panel
 lists the scene's nodes with their asset and task, flags two nodes that would publish
 over each other, and edits or removes them (removing keeps the collection and its
 contents).
@@ -20,6 +21,7 @@ from bpy.props import EnumProperty, StringProperty
 
 from ..animation.blender import build
 from ..common.errors import PipelineError
+from ..lighting.blender import build as lighting
 from ..project.blender import nodes
 from ..project.blender.identity import TASK
 from ..project.core.project import Project
@@ -33,6 +35,7 @@ KINDS = [
     ("ASSET", "Asset", "A node for an asset's task"),
     ("SEQUENCE", "Sequence", "A sequence's layout cut"),
     ("ANIMATION", "Animation", "A sequence's animation, its shots linked from its layout"),
+    ("LIGHTING", "Lighting", "A sequence's lighting, its shots linked from its animation"),
 ]
 ICONS: dict[str, Any] = {
     "asset": "OUTLINER_COLLECTION",
@@ -87,10 +90,11 @@ class PIPELINE_OT_new_node(bpy.types.Operator):
             wrapped(column, "The scene on show becomes the sequence's cut.", icon="INFO")
         else:
             column.prop(self, "sequence")
+            source = "layout" if self.kind == "ANIMATION" else "animation"
             wrapped(
                 column,
-                "The scene on show becomes the sequence's animation cut, with a scene per "
-                "shot linked from its layout publish.",
+                f"The scene on show becomes the sequence's {self.kind.lower()} cut, with a "
+                f"scene per shot linked from its {source} publish.",
                 icon="INFO",
             )
 
@@ -103,7 +107,7 @@ class PIPELINE_OT_new_node(bpy.types.Operator):
             elif self.kind == "SEQUENCE":
                 made = self.make_sequence_node(context, project)
             else:
-                made = self.make_animation(context, project)
+                made = self.make_from_publish(context, project)
         except PipelineError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}
@@ -141,16 +145,21 @@ class PIPELINE_OT_new_node(bpy.types.Operator):
         layout.start_cut(context.scene, sequence)
         return f"sequence {sequence.name}'s node, with its cut"
 
-    def make_animation(self, context: bpy.types.Context, project: Project) -> str:
-        """A sequence's animation cut, with a scene per shot linked from its layout."""
+    def make_from_publish(self, context: bpy.types.Context, project: Project) -> str:
+        """A sequence's animation or lighting cut, a scene per shot linked from the publish
+        before it (layout's or animation's)."""
+        what = self.kind.lower()
         if layout.has_cut():
             raise PipelineError("This file already holds a sequence's cut: one per file.")
         if self.sequence == browse.NEW:
-            raise PipelineError("Pick a sequence: animation starts from one with a layout.")
+            raise PipelineError(f"Pick a sequence: {what} starts from one already published.")
         sequence = project.sequence(self.sequence)
-        build.build_animation(context.scene, sequence)
+        if self.kind == "ANIMATION":
+            build.build_animation(context.scene, sequence)
+        else:
+            lighting.build_lighting(context.scene, sequence)
         count = len(layout.shot_strips(context.scene))
-        return f"{sequence.name}'s animation, {count} shot{'s' if count != 1 else ''}"
+        return f"{sequence.name}'s {what}, {count} shot{'s' if count != 1 else ''}"
 
 
 def node_named(context: bpy.types.Context, name: str) -> nodes.Node | None:

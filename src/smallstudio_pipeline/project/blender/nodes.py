@@ -2,7 +2,7 @@
 
 Everything that publishes is a node, a collection carrying what it is (see identity.py):
 an asset node its asset, type and task; a sequence node its sequence; a shot node its
-shot. Sequence and shot nodes also carry their task, LAYOUT or ANIM. Scenes carry
+shot. Sequence and shot nodes also carry their task: LAYOUT, ANIM or LIGHT. Scenes carry
 nothing: a shot's scene is the one
 holding its node, and the cut is the scene holding the sequence node. Only a file's own
 collections are nodes; a linked asset's root, or an override of one, is an instance
@@ -46,7 +46,8 @@ class LoadedPicked(PipelineError):
     """What's picked is loaded from another file's publish, so it publishes there."""
 
 
-LAYOUT, ANIM = "layout", "anim"  # The tasks worked on in a sequence's file, with its cut.
+# The tasks worked on in a sequence's file, with its cut.
+LAYOUT, ANIM, LIGHT = "layout", "anim", "light"
 
 
 @dataclass(frozen=True)
