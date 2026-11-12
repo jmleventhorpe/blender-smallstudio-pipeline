@@ -42,6 +42,20 @@ startup.
 Limits: generated rigs have no drivers, shape keys or extra meshes, and the files are on
 local NVMe. Rerun with `--out` on the NAS, and with a real character once one exists.
 
+**Rerun on 5.3.0 with comp scenes (2026-11-12).** Each lighting file now also has a comp
+scene per shot (an Image node into a shared comp group, through 5.3's compositor
+effects), as the pipeline builds them. Same machine, 200-bone rigs:
+
+| Shots | Open | Memory after open | Peak | Render a frame | Comp that frame |
+| --- | --- | --- | --- | --- | --- |
+| 10 | 0.23 s | 424 MB | 958 MB | 2.78 s (first render) | 0.84 s |
+| 20 | 0.30 s | 498 MB | 988 MB | 0.53 s | 0.64 s |
+| 40 | 0.54 s | 645 MB | 1063 MB | 0.54 s | 0.58 s |
+| 40, after rig republish | 0.51 s | 645 MB | 1063 MB | 0.53 s | 0.61 s |
+
+Comp scenes cost next to nothing to open; a comp frame read from the multilayer EXR
+renders in well under a second. Still far inside the 60 s threshold.
+
 ## T2. Linking a file that contains library overrides: pass (2026-11-02)
 
 Lighting links the animation file's output collection; the character arrives as a linked

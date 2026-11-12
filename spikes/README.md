@@ -18,7 +18,7 @@ Leave out `--out` to use a new temp folder. Open the files it writes to look aro
 | `t1_overwrite_hero.py` | Can a hero file be overwritten while a shot that links it is open, across machines? Run by hand; see its docstring. |
 | `t2_link_overrides.py` | Can lighting link an animation file whose characters are library overrides? |
 | `t3_libraries_write.py` | Does `libraries.write` publish cleanly from the open session, with asset marks on the hero only? |
-| `t4_lighting_load.py` | How long does a sequence lighting file take to open at 10, 20 and 40 shots? Benchmark; use a real disk for `--out`. |
+| `t4_lighting_load.py` | How long does a sequence lighting file, with a comp scene per shot, take to open at 10, 20 and 40 shots? Benchmark; use a real disk for `--out`. |
 | `t5_nested_libraries.py` | Do lib pieces survive two levels of linking (lib, set, layout), with the set overridden in a shot for a tweak? |
 | `t6_shared_character.py` | Can one file hold separate overrides of the same character in several scenes? |
 | `t7_comp_from_exrs.py` | Can a comp scene read rendered EXRs and render without the 3D scene, through a shared group? |

@@ -7,8 +7,9 @@ Options: --shots 10,20,40  --characters 3  --bones 200  --verts 40000  --thresho
 
 Each shot gets its own animation publish with several overrides of a generated heavy rig.
 Each lighting file has a scene per shot linking that publish, plus a shared set and light
-rig. Every file is then opened in a fresh Blender to measure open time, memory, the first
-evaluation of three scenes and one rendered frame.
+rig, and a comp scene per shot feeding a shared comp group, as the pipeline builds them
+(added 2026-11-12). Every file is then opened in a fresh Blender to measure open time,
+memory, the first evaluation of three scenes, one rendered frame, and that frame's comp.
 
 Pass: the 20-shot file opens within --threshold seconds.
 If it fails, long sequences split across several lighting files, or shots load on demand.
@@ -41,6 +42,7 @@ from spike_utils import (
 CHARACTER = "heavy"
 SET = "set_big"
 LIGHT_RIG = "light_rig"
+COMP_GROUP = "comp_group"
 OUTPUT = "anim_output"
 CHAINS = 10
 KEY_FRAMES = (1, 24, 48)
@@ -199,6 +201,7 @@ def build_anim_publish(work: Path, publish: Path, rig_hero: Path, characters: in
 def build_lighting(path: Path, publishes: list[Path], set_hero: Path) -> None:
     """A scene per shot linking its animation publish, the shared set and light rig."""
     start_file(path)
+    group = build_comp_group()
     set_collection = load_collection(set_hero, SET)
     light_rig = bpy.data.collections.new(LIGHT_RIG)
     for index, kind in enumerate(("SUN", "AREA", "AREA")):
@@ -222,7 +225,41 @@ def build_lighting(path: Path, publishes: list[Path], set_hero: Path) -> None:
         scene.cycles.samples = 1
         scene.render.resolution_x, scene.render.resolution_y = 320, 180
         scene.render.resolution_percentage = 100
+        build_comp_scene(scene, group)
     bpy.ops.wm.save_mainfile()
+
+
+def build_comp_group() -> bpy.types.NodeTree:
+    """The shared comp group, as the pipeline makes it: Image in, an exposure, Image out."""
+    group = bpy.data.node_groups.new(COMP_GROUP, "CompositorNodeTree")
+    group.interface.new_socket("Image", in_out="INPUT", socket_type="NodeSocketColor")
+    group.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
+    group_in = group.nodes.new("NodeGroupInput")
+    exposure = group.nodes.new("CompositorNodeExposure")
+    group_out = group.nodes.new("NodeGroupOutput")
+    group.links.new(group_in.outputs["Image"], exposure.inputs["Image"])
+    group.links.new(exposure.outputs["Image"], group_out.inputs["Image"])
+    return group
+
+
+def build_comp_scene(lit: bpy.types.Scene, group: bpy.types.NodeTree) -> bpy.types.Scene:
+    """A shot's comp scene: no objects, an Image node (no renders yet) into the shared group."""
+    scene = bpy.data.scenes.new(lit.name.replace("_lighting", "_comp"))
+    scene.frame_start, scene.frame_end = lit.frame_start, lit.frame_end
+    scene.render.resolution_x, scene.render.resolution_y = 320, 180
+    scene.render.resolution_percentage = 100
+    tree = bpy.data.node_groups.new(scene.name, "CompositorNodeTree")
+    tree.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
+    reader = tree.nodes.new("CompositorNodeImage")
+    reader.name = "renders"
+    grade = tree.nodes.new("CompositorNodeGroup")
+    grade.node_tree = group
+    out = tree.nodes.new("NodeGroupOutput")
+    tree.links.new(reader.outputs["Image"], grade.inputs["Image"])
+    tree.links.new(grade.outputs["Image"], out.inputs["Image"])
+    scene.compositor_effects.new("comp").node_group = tree
+    scene.render.use_compositing = True
+    return scene
 
 
 # Measuring (runs in a fresh Blender with the lighting file open)
@@ -235,8 +272,15 @@ def peak_memory_mb() -> float:
 
 
 def measure_open_file() -> None:
-    scenes = sorted(bpy.data.scenes, key=lambda s: s.name)
-    result = {"shots": len(scenes), "memory_after_open_mb": peak_memory_mb()}
+    scenes = sorted(
+        (s for s in bpy.data.scenes if s.name.endswith("_lighting")), key=lambda s: s.name
+    )
+    comps = [s for s in bpy.data.scenes if s.name.endswith("_comp")]
+    result = {
+        "shots": len(scenes),
+        "comp_scenes": len(comps),
+        "memory_after_open_mb": peak_memory_mb(),
+    }
     picks = [scenes[0], scenes[len(scenes) // 2], scenes[-1]]
     timings, object_counts = [], []
     for scene in picks:
@@ -248,9 +292,22 @@ def measure_open_file() -> None:
         object_counts.append(len(depsgraph.objects))
     result["first_evaluation_s"] = [round(t, 2) for t in timings]
     result["objects_evaluated"] = object_counts
+    lit = picks[1]
+    lit.render.image_settings.media_type = "MULTI_LAYER_IMAGE"
+    lit.render.image_settings.file_format = "OPEN_EXR_MULTILAYER"
+    lit.render.filepath = str(Path(bpy.app.tempdir) / "t4_frame")
     start = time.perf_counter()
-    bpy.ops.render.render(scene=picks[1].name)
+    bpy.ops.render.render(write_still=True, scene=lit.name)
     result["render_frame_s"] = round(time.perf_counter() - start, 2)
+    comp = bpy.data.scenes[lit.name.replace("_lighting", "_comp")]
+    tree = comp.compositor_effects.active.node_group
+    reader = tree.nodes["renders"]
+    reader.image = bpy.data.images.load(lit.render.filepath + ".exr")
+    grade = next(n for n in tree.nodes if n.bl_idname == "CompositorNodeGroup")
+    tree.links.new(reader.outputs["Combined"], grade.inputs["Image"])
+    start = time.perf_counter()
+    bpy.ops.render.render(scene=comp.name)
+    result["comp_frame_s"] = round(time.perf_counter() - start, 2)
     result["peak_memory_mb"] = round(peak_memory_mb())
     result["memory_after_open_mb"] = round(result["memory_after_open_mb"])
     print("T4RESULT " + json.dumps(result))
@@ -332,6 +389,11 @@ def main() -> None:
     results.append(resync)
 
     (out / "t4_results.json").write_text(json.dumps(results, indent=2))
+    checks.check(
+        "every file has a comp scene per shot, and comp renders",
+        all(r["comp_scenes"] == r["shots"] and r["comp_frame_s"] >= 0 for r in results),
+        ", ".join(f"{r['shots']} shots: comp {r['comp_frame_s']}s" for r in results),
+    )
     twenty = next((r for r in results if r["shots"] == 20), results[-1])
     checks.check(
         f"{twenty['shots']}-shot file opens within {args.threshold:.0f}s",
