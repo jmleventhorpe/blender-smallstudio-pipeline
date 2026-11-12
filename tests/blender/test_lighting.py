@@ -98,3 +98,35 @@ def test_lighting_scenes_start_with_cycles_multilayer_exrs_and_the_passes(projec
     assert all(getattr(view_layer, name) for name in lighting.PASSES)
     comp = bpy.data.scenes["010_010_0010.comp"].render.image_settings
     assert (comp.file_format, comp.color_depth) == ("OPEN_EXR", "16")
+
+
+def test_renders_go_to_each_shots_folder_for_the_workfiles_version(project, animated):
+    new_file("light", "LIGHTING")
+    folder = project.root / "shots/010_010_0010/light/render"
+    lit, comp = bpy.data.scenes["010_010_0010"], bpy.data.scenes["010_010_0010.comp"]
+    assert lit.render.filepath == str(folder / "v001/010_010_0010_light_v001_")
+    assert comp.render.filepath == str(folder / "v001/comp/010_010_0010_comp_v001_")
+    bpy.ops.pipeline.version_up()
+    assert lit.render.filepath == str(folder / "v002/010_010_0010_light_v002_")
+
+
+def test_comp_reads_the_lighting_renders_once_they_exist(project, animated):
+    new_file("light", "LIGHTING")
+    lit, comp = bpy.data.scenes["010_010_0010"], bpy.data.scenes["010_010_0010.comp"]
+    for scene in (lit, comp):  # One small frame is enough.
+        scene.frame_end = scene.frame_start
+        scene.render.resolution_percentage = 2
+    lit.cycles.samples = 1  # pyright: ignore[reportAttributeAccessIssue]
+    tree = comp.compositor_effects.active.node_group  # pyright: ignore[reportAttributeAccessIssue]
+    reader = tree.nodes["renders"]
+    assert reader.image is None  # Nothing rendered yet.
+
+    bpy.ops.render.render(animation=True, scene=lit.name)
+    bpy.ops.render.render(animation=True, scene=comp.name)  # Connects first.
+    assert reader.image is not None and reader.image.source == "SEQUENCE"
+    assert [link.from_socket.name for link in tree.links if link.from_node == reader] == [
+        "Combined"
+    ]
+    assert (reader.frame_start, reader.frame_offset) == (101, 100)
+    written = project.root / "shots/010_010_0010/light/render/v001/comp"
+    assert [p.name for p in written.iterdir()] == ["010_010_0010_comp_v001_0101.exr"]

@@ -41,7 +41,7 @@ object it works on, so it runs headless in the tests.
 | **loading** | `updates` (what's out of date), `casting` (instance IDs) | `libraries` (linking, the Asset Browser library), `updates` (reloading), `instances` (what stands in a scene, Override), `editable` (Make Editable, a copy's asset space, linking a copy again), operators: Check Updates, Make Editable, Override, Back to Link |
 | **publishing** | `publishing` (targets, plans, records with placed instances), `catalogs` | `assets` (writing asset publishes, thumbnails, placements), `layout` (Save Copy of a layout file), `animation` (each shot's animation node), `materials` (rig takes model's materials), `validation`, `review` (Check), `results`, `panels` (Publish), operators: Publish, Check |
 | **shots** | `layout` (the cut into each shot's metadata) | `layout` (the cut, strips, markers, playblast path), `panels` (Shot), operators: Add Shot, Omit Shot, Back to Cut |
-| **lighting** | (nothing yet) | `build` (the lighting cut, a lighting and comp scene per shot, the shared light rig, world and comp group; New Node › Lighting calls it) |
+| **lighting** | (nothing yet) | `build` (the lighting cut, a lighting and comp scene per shot, the shared light rig, world and comp group; New Node › Lighting calls it), `renders` (render paths per version, comp reading the renders) |
 | **animation** | (nothing yet) | `build` (the animation cut, a scene per shot linking and overriding layout's shot node; New Node › Animation calls it), `animate` (a local copy of layout's keys), operators: Animate |
 
 Outside the jobs: `common/` (`errors`, `files`, `reading`), `session/` (`state`,

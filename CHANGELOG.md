@@ -25,6 +25,8 @@ All notable changes to this project are listed here. The format follows
 
 ### Added
 
+- Lighting render paths follow the workfile's version, per shot, and each comp scene
+  reads its shot's lighting renders once they exist.
 - New Node › Lighting builds a sequence's lighting file from its animation publish: the
   cut, a lighting scene per shot linking its animation, a comp scene per shot, and the
   shared light rig, world and comp group.

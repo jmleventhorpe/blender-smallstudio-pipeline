@@ -2,10 +2,11 @@
 
 After a file loads: refresh the state, mark the file as in use (or warn whose it is),
 register the project's asset library, note the versions of the publishes it links, and
-show its cut, if it has one. Before a save, new instances get their IDs and
-a cut's playblast output follows the version. After a save, including Save As and
-Version Up, the in-use marker moves to the new file. Warnings pop up once the UI is
-ready; the Pipeline tab redraws when the selection, the
+show its cut, if it has one. Before a save, new instances get their IDs and a cut's
+playblast output follows the version. After a save, including Save As and Version Up,
+the in-use marker moves to the new file. A lighting file's render paths follow the
+workfile's version, and a comp scene reads its shot's renders before it renders.
+Warnings pop up once the UI is ready; the Pipeline tab redraws when the selection, the
 clicked collection or the scene on show changes (note_picks).
 """
 
@@ -21,8 +22,10 @@ from bpy.app.handlers import persistent
 
 from ..common.errors import PipelineError
 from ..interface.panels import redraw_sidebars
+from ..lighting.blender import renders
 from ..loading.blender import instances, libraries, updates
 from ..project.blender import nodes
+from ..project.blender.nodes import LIGHT
 from ..publishing.blender import results, review
 from ..shots.blender import layout
 from ..workfiles.core import inuse
@@ -76,6 +79,9 @@ def show_cut() -> None:
         sequence_node = nodes.sequence_node(master)
         assert sequence_node is not None  # master_scene holds it.
         layout.sync_markers(master, project.sequence(sequence_node.name))
+    file = state.current.context
+    if file is not None and file.version and layout.cut_task() == LIGHT:
+        renders.set_render_paths(project, file.version)  # Renders made since show in comp.
 
 
 @persistent
@@ -88,6 +94,8 @@ def on_save_pre(path: object = "", *_args: object) -> None:
     if project is None or not isinstance(path, str) or not path:
         return
     file = file_context(project, Path(path))  # Save As and Version Up save somewhere new.
+    if file and file.version and layout.cut_task() == LIGHT:
+        renders.set_render_paths(project, file.version)
     if file and file.version and layout.cut_task() == layout.LAYOUT:
         try:
             master = layout.master_scene()
@@ -96,6 +104,18 @@ def on_save_pre(path: object = "", *_args: object) -> None:
         sequence = project.sequence(file.entity)
         layout.set_playblast_output(master, sequence, file.version)
         layout.sync_markers(master, sequence)  # Strips moved by hand since.
+
+
+@persistent
+def on_render_pre(scene: object = None, *_args: object) -> None:
+    """Before a comp scene renders: read its shot's lighting renders, made since saving."""
+    project, file = state.current.project, state.current.context
+    if not isinstance(scene, bpy.types.Scene) or project is None or not file or not file.version:
+        return
+    code = scene.name.removesuffix(".comp")
+    lit = renders.lit_scenes().get(code)
+    if code != scene.name and lit is not None:
+        renders.connect_renders(scene, lit, renders.render_prefix(project, code, file.version))
 
 
 @persistent
@@ -160,6 +180,7 @@ HANDLERS = (
     (bpy.app.handlers.load_post, on_load_post),
     (bpy.app.handlers.save_pre, on_save_pre),
     (bpy.app.handlers.save_post, on_save_post),
+    (bpy.app.handlers.render_pre, on_render_pre),
     (bpy.app.handlers.depsgraph_update_post, on_depsgraph_update),
 )
 # Changes that don't update the depsgraph, but change what's picked: the scene on show
