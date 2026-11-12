@@ -60,16 +60,19 @@ class Instance:
 def instances(scene: bpy.types.Scene) -> list[Instance]:
     """The asset instances standing in a scene, by name of what holds them.
 
-    Only what this file placed counts: pieces inside an overridden set are the set's.
+    Pieces inside an overridden set are the set's, not the scene's. An empty that's an
+    override still counts when what it's in isn't an asset: layout's empties, in an
+    animation file that links and overrides layout's shot node.
     """
+    roots = [c for c in scene.collection.children_recursive if c.override_library]
+    asset_roots = [c for c in roots if asset_identity(c)]
+    in_assets = {obj for root in asset_roots for obj in root.all_objects}
     found = []
     for obj in scene.objects:
         root = linked_asset(obj)
         identity = asset_identity(root) if root else None
-        if identity and obj.library is None and obj.override_library is None:
+        if identity and obj.library is None and obj not in in_assets:
             found.append(Instance(obj, *identity))
-    roots = [c for c in scene.collection.children_recursive if c.override_library]
-    asset_roots = [c for c in roots if asset_identity(c)]
     for root in asset_roots:
         inside_another = any(root in other.children_recursive[:] for other in asset_roots)
         identity = asset_identity(root)
@@ -98,15 +101,10 @@ def casting(scene: bpy.types.Scene) -> tuple[CastEntry, ...]:
     return tuple(sorted(entries, key=lambda entry: entry.instance_id))
 
 
-def places_link(obj: bpy.types.Object | None) -> bool:
-    """Whether an object is this file's own empty placing a linked asset: what Make
+def places_link(obj: bpy.types.Object | None, scene: bpy.types.Scene) -> bool:
+    """Whether an object is an empty placing a linked asset in the scene: what Make
     Editable and Override work on. Not a piece inside an overridden set."""
-    return (
-        obj is not None
-        and obj.library is None
-        and obj.override_library is None
-        and linked_asset(obj) is not None
-    )
+    return obj is not None and any(i.holder == obj for i in instances(scene))
 
 
 def override(
@@ -127,11 +125,11 @@ def override(
     if not empty.get(INSTANCE_ID):
         number_instances(scene)
     instance_id = empty.get(INSTANCE_ID, "")
-    homes = list(empty.users_collection)
+    home = local_home(empty, scene)
 
     root = linked.override_hierarchy_create(scene, view_layer, do_fully_editable=True)
-    if homes and scene.collection not in homes:  # Keep it beside its empty.
-        homes[0].children.link(root)
+    if home != scene.collection:  # Keep it beside its empty.
+        home.children.link(root)
         scene.collection.children.unlink(root)
     empty.instance_type = "NONE"
     empty.instance_collection = None
@@ -142,6 +140,24 @@ def override(
     root[INSTANCE_ID] = instance_id
     del empty[INSTANCE_ID]
     return root
+
+
+def local_home(obj: bpy.types.Object, scene: bpy.types.Scene) -> bpy.types.Collection:
+    """The innermost of this file's own collections holding an object, else the scene's.
+
+    An override's collections can't take new children, so an empty inside layout's
+    overridden shot node (in an animation file) gets the animation node.
+    """
+    homes = [c for c in obj.users_collection if not c.library and not c.override_library]
+    if homes:
+        return homes[0]
+    held = [
+        c
+        for c in scene.collection.children_recursive
+        if not c.library and not c.override_library and obj in c.all_objects[:]
+    ]
+    inner = [c for c in held if not any(o in c.children_recursive[:] for o in held)]
+    return inner[0] if inner else scene.collection
 
 
 def placing_empty(override: bpy.types.Collection) -> bpy.types.Object | None:

@@ -93,10 +93,19 @@ camera, and a timeline marker. With Follow the cut (Blender's Sync Scene Time, o
 cuts) the 3D viewport shows the shot under the sequencer's playhead, so scrubbing the cut
 shows each shot; Back to Cut returns to it. Assets dragged in from the Asset Browser get
 an instance ID on save (`crate_01`); Override makes one posable where it stands, or
-lets a set be dressed for that shot, and Back to Link undoes it. Publishing the layout checks each shot, publishes the
-whole file, and writes each shot's frame range, cut points and casting into its metadata;
-a shot whose strip is gone is marked omitted. The cut renders its playblast to the
-sequence's layout render folder for the workfile's version.
+lets a set be dressed for that shot, and Back to Link undoes it. Publishing the layout
+checks each shot, publishes the whole file, and writes each shot's frame range, cut
+points and casting into its metadata; a shot whose strip is gone is marked omitted. The
+cut renders its playblast to the sequence's layout render folder for the workfile's
+version.
+
+**Animation**: one file per sequence, like layout. In a new animation workfile, New Node
+› Animation builds the cut from the layout publish: a strip per shot where layout put
+it, and a scene per shot holding its animation node (`010_010_0010.anim`), with the
+shot's node from the layout publish linked and overridden inside. The camera, cast and
+dressed set are layout's, not copies, so a republished layout comes through on opening
+for anything not changed here. Shots are added and omitted in layout. A character layout
+left linked can be overridden here to animate it. Publishing animation comes next.
 
 A project can tune the checks with a `validation.toml` beside its `pipeline.toml`, and add
 its own checks in a `checks/` folder there (see

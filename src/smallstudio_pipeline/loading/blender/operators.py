@@ -59,7 +59,7 @@ class PIPELINE_OT_make_editable(bpy.types.Operator):
     def poll(cls, context: bpy.types.Context) -> bool:
         if not has_project(cls):
             return False
-        if not instances.places_link(context.active_object):
+        if not instances.places_link(context.active_object, context.scene):
             cls.poll_message_set("Select a linked asset (the empty that places it).")
             return False
         return True
@@ -87,7 +87,7 @@ class PIPELINE_OT_override(bpy.types.Operator):
     def poll(cls, context: bpy.types.Context) -> bool:
         if not has_project(cls):
             return False
-        if not instances.places_link(context.active_object):
+        if not instances.places_link(context.active_object, context.scene):
             cls.poll_message_set("Select a linked asset (the empty that places it).")
             return False
         return True

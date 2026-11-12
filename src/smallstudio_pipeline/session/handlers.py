@@ -95,7 +95,7 @@ def on_save_pre(path: object = "", *_args: object) -> None:
     if project is None or not isinstance(path, str) or not path:
         return
     file = file_context(project, Path(path))  # Save As and Version Up save somewhere new.
-    if file and file.version and layout.has_cut():
+    if file and file.version and layout.cut_task() == layout.LAYOUT:
         try:
             master = layout.master_scene()
         except PipelineError:

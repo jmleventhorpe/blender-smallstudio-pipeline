@@ -1,11 +1,13 @@
 """Making and editing nodes: New Node, the Nodes panel, and its Edit and Remove buttons.
 
-New Node makes a node in the open file, empty: an asset node (an existing asset or a new
+New Node makes a node in the open file: an asset node, empty (an existing asset or a new
 one, and its task), placed in the active collection so a prop can go inside its set's
-node; or a sequence node, which makes the scene on show the sequence's cut. Shots' nodes
-come from Add Shot. The Nodes panel lists the scene's nodes with their asset and task,
-flags two nodes that would publish over each other, and edits or removes them (removing
-keeps the collection and its contents).
+node; a sequence node, which makes the scene on show the sequence's layout cut, its
+shots' nodes coming from Add Shot; or a sequence's animation, which builds its cut and a
+scene per shot from the layout publish (animation/blender/build.py). The Nodes panel
+lists the scene's nodes with their asset and task, flags two nodes that would publish
+over each other, and edits or removes them (removing keeps the collection and its
+contents).
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ from typing import Any
 import bpy
 from bpy.props import EnumProperty, StringProperty
 
+from ..animation.blender import build
 from ..common.errors import PipelineError
 from ..project.blender import nodes
 from ..project.blender.identity import TASK
@@ -26,7 +29,11 @@ from . import browse
 from .common import has_project
 from .panels import both_sidebars, wrapped
 
-KINDS = [("ASSET", "Asset", "A node for an asset's task"), ("SEQUENCE", "Sequence", "A cut")]
+KINDS = [
+    ("ASSET", "Asset", "A node for an asset's task"),
+    ("SEQUENCE", "Sequence", "A sequence's layout cut"),
+    ("ANIMATION", "Animation", "A sequence's animation, its shots linked from its layout"),
+]
 ICONS: dict[str, Any] = {
     "asset": "OUTLINER_COLLECTION",
     "sequence": "SEQUENCE",
@@ -39,7 +46,7 @@ def _asset_changed(operator: Any, context: bpy.types.Context | None) -> None:
 
 
 class PIPELINE_OT_new_node(bpy.types.Operator):
-    """Make a node in this file: an asset's, for a task, or a sequence's cut"""
+    """Make a node in this file: an asset's, for a task, a sequence's cut, or its animation"""
 
     bl_idname = "pipeline.new_node"
     bl_label = "New Node"
@@ -71,13 +78,21 @@ class PIPELINE_OT_new_node(bpy.types.Operator):
                 column.prop(self, "asset_type")
                 column.prop(self, "name")
             column.prop(self, "task")
-        else:
+        elif self.kind == "SEQUENCE":
             column.prop(self, "sequence")
             if self.sequence == browse.NEW:
                 if project is not None and project.config.episodes:
                     column.prop(self, "episode")
                 column.prop(self, "title")
             wrapped(column, "The scene on show becomes the sequence's cut.", icon="INFO")
+        else:
+            column.prop(self, "sequence")
+            wrapped(
+                column,
+                "The scene on show becomes the sequence's animation cut, with a scene per "
+                "shot linked from its layout publish.",
+                icon="INFO",
+            )
 
     def execute(self, context: bpy.types.Context) -> set[str]:
         project = state.current.project
@@ -85,8 +100,10 @@ class PIPELINE_OT_new_node(bpy.types.Operator):
         try:
             if self.kind == "ASSET":
                 made = self.make_asset_node(context, project)
-            else:
+            elif self.kind == "SEQUENCE":
                 made = self.make_sequence_node(context, project)
+            else:
+                made = self.make_animation(context, project)
         except PipelineError as error:
             self.report({"ERROR"}, str(error))
             return {"CANCELLED"}
@@ -123,6 +140,17 @@ class PIPELINE_OT_new_node(bpy.types.Operator):
             sequence = project.sequence(self.sequence)
         layout.start_cut(context.scene, sequence)
         return f"sequence {sequence.name}'s node, with its cut"
+
+    def make_animation(self, context: bpy.types.Context, project: Project) -> str:
+        """A sequence's animation cut, with a scene per shot linked from its layout."""
+        if layout.has_cut():
+            raise PipelineError("This file already holds a sequence's cut: one per file.")
+        if self.sequence == browse.NEW:
+            raise PipelineError("Pick a sequence: animation starts from one with a layout.")
+        sequence = project.sequence(self.sequence)
+        build.build_animation(context.scene, sequence)
+        count = len(layout.shot_strips(context.scene))
+        return f"{sequence.name}'s animation, {count} shot{'s' if count != 1 else ''}"
 
 
 def node_named(context: bpy.types.Context, name: str) -> nodes.Node | None:
@@ -196,10 +224,10 @@ class PIPELINE_OT_activate_node(bpy.types.Operator):
 
 
 def describe(node: nodes.Node) -> str:
-    """e.g. "character · rig", "sequence", "shot"."""
+    """e.g. "character · rig", "sequence · layout", "shot · anim"."""
     if node.kind == "asset":
         return f"{node.asset_type} · {node.task or 'no task'}"
-    return node.kind
+    return f"{node.kind} · {node.task}"
 
 
 class NodesPanel:

@@ -12,6 +12,7 @@ src/smallstudio_pipeline/
 ├── loading/      linking publishes, keeping them current, instances, editable copies
 ├── publishing/   checks, then writing publishes for other files to link
 ├── shots/        the sequence layout file and its cut
+├── animation/    the sequence animation file, built from the layout publish
 ├── common/       small helpers every job uses
 ├── session/      what's open, and keeping every job in step as files open and save
 └── interface/    the Pipeline menu, the dialogs' choices, what operators share
@@ -39,6 +40,7 @@ object it works on, so it runs headless in the tests.
 | **loading** | `updates` (what's out of date), `casting` (instance IDs) | `libraries` (linking, the Asset Browser library), `updates` (reloading), `instances` (what stands in a scene, Override), `editable` (Make Editable, linking a copy again), operators: Check Updates, Make Editable, Override, Back to Link |
 | **publishing** | `publishing` (targets, plans, records with placed instances), `catalogs` | `assets` (writing asset publishes, thumbnails, placements), `layout` (Save Copy of a layout file), `in_context` (asset space, Link Back), `materials` (rig takes model's materials), `validation`, `review` (Check), `results`, `panels` (Publish), operators: Publish, Check |
 | **shots** | `layout` (the cut into each shot's metadata) | `layout` (the cut, strips, markers, playblast path), `panels` (Shot), operators: Add Shot, Omit Shot, Back to Cut |
+| **animation** | (nothing yet) | `build` (the animation cut, a scene per shot linking and overriding layout's shot node; New Node › Animation calls it) |
 
 Outside the jobs: `common/` (`errors`, `files`, `reading`), `session/` (`state`,
 `handlers`), `interface/` (`menu`, `panels`, `nodes` for New Node and the Nodes panel, `browse`, `common`), `publishing/checks/` and

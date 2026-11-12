@@ -8,6 +8,8 @@ All notable changes to this project are listed here. The format follows
 
 ### Changed
 
+- Sequence and shot nodes carry their task (layout or anim). Add Shot and Omit Shot are
+  layout's only.
 - Animation is a sequence task, like layout: one file per sequence, playblasts still
   per shot. Dialogs only offer Shot as a category if a project gives shots a task.
 - Targets Blender 5.3 (was 5.2 LTS). A strip now follows its shot scene's range by
@@ -20,6 +22,8 @@ All notable changes to this project are listed here. The format follows
 
 ### Added
 
+- New Node › Animation builds a sequence's animation file from its layout publish: the
+  cut, and a scene per shot linking and overriding layout's shot node (spike T14).
 - Spikes T1 to T11 testing the Blender 5.2 behaviour the design depends on, with results.
 - Project scaffold: core and Blender layers, extension manifest, tests in plain Python
   and in headless Blender, extension build script and CI.

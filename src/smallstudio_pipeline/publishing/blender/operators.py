@@ -46,6 +46,9 @@ Collection = bpy.types.Collection
 Context = bpy.types.Context
 
 
+NOT_YET = "Animation can't be published yet."
+
+
 class PIPELINE_OT_publish(bpy.types.Operator):
     """Check the asset, then publish it: a new version, and the latest for shots to link"""
 
@@ -72,6 +75,8 @@ class PIPELINE_OT_publish(bpy.types.Operator):
             chosen = current_node(context)
             if chosen.kind == "asset":
                 published = self.publish_asset(context, project, chosen)
+            elif chosen.task != layout.LAYOUT:
+                raise PipelineError(NOT_YET)
             else:
                 published = self.publish_layout(context, node_sequence(project, chosen))
         except PipelineError as error:

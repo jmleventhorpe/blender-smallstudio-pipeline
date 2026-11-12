@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 
 import bpy
 
+from ...common.errors import PipelineError
 from ...interface.panels import DASH
 from ...loading.blender import instances
 from ...loading.blender.editable import placement_of
@@ -75,8 +76,8 @@ def describe(project: Project, file: FileContext, chosen: Node) -> tuple[str, st
             title = f"{target.asset.name} · {target.task}"
         else:
             sequence = node_sequence(project, chosen)
-            plan = plan_publish(sequence, layout.LAYOUT)
-            title = f"{sequence.name} · {layout.LAYOUT}"
+            plan = plan_publish(sequence, chosen.task)
+            title = f"{sequence.name} · {chosen.task}"
         _described[key] = (title, plan.label)
     return _described[key]
 
@@ -85,6 +86,8 @@ def review(context: bpy.types.Context, project: Project, file: FileContext) -> r
     """Work out what Publish would write and run its checks, keeping both for the panel."""
     global current
     chosen = current_node(context)
+    if chosen.kind != "asset" and chosen.task != layout.LAYOUT:
+        raise PipelineError("Animation can't be checked yet.")
     if chosen.kind == "asset":
         current, subjects = _asset(project, chosen)
     else:

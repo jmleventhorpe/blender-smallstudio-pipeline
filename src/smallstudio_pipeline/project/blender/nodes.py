@@ -2,9 +2,11 @@
 
 Everything that publishes is a node, a collection carrying what it is (see identity.py):
 an asset node its asset, type and task; a sequence node its sequence; a shot node its
-shot. Scenes carry nothing: a shot's scene is the one holding its node, and the cut is the
-scene holding the sequence node. Only a file's own collections are nodes; a linked
-asset's root, or an override of one, is an instance (loading/blender/instances.py).
+shot. Sequence and shot nodes also carry their task, LAYOUT or ANIM; one without is
+layout's, from before they carried one. Scenes carry nothing: a shot's scene is the one
+holding its node, and the cut is the scene holding the sequence node. Only a file's own
+collections are nodes; a linked asset's root, or an override of one, is an instance
+(loading/blender/instances.py).
 
 The node Publish works on (current_node) follows what you picked last (picked, kept by
 session/handlers.py's note_picks): the collection you clicked in the Outliner, when it's a
@@ -44,13 +46,17 @@ class LoadedPicked(PipelineError):
     """What's picked is loaded from another file's publish, so it publishes there."""
 
 
+LAYOUT, ANIM = "layout", "anim"  # The tasks worked on in a sequence's file, with its cut.
+
+
 @dataclass(frozen=True)
 class Node:
     root: bpy.types.Collection
     kind: str  # "asset", "sequence" or "shot".
     name: str  # The asset's name, or the sequence's or shot's code.
     asset_type: str = ""  # Assets only.
-    task: str = ""  # Assets only: the task the node is for, "" if it hasn't one yet.
+    task: str = ""  # The task the node is for: an asset's, "" if it hasn't one yet; a
+    # sequence's or shot's, "layout" or "anim".
 
 
 def node_of(collection: bpy.types.Collection | None) -> Node | None:
@@ -61,10 +67,10 @@ def node_of(collection: bpy.types.Collection | None) -> Node | None:
     if identity is not None:
         task = collection.get(TASK, "")
         return Node(collection, "asset", *identity, task=task if isinstance(task, str) else "")
-    if SEQUENCE in collection:
-        return Node(collection, "sequence", str(collection[SEQUENCE]))
-    if SHOT in collection:
-        return Node(collection, "shot", str(collection[SHOT]))
+    for key, kind in ((SEQUENCE, "sequence"), (SHOT, "shot")):
+        if key in collection:
+            task = collection.get(TASK) or LAYOUT
+            return Node(collection, kind, str(collection[key]), task=str(task))
     return None
 
 
@@ -169,10 +175,14 @@ def sequence_node(scene: bpy.types.Scene | None) -> Node | None:
     return None
 
 
-def create_node(scene: bpy.types.Scene, name: str, key: str, value: str) -> bpy.types.Collection:
+def create_node(
+    scene: bpy.types.Scene, name: str, key: str, value: str, task: str = ""
+) -> bpy.types.Collection:
     """A new node in a scene, made its active collection so new things land in it."""
     root = bpy.data.collections.new(name)
     root[key] = value
+    if task:
+        root[TASK] = task
     scene.collection.children.link(root)
     make_active(scene, root)
     return root

@@ -3,7 +3,8 @@
 In a shot's scene it gives the shot's frame range, where it sits in the cut, and who's
 cast in it, with Back to Cut. Follow the cut (Blender's Sync Scene Time) makes the scene on
 show follow the playhead through the cut, so scrubbing the cut shows each shot in the 3D
-viewport. Add Shot and Omit Shot sit below. It only shows in a sequence's layout workfile.
+viewport. In a layout file, Add Shot and Omit Shot sit below. It shows in any file with a
+cut: layout's or animation's.
 """
 
 from __future__ import annotations
@@ -65,9 +66,10 @@ class ShotPanel:
             cast = [entry.instance_id or entry.asset for entry in instances.casting(scene)]
             pair(box, "Cast", ", ".join(cast) if cast else "nobody yet")
             box.operator("pipeline.back_to_cut", icon="SEQUENCE")
-        row = box.row(align=True)
-        row.operator("pipeline.add_shot", icon="ADD")
-        row.operator("pipeline.omit_shot", icon="REMOVE")
+        if layout.cut_task() == layout.LAYOUT:  # Animation takes its shots from layout.
+            row = box.row(align=True)
+            row.operator("pipeline.add_shot", icon="ADD")
+            row.operator("pipeline.omit_shot", icon="REMOVE")
 
 
 CLASSES = both_sidebars(ShotPanel, "shot")

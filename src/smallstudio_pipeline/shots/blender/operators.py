@@ -18,7 +18,7 @@ from __future__ import annotations
 import bpy
 
 from ...common.errors import PipelineError
-from ...interface.common import has_project, in_layout_workfile
+from ...interface.common import has_project, in_cut_file, in_layout_workfile
 from ...project.blender import nodes
 from ...project.core.entities import Sequence
 from ...project.core.project import Project
@@ -123,7 +123,7 @@ class PIPELINE_OT_back_to_cut(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context: bpy.types.Context) -> bool:
-        return in_layout_workfile(cls)
+        return in_cut_file(cls)
 
     def execute(self, context: bpy.types.Context) -> set[str]:
         try:

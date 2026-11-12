@@ -31,13 +31,16 @@ from ...project.core.entities import Sequence, Shot
 from ...project.core.metadata import CastEntry
 from ..core.layout import ShotCut
 
-LAYOUT = "layout"  # The task whose publishes hold the cut.
+LAYOUT = nodes.LAYOUT  # The task whose publishes hold the cut.
 NEW_SHOT_LENGTH = 48  # Frames: two seconds at 24 fps.
 CHANNEL = 1
 
 
-def start_cut(scene: bpy.types.Scene, sequence: Sequence) -> bpy.types.Collection:
-    """Make a scene the sequence's master: its node, an empty cut, the project's settings."""
+def start_cut(
+    scene: bpy.types.Scene, sequence: Sequence, task: str = LAYOUT
+) -> bpy.types.Collection:
+    """Make a scene the sequence's master for a task (layout or anim): its node, an empty
+    cut, the project's settings."""
     scene.name = sequence.name
     scene.sequence_editor_create()
     scene.frame_start = scene.frame_end = 1
@@ -45,7 +48,7 @@ def start_cut(scene: bpy.types.Scene, sequence: Sequence) -> bpy.types.Collectio
     scene.render.fps, scene.render.fps_base = config.fps, 1.0
     scene.render.resolution_x, scene.render.resolution_y = config.resolution
     scene.render.resolution_percentage = 100
-    root = nodes.create_node(scene, sequence.name, SEQUENCE, sequence.name)
+    root = nodes.create_node(scene, sequence.name, SEQUENCE, sequence.name, task)
     show_cut_in_sequencer(scene)
     return root
 
@@ -75,6 +78,15 @@ def master_scene() -> bpy.types.Scene:
 def has_cut() -> bool:
     """Whether the open file holds a sequence's node, and so its cut."""
     return any(nodes.sequence_node(scene) is not None for scene in bpy.data.scenes)
+
+
+def cut_task() -> str:
+    """The task the open file's cut is for, layout or anim, or "" with no cut."""
+    for scene in bpy.data.scenes:
+        node = nodes.sequence_node(scene)
+        if node is not None:
+            return node.task
+    return ""
 
 
 def shot_strips(master: bpy.types.Scene) -> list[bpy.types.SceneStrip]:
@@ -108,9 +120,7 @@ def add_shot(sequence: Sequence, master: bpy.types.Scene, frame: int) -> Shot:
         strip.content_start += NEW_SHOT_LENGTH
 
     scene = new_shot_scene(shot, master)
-    new = master.sequence_editor.strips.new_scene(shot.name, scene, CHANNEL, start)
-    strip = cast(bpy.types.SceneStrip, new)
-    strip.scene_camera = scene.camera
+    strip = add_strip(master, scene, start)
     for other in master.sequence_editor.strips:  # Select the new shot, as clicking it would.
         other.select = False
     strip.select = True
@@ -122,21 +132,34 @@ def add_shot(sequence: Sequence, master: bpy.types.Scene, frame: int) -> Shot:
 
 def new_shot_scene(shot: Shot, master: bpy.types.Scene) -> bpy.types.Scene:
     """A scene for the shot, with a camera, taking the master's frame rate and resolution."""
-    scene = bpy.data.scenes.new(shot.name)
+    scene = shot_scene(shot.name, master)
     scene.frame_start = shot.project.config.shot_start
     scene.frame_end = scene.frame_start + NEW_SHOT_LENGTH - 1
-    scene.render.fps, scene.render.fps_base = master.render.fps, master.render.fps_base
-    scene.render.resolution_x = master.render.resolution_x
-    scene.render.resolution_y = master.render.resolution_y
-    scene.render.resolution_percentage = master.render.resolution_percentage
-
-    root = nodes.create_node(scene, shot.name, SHOT, shot.name)
+    root = nodes.create_node(scene, shot.name, SHOT, shot.name, LAYOUT)
     camera = bpy.data.objects.new(f"{shot.name}_cam", bpy.data.cameras.new(f"{shot.name}_cam"))
     camera.location = (0.0, -12.0, 2.0)
     camera.rotation_euler = (math.radians(85), 0.0, 0.0)
     root.objects.link(camera)
     scene.camera = camera
     return scene
+
+
+def shot_scene(name: str, master: bpy.types.Scene) -> bpy.types.Scene:
+    """A new scene taking the master's frame rate and resolution."""
+    scene = bpy.data.scenes.new(name)
+    scene.render.fps, scene.render.fps_base = master.render.fps, master.render.fps_base
+    scene.render.resolution_x = master.render.resolution_x
+    scene.render.resolution_y = master.render.resolution_y
+    scene.render.resolution_percentage = master.render.resolution_percentage
+    return scene
+
+
+def add_strip(master: bpy.types.Scene, scene: bpy.types.Scene, frame: int) -> bpy.types.SceneStrip:
+    """A strip in the cut showing a shot's scene, through its camera, starting at frame."""
+    new = master.sequence_editor.strips.new_scene(scene.name, scene, CHANNEL, frame)
+    strip = cast(bpy.types.SceneStrip, new)
+    strip.scene_camera = scene.camera
+    return strip
 
 
 def shot_number(code: str) -> str:

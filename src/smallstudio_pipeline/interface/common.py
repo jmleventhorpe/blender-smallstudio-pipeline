@@ -1,7 +1,8 @@
 """Pieces the pipeline's operators share.
 
 has_project() greys an operator out, with the reason as its tooltip, when there's no
-project. UnsavedChanges asks what to do with the open file's unsaved changes before an
+project; in_cut_file() and in_layout_workfile() when the file has no cut, or no layout
+cut. UnsavedChanges asks what to do with the open file's unsaved changes before an
 operator replaces that file.
 """
 
@@ -30,10 +31,20 @@ def has_project(operator_class: Any) -> bool:
     return True
 
 
-def in_layout_workfile(operator_class: Any) -> bool:
+def in_cut_file(operator_class: Any) -> bool:
     """Poll check: only in a file holding a sequence's node, and so its cut."""
     if not layout.has_cut():
         operator_class.poll_message_set("This file has no sequence node. Make one with New Node.")
+        return False
+    return True
+
+
+def in_layout_workfile(operator_class: Any) -> bool:
+    """Poll check: only in a file holding a sequence's layout cut, where shots are made."""
+    if not in_cut_file(operator_class):
+        return False
+    if layout.cut_task() != layout.LAYOUT:
+        operator_class.poll_message_set("Shots are added and omitted in the layout file.")
         return False
     return True
 
