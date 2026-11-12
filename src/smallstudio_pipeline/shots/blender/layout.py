@@ -77,7 +77,7 @@ def master_scene() -> bpy.types.Scene:
 
 def has_cut() -> bool:
     """Whether the open file holds a sequence's node, and so its cut."""
-    return any(nodes.sequence_node(scene) is not None for scene in bpy.data.scenes)
+    return cut_task() != ""
 
 
 def cut_task() -> str:

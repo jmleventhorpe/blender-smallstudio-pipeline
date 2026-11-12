@@ -122,7 +122,7 @@ def test_check_shows_what_an_asset_publish_would_write(project):
         "hero_model v002",
     )
     assert "Replaces hero_model.blend (v001)" in preview.facts
-    assert "Root hero: 1 object" in preview.facts
+    assert "Node hero: 1 object" in preview.facts
     shown = draw(PublishPanel)
     assert "hero_model v002" in shown and "Checks pass" in shown
 

@@ -24,10 +24,9 @@ from ...common.errors import PipelineError
 from ...loading.blender import libraries
 from ...project.blender import nodes
 from ...project.blender.identity import SHOT
+from ...project.blender.nodes import ANIM
 from ...project.core.entities import Sequence, Shot
 from ...shots.blender import layout
-
-ANIM = nodes.ANIM
 
 
 def build_animation(master: bpy.types.Scene, sequence: Sequence) -> bpy.types.Collection:

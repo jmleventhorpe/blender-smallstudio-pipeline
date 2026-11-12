@@ -120,7 +120,7 @@ def _asset(project: Project, chosen: Node) -> tuple[Preview, list]:
     else:
         preview.facts.append(f"Replaces {plan.hero.name} (v{latest:0{padding}d})")
     count = len(root.all_objects)
-    preview.facts.append(f"Root {root.name}: {count} object{'s' if count != 1 else ''}")
+    preview.facts.append(f"Node {root.name}: {count} object{'s' if count != 1 else ''}")
     model = builds_on_hero(asset, task)
     if model is not None:
         upstream = hero_record(asset, project.config.tasks[task].builds_on or "")
