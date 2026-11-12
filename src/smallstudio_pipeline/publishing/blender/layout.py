@@ -3,8 +3,9 @@
 A layout publish is a Save Copy of the layout workfile, every scene included, since
 bpy.data.libraries.write can't write scenes (spike T13): the versioned file, and the
 hero through a temp file and a rename. The cut goes into each shot's metadata
-(shots/core/layout.py). Checks run once per shot, on its scene, with the facts the shot checks
-need in each subject's extras (see publishing/checks/blender/pipeline.py).
+(shots/core/layout.py). Checks run once per shot, on its scene, with the facts the shot
+checks need in each subject's extras (see publishing/checks/blender/pipeline.py).
+Animation publishes (animation.py) share the per-shot subjects and dependencies.
 """
 
 from __future__ import annotations
@@ -24,26 +25,29 @@ from ...shots.blender import layout
 from ..core.publishing import Dependency, PublishPlan
 
 
-def shot_subjects(master: bpy.types.Scene, project: Project) -> list[tuple[str, Subject]]:
-    """What the checks validate: each shot in the cut, by its code."""
+def shot_subjects(
+    master: bpy.types.Scene, project: Project, task: str = layout.LAYOUT
+) -> list[tuple[str, Subject]]:
+    """What the checks validate: each shot in the cut, by its code. For animation, each
+    also carries the cast layout last published, to check against."""
     known = {asset.name for asset in project.assets()}
     subjects = []
     for strip in layout.shot_strips(master):
         scene, code = strip.scene, layout.strip_shot(strip)
         assert scene is not None  # shot_strips only returns strips showing a shot.
         found = instances.instances(scene)
+        extras = {
+            "entity_kind": "shot",
+            "shot": code,
+            "scene": scene,
+            "instances": [(instance.holder, instance.asset) for instance in found],
+            "known_assets": known,
+        }
+        if task != layout.LAYOUT:
+            cast = project.shot(code).metadata.casting
+            extras["layout_cast"] = [(entry.asset, entry.instance_id) for entry in cast]
         subject = Subject(
-            name=code,
-            asset_type=None,
-            task=layout.LAYOUT,
-            root=scene.collection,
-            extras={
-                "entity_kind": "shot",
-                "shot": code,
-                "scene": scene,
-                "instances": [(instance.holder, instance.asset) for instance in found],
-                "known_assets": known,
-            },
+            name=code, asset_type=None, task=task, root=scene.collection, extras=extras
         )
         subjects.append((code, subject))
     return subjects

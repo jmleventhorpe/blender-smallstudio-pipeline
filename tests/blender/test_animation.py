@@ -2,12 +2,14 @@
 
 import bpy
 import pytest
-from conftest import make_cut, place, publish_model
+from conftest import library_load, make_cut, place, publish_model
 
 from smallstudio_pipeline.loading.blender import instances
 from smallstudio_pipeline.project.blender import nodes
 from smallstudio_pipeline.project.blender.identity import TASK
 from smallstudio_pipeline.project.core.metadata import CastEntry
+from smallstudio_pipeline.publishing.blender import results, review
+from smallstudio_pipeline.publishing.core.publishing import read_record
 from smallstudio_pipeline.shots.blender import layout
 
 
@@ -80,8 +82,6 @@ def test_animation_takes_its_shots_from_layout(project, published):
     animation_file()
     assert not bpy.ops.pipeline.add_shot.poll()
     assert bpy.ops.pipeline.back_to_cut.poll()
-    with pytest.raises(RuntimeError, match="Animation can't be published yet"):
-        bpy.ops.pipeline.publish()
 
 
 def test_a_layout_cut_and_its_shots_say_theyre_layouts(project):
@@ -196,3 +196,57 @@ def test_animate_keys_on_top_of_layouts_blocking(project, blocked):
     assert x_at(body_in(scene), scene, 120) == 10.0  # The animator's keys survive...
     assert x_at(body_in(scene), scene, 148) == 4.0  # ...and it no longer follows layout.
     assert scene.camera is not None and x_at(scene.camera, scene, 148) == 3.0  # Not animated.
+
+
+def test_animation_publishes_each_shots_node_for_lighting(project, blocked):
+    sequence = project.sequence("010_010")
+    animation_file()
+    scene = bpy.data.scenes["010_010_0010"]
+    body = body_in(scene)
+    view_layer = scene.view_layers[0]
+    # The stubs miss temp_override's context-manager methods.
+    with bpy.context.temp_override(
+        scene=scene, view_layer=view_layer, active_object=body, selected_objects=[body]
+    ):  # pyright: ignore[reportGeneralTypeIssues]
+        bpy.ops.pipeline.animate()
+    key_x(body, {120: 10})
+    master = layout.master_scene()
+    nodes.make_active(master, nodes.sequence_node(master).root)  # pyright: ignore[reportOptionalMemberAccess]
+    assert bpy.ops.pipeline.publish() == {"FINISHED"}
+    assert results.last is not None and results.last.published == "010_010_anim v001"
+
+    hero = sequence.hero_path("anim")
+    assert hero.is_file() and sequence.publish_path("anim", 1).is_file()
+    record = read_record(hero.with_suffix(".json"))
+    assert (record.entity, record.task) == ("010_010", "anim")
+    assert record.checks["010_010_0010/CastMatchesLayout"] == "passed"
+    with library_load(hero) as (data_from, _):
+        assert "010_010_0010.anim" in data_from.collections  # With what's nested in it.
+
+    bpy.ops.wm.read_homefile(use_empty=True)  # Lighting links a shot's animation.
+    with library_load(hero, link=True) as (_, data_to):
+        data_to.collections = ["010_010_0010.anim"]
+    (linked,) = data_to.collections
+    scene = bpy.context.scene
+    scene.collection.children.link(linked)
+    body = next(o for o in linked.all_objects if o.type == "MESH")
+    assert x_at(body, scene, 120) == 10.0 and x_at(body, scene, 148) == 4.0
+
+
+def test_a_cast_layout_didnt_publish_is_a_warning(project, published):
+    animation_file()
+    scene = bpy.data.scenes["010_010_0010"]
+    place(project, scene, "hero")  # Into the animation node: hero_02.
+    master = layout.master_scene()
+    nodes.make_active(master, nodes.sequence_node(master).root)  # pyright: ignore[reportOptionalMemberAccess]
+    assert bpy.ops.pipeline.publish() == {"FINISHED"}  # Warned, not blocked.
+    assert results.last is not None
+    assert results.last.statuses()["010_010_0010/CastMatchesLayout"] == "warning"
+
+
+def test_check_shows_what_an_animation_publish_would_write(project, published):
+    animation_file()
+    assert bpy.ops.pipeline.check_publish() == {"FINISHED"}
+    assert review.current is not None
+    assert (review.current.title, review.current.writes) == ("010_010 · anim", "010_010_anim v001")
+    assert [row.shot for row in review.current.shots] == ["0010", "0020"]

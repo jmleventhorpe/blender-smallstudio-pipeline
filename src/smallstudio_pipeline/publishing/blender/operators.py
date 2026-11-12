@@ -6,8 +6,10 @@ In an asset's own workfile, a task that builds on another (a rig) first takes th
 publish's materials, and the file is saved. Inside another asset's file, the asset is
 moved into its own space, saved as its next workfile, published and linked back. In a
 sequence's layout workfile, each shot is checked, the whole file is published, and the
-cut (frame ranges, cut points, casting) goes into each shot's metadata. Everything is
-checked with publish-validator first; a blocked publish lists its problems in the sidebar.
+cut (frame ranges, cut points, casting) goes into each shot's metadata. In its animation
+workfile, each shot is checked (its cast against layout's too) and each shot's animation
+node is published. Everything is checked with publish-validator first; a blocked publish
+lists its problems in the sidebar.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ from publish_validator import Subject, Validator
 from ...common.errors import PipelineError
 from ...interface.common import has_project
 from ...loading.blender import editable
-from ...project.blender.nodes import Node, current_node, node_sequence
+from ...project.blender.nodes import ANIM, Node, current_node, node_sequence
 from ...project.core.entities import Sequence
 from ...project.core.project import Project
 from ...session import state
@@ -36,6 +38,7 @@ from ..core.publishing import (
     publish_target,
     write_records,
 )
+from . import animation as animation_publish
 from . import in_context, results, review
 from . import layout as layout_publish
 from .assets import dependencies, placements, write_publish
@@ -44,9 +47,6 @@ from .validation import subject_for, validator_for
 
 Collection = bpy.types.Collection
 Context = bpy.types.Context
-
-
-NOT_YET = "Animation can't be published yet."
 
 
 class PIPELINE_OT_publish(bpy.types.Operator):
@@ -75,8 +75,8 @@ class PIPELINE_OT_publish(bpy.types.Operator):
             chosen = current_node(context)
             if chosen.kind == "asset":
                 published = self.publish_asset(context, project, chosen)
-            elif chosen.task != layout.LAYOUT:
-                raise PipelineError(NOT_YET)
+            elif chosen.task == ANIM:
+                published = self.publish_animation(context, node_sequence(project, chosen))
             else:
                 published = self.publish_layout(context, node_sequence(project, chosen))
         except PipelineError as error:
@@ -143,6 +143,32 @@ class PIPELINE_OT_publish(bpy.types.Operator):
         last.published = plan.label
         results.redraw()
         return f"{plan.label} ({changes.summary})"
+
+    def publish_animation(self, context: Context, sequence: Sequence) -> str | None:
+        """Publish the sequence's animation: each shot's animation node, for lighting."""
+        project = sequence.project
+        master = layout.master_scene()
+        # Save first: saving numbers new instances, and the record's source is this file.
+        workfiles.save_changes()
+        subjects = layout_publish.shot_subjects(master, project, ANIM)
+        last = self.run_checks(context, validator_for(project), subjects)
+        if last is None:
+            return None
+        plan = plan_publish(sequence, ANIM)
+        animation_publish.write_animation(plan, animation_publish.shot_roots(master))
+        record = new_record(
+            plan,
+            source=Path(bpy.data.filepath),
+            blender=bpy.app.version_string,
+            object_names=[],
+            dependencies=layout_publish.dependencies(project),
+            checks=last.statuses(),
+        )
+        write_records(plan, record)
+        last.published = plan.label
+        results.redraw()
+        shots = len(subjects)
+        return f"{plan.label} ({shots} shot{'s' if shots != 1 else ''})"
 
     def check_asset(
         self, context: Context, root: Collection, target: PublishTarget

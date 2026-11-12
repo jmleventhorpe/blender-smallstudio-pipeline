@@ -22,6 +22,8 @@ All notable changes to this project are listed here. The format follows
 
 ### Added
 
+- Animation publishes: each shot's animation node, written for lighting to link, with
+  the shot checks and a warning where a shot's cast differs from layout's.
 - Animate: in an animation file, gives the selection its own copy of layout's keys, so
   it can be keyed on top of its blocking.
 - New Node › Animation builds a sequence's animation file from its layout publish: the

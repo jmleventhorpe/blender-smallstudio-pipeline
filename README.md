@@ -107,8 +107,10 @@ dressed set are layout's, not copies, so a republished layout comes through on o
 for anything not changed here. Shots are added and omitted in layout. A character layout
 left linked can be overridden here to animate it. What layout keyed (blocking, a camera
 move) plays layout's keys; Animate gives the selection (a whole character) its own copy
-to key on top, after which it no longer follows layout's keys. Publishing animation comes
-next.
+to key on top, after which it no longer follows layout's keys. Publishing (from the
+sequence's or any shot's animation node) checks each shot, warns where its cast differs
+from layout's, and writes each shot's animation node into the sequence's animation
+publish, for lighting to link.
 
 A project can tune the checks with a `validation.toml` beside its `pipeline.toml`, and add
 its own checks in a `checks/` folder there (see

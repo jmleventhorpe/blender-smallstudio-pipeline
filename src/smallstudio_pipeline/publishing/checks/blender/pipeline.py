@@ -10,12 +10,13 @@ the subject's extras. An asset publish has one subject, its root collection:
     previous            {"version": 3, "label": "v003", "object_names": [...]} for the last
                         publish, or None
 
-A layout publish has a subject per shot, its scene's collection:
+A layout or animation publish has a subject per shot, its scene's collection:
 
     entity_kind         "shot"
     shot, scene         the shot's code, and its scene
     instances           [(what holds the instance ID, asset name)] standing in the shot
     known_assets        the names of the project's assets
+    layout_cast         animation only: [(asset, instance ID)] layout last published
 """
 
 import re
@@ -195,6 +196,31 @@ class KnownAssets(ShotCheck):
         for holder, asset in ctx.subject.extras["instances"]:
             if asset not in known:
                 yield self.issue(f"{holder.name} is {asset}, which isn't an asset here", holder)
+
+
+class CastMatchesLayout(ShotCheck):
+    """In animation, a shot's cast should be the one layout published.
+
+    Layout decides who's in a shot; lighting and the edit read the cast layout recorded.
+    Add or remove a character in layout and publish it, and the animation file follows.
+    """
+
+    severity = WARNING
+
+    @classmethod
+    def applies_to(cls, host_name, subject):
+        return "layout_cast" in subject.extras and super().applies_to(host_name, subject)
+
+    def validate(self, ctx):
+        wanted = {instance_id for _asset, instance_id in ctx.subject.extras["layout_cast"]}
+        here = {}
+        for holder, _asset in ctx.subject.extras["instances"]:
+            here[holder.get(INSTANCE_ID, "")] = holder
+        for instance_id, holder in sorted(here.items()):
+            if instance_id and instance_id not in wanted:
+                yield self.issue(f"{instance_id} isn't in layout's cast for this shot", holder)
+        for instance_id in sorted(wanted - set(here)):
+            yield self.issue(f"{instance_id} is in layout's cast but not here")
 
 
 def _instance_number(asset, instance_id):

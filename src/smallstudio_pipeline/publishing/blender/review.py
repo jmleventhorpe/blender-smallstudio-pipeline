@@ -9,7 +9,7 @@ For an asset: which asset and task, the version it becomes, the hero it replaces
 objects, where a rig's materials come from, and whether it's published from inside
 another asset's file. For a layout: the version, and each shot's frames, cut, cast and
 what changed since the last publish (shots/core/layout.changes_since), with the shots
-it would omit.
+it would omit. For animation: the version, and each shot's frames, cut and cast.
 """
 
 from __future__ import annotations
@@ -18,7 +18,6 @@ from dataclasses import dataclass, field
 
 import bpy
 
-from ...common.errors import PipelineError
 from ...interface.panels import DASH
 from ...loading.blender import instances
 from ...loading.blender.editable import placement_of
@@ -86,14 +85,11 @@ def review(context: bpy.types.Context, project: Project, file: FileContext) -> r
     """Work out what Publish would write and run its checks, keeping both for the panel."""
     global current
     chosen = current_node(context)
-    if chosen.kind != "asset" and chosen.task != layout.LAYOUT:
-        raise PipelineError("Animation can't be checked yet.")
     if chosen.kind == "asset":
         current, subjects = _asset(project, chosen)
     else:
         sequence = node_sequence(project, chosen)
-        shot = node_shot(chosen)
-        current, subjects = _layout(project, sequence, shot)
+        current, subjects = _cut(project, sequence, node_shot(chosen), chosen.task)
     validator = validator_for(project)
     if chosen.kind == "asset":
         with in_context.in_asset_space(chosen.root, context.view_layer):  # As it would publish.
@@ -135,14 +131,16 @@ def _asset(project: Project, chosen: Node) -> tuple[Preview, list]:
     return preview, [("", subject_for(root, target))]
 
 
-def _layout(project: Project, sequence: Sequence, shot: str) -> tuple[Preview, list]:
+def _cut(project: Project, sequence: Sequence, shot: str, task: str) -> tuple[Preview, list]:
+    """A layout or animation publish: a row per shot. For layout, what changed since the
+    last layout publish, and the shots it would omit."""
     master = layout.master_scene()
     for scene in bpy.data.scenes:  # As saving before a publish would, so IDs are checked.
         instances.number_instances(scene)
     cuts = layout.cut(master, layout_publish.casting_by_shot(master))
-    changes, omitted = changes_since(sequence, cuts)
-    plan = plan_publish(sequence, layout.LAYOUT)
-    preview = Preview(f"{sequence.name} · {layout.LAYOUT}", plan.label)
+    changes, omitted = changes_since(sequence, cuts) if task == layout.LAYOUT else ({}, [])
+    plan = plan_publish(sequence, task)
+    preview = Preview(f"{sequence.name} · {task}", plan.label)
     preview.facts.append(f"{len(cuts)} shot{'s' if len(cuts) != 1 else ''} in the cut")
     for cut in cuts:
         preview.shots.append(
@@ -157,4 +155,4 @@ def _layout(project: Project, sequence: Sequence, shot: str) -> tuple[Preview, l
     preview.omitted = [layout.shot_number(code) for code in omitted]
     preview.shots.sort(key=lambda row: row.shot != shot)  # The chosen shot first.
     preview.highlight = shot
-    return preview, layout_publish.shot_subjects(master, project)
+    return preview, layout_publish.shot_subjects(master, project, task)
