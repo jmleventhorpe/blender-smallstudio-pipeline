@@ -1,8 +1,8 @@
 """Loading's menu actions: Check Updates, Make Editable, Override and Back to Link.
 
 Pipeline > Check Updates: reload linked publishes that were published again, and say
-which. In an animation file, the cut also follows layout's latest publish (new, retimed
-and omitted shots; see animation/blender/build.py).
+which. In an animation or lighting file, the cut also follows layout's latest publish
+(new, retimed and omitted shots; see shots/blender/follow.py).
 
 Pipeline > Make Editable: swap the selected linked asset for a local copy to edit here,
 in any file. Publishing the copy (with Link Back) links the asset in again; see
@@ -22,8 +22,10 @@ import bpy
 from ...animation.blender import build
 from ...common.errors import PipelineError
 from ...interface.common import has_project
+from ...lighting.blender import build as lighting
+from ...lighting.blender import renders
 from ...project.blender import nodes
-from ...project.blender.nodes import ANIM
+from ...project.blender.nodes import ANIM, LIGHT
 from ...project.core.project import Project
 from ...session import state
 from ...shots.blender import layout
@@ -46,11 +48,23 @@ class PIPELINE_OT_check_updates(bpy.types.Operator):
         assert project is not None  # Checked by poll.
         changes = updates.reload_changed(project)
         said = [change.label for change in changes]
-        if layout.cut_task() == ANIM:  # The cut follows layout's latest publish.
+        task = layout.cut_task()
+        if task in (ANIM, LIGHT):  # The cut follows layout's latest publish.
             master = layout.master_scene()
             node = nodes.sequence_node(master)
             assert node is not None  # master_scene holds one.
-            synced = build.sync_with_layout(master, project.sequence(node.name)).summary
+            sequence = project.sequence(node.name)
+            try:
+                if task == ANIM:
+                    synced = build.sync_with_layout(master, sequence).summary
+                else:
+                    synced = lighting.sync_with_animation(master, sequence).summary
+            except PipelineError as error:
+                self.report({"ERROR"}, str(error))
+                return {"CANCELLED"}
+            file = state.current.context
+            if task == LIGHT and file is not None and file.version:
+                renders.set_render_paths(project, file.version)  # New shots' scenes.
             said += [f"shots {synced}"] if synced else []
         self.report({"INFO"}, f"Updated {', '.join(said)}" if said else "Everything is up to date.")
         return {"FINISHED"}

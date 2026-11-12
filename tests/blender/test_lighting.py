@@ -130,3 +130,52 @@ def test_comp_reads_the_lighting_renders_once_they_exist(project, animated):
     assert (reader.frame_start, reader.frame_offset) == (101, 100)
     written = project.root / "shots/010_010_0010/light/render/v001/comp"
     assert [p.name for p in written.iterdir()] == ["010_010_0010_comp_v001_0101.exr"]
+
+
+def relayout(project, sequence):
+    """In layout: 0010 loses 8 frames, 0020 is omitted, 0015 is added; then publish."""
+    bpy.ops.wm.open_mainfile(filepath=str(sequence.workfile_path("layout", 1)))
+    master = layout.master_scene()
+    first, second = layout.shot_strips(master)
+    first.right_handle_offset = 8
+    layout.omit_shot(second, sequence, master)
+    master.frame_current = 1000
+    layout.add_shot(sequence, master, master.frame_current)
+    publish_cut()
+
+
+def test_check_updates_brings_the_lighting_cut_in_line(project, animated):
+    new_file("light", "LIGHTING")
+    bpy.ops.wm.save_mainfile()
+    relayout(project, animated)
+    bpy.ops.wm.open_mainfile(filepath=str(animated.workfile_path("anim", 1)))
+    bpy.ops.pipeline.check_updates()
+    publish_cut()  # Animation now has 0015 too.
+
+    bpy.ops.wm.open_mainfile(filepath=str(animated.workfile_path("light", 1)))
+    assert bpy.ops.pipeline.check_updates() == {"FINISHED"}
+    strips = layout.shot_strips(layout.master_scene())
+    assert [layout.strip_shot(s) for s in strips] == ["010_010_0010", "010_010_0015"]
+    assert [(s.left_handle, s.right_handle - 1) for s in strips] == [(1, 40), (41, 88)]
+    for name in ("010_010_0010", "010_010_0010.comp"):
+        scene = bpy.data.scenes[name]
+        assert (scene.frame_start, scene.frame_end) == (101, 140)
+    assert "010_010_0020" in bpy.data.scenes  # Omitted: its strip goes, its scenes stay.
+    new = bpy.data.scenes["010_010_0015"]
+    assert new.render.filepath.endswith("010_010_0015_light_v001_")
+    assert bpy.data.scenes["010_010_0015.comp"].render.filepath.endswith("_comp_v001_")
+    assert bpy.data.collections["010_010.lightrig"] in new.collection.children[:]
+    assert len([c for c in bpy.data.collections if c.name.startswith("010_010.lightrig")]) == 1
+
+
+def test_lighting_waits_for_animation_to_catch_up(project, animated):
+    new_file("light", "LIGHTING")
+    bpy.ops.wm.save_mainfile()
+    relayout(project, animated)  # Animation isn't published again: it has no 0015.
+
+    bpy.ops.wm.open_mainfile(filepath=str(animated.workfile_path("light", 1)))
+    with pytest.raises(RuntimeError, match="has no animation for shot 010_010_0015"):
+        bpy.ops.pipeline.check_updates()
+    strips = layout.shot_strips(layout.master_scene())  # The cut is as it was.
+    assert [layout.strip_shot(s) for s in strips] == ["010_010_0010", "010_010_0020"]
+    assert "010_010_0015" not in bpy.data.scenes

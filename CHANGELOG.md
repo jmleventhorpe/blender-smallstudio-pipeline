@@ -25,6 +25,8 @@ All notable changes to this project are listed here. The format follows
 
 ### Added
 
+- Check Updates in a lighting file follows layout's latest publish, as in animation,
+  building new shots from the animation publish.
 - Lighting render paths follow the workfile's version, per shot, and each comp scene
   reads its shot's lighting renders once they exist.
 - New Node › Lighting builds a sequence's lighting file from its animation publish: the

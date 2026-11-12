@@ -124,8 +124,9 @@ Each shot also gets a comp scene (`010_010_0010.comp`) that runs its renders thr
 sequence's comp group (`010_010.comp`). Lighting scenes start on Cycles, writing a
 multilayer EXR per frame with the common passes; change them from there. Each shot
 renders to `shots/{shot}/light/render/v###/` for the workfile's version (comp to `comp/`
-inside it), and its comp scene picks up those renders once they exist. Lighting doesn't
-publish: it renders.
+inside it), and its comp scene picks up those renders once they exist. Check Updates
+keeps the cut in line with layout, as in animation; a shot animation hasn't published yet
+waits until it has. Lighting doesn't publish: it renders.
 
 A project can tune the checks with a `validation.toml` beside its `pipeline.toml`, and add
 its own checks in a `checks/` folder there (see
