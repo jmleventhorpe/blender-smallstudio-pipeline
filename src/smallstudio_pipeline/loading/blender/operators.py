@@ -1,7 +1,8 @@
 """Loading's menu actions: Check Updates, Make Editable, Override and Back to Link.
 
 Pipeline > Check Updates: reload linked publishes that were published again, and say
-which.
+which. In an animation file, the cut also follows layout's latest publish (new, retimed
+and omitted shots; see animation/blender/build.py).
 
 Pipeline > Make Editable: swap the selected linked asset for a local copy to edit here,
 in any file. Publishing the copy (with Link Back) links the asset in again; see
@@ -18,11 +19,14 @@ from __future__ import annotations
 
 import bpy
 
+from ...animation.blender import build
 from ...common.errors import PipelineError
 from ...interface.common import has_project
 from ...project.blender import nodes
+from ...project.blender.nodes import ANIM
 from ...project.core.project import Project
 from ...session import state
+from ...shots.blender import layout
 from . import editable, instances, updates
 
 
@@ -41,10 +45,14 @@ class PIPELINE_OT_check_updates(bpy.types.Operator):
         project = state.current.project
         assert project is not None  # Checked by poll.
         changes = updates.reload_changed(project)
-        if changes:
-            self.report({"INFO"}, "Updated " + ", ".join(change.label for change in changes))
-        else:
-            self.report({"INFO"}, "Everything is up to date.")
+        said = [change.label for change in changes]
+        if layout.cut_task() == ANIM:  # The cut follows layout's latest publish.
+            master = layout.master_scene()
+            node = nodes.sequence_node(master)
+            assert node is not None  # master_scene holds one.
+            synced = build.sync_with_layout(master, project.sequence(node.name)).summary
+            said += [f"shots {synced}"] if synced else []
+        self.report({"INFO"}, f"Updated {', '.join(said)}" if said else "Everything is up to date.")
         return {"FINISHED"}
 
 

@@ -250,3 +250,39 @@ def test_check_shows_what_an_animation_publish_would_write(project, published):
     assert review.current is not None
     assert (review.current.title, review.current.writes) == ("010_010 · anim", "010_010_anim v001")
     assert [row.shot for row in review.current.shots] == ["0010", "0020"]
+
+
+def test_check_updates_brings_the_cut_in_line_with_layout(project, published):
+    layout_file = bpy.data.filepath
+    animation_file()
+    kept = bpy.data.objects.new("animators_prop", None)  # Work in a shot that stays.
+    nodes.shot_node(bpy.data.scenes["010_010_0010"]).root.objects.link(kept)  # pyright: ignore[reportOptionalMemberAccess]
+    bpy.ops.wm.save_mainfile()
+    animation = bpy.data.filepath
+
+    bpy.ops.wm.open_mainfile(filepath=layout_file)  # Layout adds, retimes and omits.
+    master = layout.master_scene()
+    sequence = project.sequence("010_010")
+    first, second = layout.shot_strips(master)
+    first.right_handle_offset = 8  # 0010 loses 8 frames off its tail.
+    layout.omit_shot(second, sequence, master)
+    master.frame_current = 1000
+    layout.add_shot(sequence, master, master.frame_current)  # 0015: after 0010, before 0020.
+    nodes.make_active(master, nodes.sequence_node(master).root)  # pyright: ignore[reportOptionalMemberAccess]
+    assert bpy.ops.pipeline.publish() == {"FINISHED"}
+
+    bpy.ops.wm.open_mainfile(filepath=animation)
+    assert bpy.ops.pipeline.check_updates() == {"FINISHED"}
+    master = layout.master_scene()
+    strips = layout.shot_strips(master)
+    assert [layout.strip_shot(s) for s in strips] == ["010_010_0010", "010_010_0015"]
+    assert [(s.left_handle, s.right_handle - 1) for s in strips] == [(1, 40), (41, 88)]
+    assert (
+        bpy.data.scenes["010_010_0010"].frame_start,
+        bpy.data.scenes["010_010_0010"].frame_end,
+    ) == (101, 140)
+    assert "010_010_0020" in bpy.data.scenes  # Omitted: its strip goes, its scene stays.
+    assert "animators_prop" in bpy.data.scenes["010_010_0010"].objects
+    shot = nodes.shot_node(bpy.data.scenes["010_010_0015"])
+    assert shot is not None and shot.task == "anim" and shot.root.children
+    assert bpy.ops.pipeline.check_updates() == {"FINISHED"}  # Nothing more to do.

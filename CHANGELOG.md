@@ -22,6 +22,8 @@ All notable changes to this project are listed here. The format follows
 
 ### Added
 
+- Check Updates in an animation file follows layout's latest publish: new, retimed and
+  omitted shots, without touching the work in existing ones.
 - Animation publishes: each shot's animation node, written for lighting to link, with
   the shot checks and a warning where a shot's cast differs from layout's.
 - Animate: in an animation file, gives the selection its own copy of layout's keys, so

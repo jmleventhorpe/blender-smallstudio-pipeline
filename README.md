@@ -104,7 +104,9 @@ version.
 it, and a scene per shot holding its animation node (`010_010_0010.anim`), with the
 shot's node from the layout publish linked and overridden inside. The camera, cast and
 dressed set are layout's, not copies, so a republished layout comes through on opening
-for anything not changed here. Shots are added and omitted in layout. A character layout
+for anything not changed here. Shots are added and omitted in layout; Check Updates
+brings the animation cut in line (new shots get a scene, retimed ones their range and
+place, omitted ones lose their strip but keep their scene). A character layout
 left linked can be overridden here to animate it. What layout keyed (blocking, a camera
 move) plays layout's keys; Animate gives the selection (a whole character) its own copy
 to key on top, after which it no longer follows layout's keys. Publishing (from the

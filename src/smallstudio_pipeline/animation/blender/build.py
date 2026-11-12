@@ -8,11 +8,14 @@ them. Nothing is copied, so a republished layout comes through on opening, for a
 the animator hasn't changed.
 
 Shots come from the shots' metadata, which layout publishes write: those with a frame
-range and a place in the cut, and not omitted.
+range and a place in the cut, and not omitted. sync_with_layout() (Check Updates) brings
+the cut in line with the latest layout publish: new shots get a scene, retimed ones their
+range and place, and omitted ones lose their strip but keep their scene and its work.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import bpy
@@ -49,6 +52,61 @@ def build_animation(master: bpy.types.Scene, sequence: Sequence) -> bpy.types.Co
     layout.fit_master_range(master)
     layout.sync_markers(master, sequence)
     return root
+
+
+@dataclass
+class Sync:
+    """What sync_with_layout() changed, by shot code."""
+
+    added: list[str] = field(default_factory=list)
+    retimed: list[str] = field(default_factory=list)
+    omitted: list[str] = field(default_factory=list)
+
+    @property
+    def summary(self) -> str:
+        """e.g. "added 0030; retimed 0010", or "" if nothing changed."""
+        parts = [
+            f"{label} {', '.join(layout.shot_number(code) for code in codes)}"
+            for label, codes in (
+                ("added", self.added),
+                ("retimed", self.retimed),
+                ("omitted", self.omitted),
+            )
+            if codes
+        ]
+        return "; ".join(parts)
+
+
+def sync_with_layout(master: bpy.types.Scene, sequence: Sequence) -> Sync:
+    """Make the animation cut the latest layout publish's: its shots, ranges and places."""
+    publish = sequence.hero_path(layout.LAYOUT)
+    scenes = {node.name: scene for scene in bpy.data.scenes if (node := nodes.shot_node(scene))}
+    editor = master.sequence_editor
+    assert editor is not None  # A master scene always has one (layout.start_cut).
+    before = {}
+    for strip in layout.shot_strips(master):
+        shown = strip.scene
+        assert shown is not None  # shot_strips only returns strips showing a shot.
+        before[layout.strip_shot(strip)] = (strip.left_handle, shown.frame_start, shown.frame_end)
+        editor.strips.remove(strip)
+
+    sync = Sync()
+    for shot in in_cut(sequence):
+        assert shot.frame_range is not None and shot.metadata.cut_in is not None  # in_cut.
+        scene = scenes.get(shot.name)
+        if scene is None:
+            scene = shot_scene(shot, master, publish)
+            sync.added.append(shot.name)
+        scene.frame_start, scene.frame_end = shot.frame_range
+        layout.add_strip(master, scene, shot.metadata.cut_in)
+        now = (shot.metadata.cut_in, *shot.frame_range)
+        if shot.name in before and before[shot.name] != now:
+            sync.retimed.append(shot.name)
+    kept = {layout.strip_shot(strip) for strip in layout.shot_strips(master)}
+    sync.omitted = sorted(code for code in before if code not in kept)
+    layout.fit_master_range(master)
+    layout.sync_markers(master, sequence)
+    return sync
 
 
 def in_cut(sequence: Sequence) -> list[Shot]:
